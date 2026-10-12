@@ -1,0 +1,9 @@
+{
+  "VALIDATION_ERROR": "Revisa los datos ingresados e inténtalo de nuevo.",
+  "UNAUTHORIZED": "Tu sesión expiró. Inicia sesión de nuevo.",
+  "FORBIDDEN": "No tienes permisos para realizar esta acción.",
+  "NETWORK_ERROR": "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+  "SERVICE_UNAVAILABLE": "El servicio no está disponible en este momento. Inténtalo de nuevo en unos minutos.",
+  "INVALID_SERVER_RESPONSE": "Recibimos una respuesta inesperada del servidor. Inténtalo de nuevo en unos minutos.",
+  "UNKNOWN_ERROR": "Ocurrió un error inesperado. Inténtalo de nuevo."
+}

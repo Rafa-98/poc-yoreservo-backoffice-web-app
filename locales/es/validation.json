@@ -1,0 +1,22 @@
+{
+  "email": {
+    "required": "Ingresa el correo electrónico",
+    "invalid": "Ingresa un correo electrónico válido"
+  },
+  "password": {
+    "required": "Ingresa la contraseña",
+    "weak": "La contraseña no cumple los requisitos",
+    "tooLong": "La contraseña no puede superar los 72 caracteres"
+  },
+  "phone": {
+    "required": "Ingresa el teléfono o WhatsApp",
+    "invalid": "Ingresa un número de teléfono válido"
+  },
+  "name": {
+    "required": "Ingresa el nombre",
+    "tooShort": "El nombre es demasiado corto",
+    "tooLong": "El nombre es demasiado largo"
+  },
+  "required": "Este campo es obligatorio",
+  "invalid": "El valor ingresado no es válido"
+}

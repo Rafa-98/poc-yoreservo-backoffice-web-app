@@ -1,0 +1,20 @@
+{
+  "notFound": {
+    "eyebrow": "Error 404",
+    "title": "Página no encontrada",
+    "description": "La página que buscas no existe o fue movida. Revisa la dirección o vuelve al inicio."
+  },
+  "error": {
+    "title": "Algo salió mal",
+    "description": "Tuvimos un problema inesperado. Puedes intentarlo de nuevo o volver al inicio.",
+    "reference": "Código de referencia: {digest}"
+  },
+  "operational": {
+    "available": "Disponible",
+    "hold": "Pre-reserva",
+    "confirmed": "Confirmada",
+    "completed": "Completada",
+    "cancelled": "Cancelada",
+    "blocked": "Bloqueada"
+  }
+}

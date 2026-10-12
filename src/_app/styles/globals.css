@@ -1,0 +1,350 @@
+@import "tailwindcss";
+
+/*
+ * =============================================================================
+ *  YoReservo Backoffice design system  —  see docs/design-system.md
+ * =============================================================================
+ *  Source of truth: poc-yoreservo-templates/backoffice-ui-designs/STYLE_GUIDE.md
+ *  ("Executive Athletic Precision"): deep forest frame, crisp canvas, and the
+ *  electric lime reserved for primary calls to action and active states.
+ *
+ *  RULES
+ *   1. Never use raw colors in components. Use the semantic tokens below
+ *      (bg-background, text-foreground, bg-accent, border-border,
+ *      bg-status-confirmed-bg ...).
+ *   2. Both themes are defined here and ONLY here. Components must not use
+ *      `dark:` to change colors that a token already covers.
+ *   3. Theme is driven by <html data-theme="light|dark"> (see shared/lib/theme).
+ *   4. Never use structural tokens (`primary`, `sidebar`) as TEXT color: links
+ *      and inline tags use `text-link` (forest in light, lime in dark).
+ * =============================================================================
+ */
+
+/* `dark:` variant follows the data-theme attribute (not the OS directly). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------- Light theme (default): "Daylight Executive Canvas" ---------- */
+:root {
+  color-scheme: only light;
+
+  /* Surfaces & canvas */
+  --background: #f8faf7;
+  --surface: #ffffff;
+  --surface-hover: #f2f5f0;
+  --muted: #ebefe7;
+
+  /* Sidebar & structural frame */
+  --sidebar: #121811;
+  --sidebar-hover: #1d261c;
+  --sidebar-active: #243022;
+  --sidebar-foreground: #a2ada0;
+  --sidebar-foreground-active: #ffffff;
+  --sidebar-border: #1e281d;
+
+  /* Text */
+  --foreground: #141a13;
+  --muted-foreground: #5c6659;
+  --faint-foreground: #8e998b;
+
+  /* Borders */
+  --border: #e2e6df;
+  --border-medium: #cad0c5;
+  --border-strong: #a8b1a2;
+
+  /* Brand */
+  --accent: #c6f23b;
+  --accent-hover: #b5e02e;
+  --accent-foreground: #121811;
+  --primary: #1f290f;
+  --primary-hover: #2c3a16;
+  --primary-foreground: #ffffff;
+  --ring: #6f8f1a;
+
+  /* Interactive text */
+  --link: #183c15;
+  --link-hover: #0f260d;
+
+  /* Operational statuses (bookings, schedules, treasury): bg / text / border */
+  --status-available-bg: #ecfdf5;
+  --status-available-fg: #059669;
+  --status-available-border: #a7f3d0;
+  --status-hold-bg: #fffbeb;
+  --status-hold-fg: #d97706;
+  --status-hold-border: #fde68a;
+  --status-confirmed-bg: #eff6ff;
+  --status-confirmed-fg: #2563eb;
+  --status-confirmed-border: #bfdbfe;
+  --status-completed-bg: #f5f3ff;
+  --status-completed-fg: #7c3aed;
+  --status-completed-border: #ddd6fe;
+  --status-cancelled-bg: #fef2f2;
+  --status-cancelled-fg: #dc2626;
+  --status-cancelled-border: #fecaca;
+  --status-blocked-bg: #f1f5f9;
+  --status-blocked-fg: #475569;
+  --status-blocked-border: #cbd5e1;
+
+  --card-shadow:
+    0 1px 2px rgb(20 26 19 / 0.05), 0 12px 32px -16px rgb(20 26 19 / 0.18);
+}
+
+/* ---------- Dark theme: "Nocturnal Executive Cockpit" ---------- */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: #0b100b;
+  --surface: #131a12;
+  --surface-hover: #1b241a;
+  --muted: #1a2319;
+
+  --sidebar: #080c07;
+  --sidebar-hover: #111810;
+  --sidebar-active: #1a2419;
+  --sidebar-foreground: #8e9a8c;
+  --sidebar-foreground-active: #ffffff;
+  --sidebar-border: #172216;
+
+  --foreground: #f4f6f2;
+  --muted-foreground: #9eaaa8;
+  --faint-foreground: #7e8d7b;
+
+  --border: #202a1f;
+  --border-medium: #2c392b;
+  --border-strong: #3d4d3b;
+
+  --accent: #c6f23b;
+  --accent-hover: #d2f55e;
+  --accent-foreground: #121811;
+  --primary: #1f2d1c;
+  --primary-hover: #2b3d27;
+  --primary-foreground: #ffffff;
+  --ring: #c6f23b;
+
+  --link: #c6f23b;
+  --link-hover: #e2ff80;
+
+  --status-available-bg: rgb(5 150 105 / 0.16);
+  --status-available-fg: #34d399;
+  --status-available-border: rgb(52 211 153 / 0.3);
+  --status-hold-bg: rgb(217 119 6 / 0.16);
+  --status-hold-fg: #fbbf24;
+  --status-hold-border: rgb(251 191 36 / 0.3);
+  --status-confirmed-bg: rgb(37 99 235 / 0.16);
+  --status-confirmed-fg: #60a5fa;
+  --status-confirmed-border: rgb(96 165 250 / 0.3);
+  --status-completed-bg: rgb(124 58 237 / 0.16);
+  --status-completed-fg: #a78bfa;
+  --status-completed-border: rgb(167 139 250 / 0.3);
+  --status-cancelled-bg: rgb(220 38 38 / 0.16);
+  --status-cancelled-fg: #f87171;
+  --status-cancelled-border: rgb(248 113 113 / 0.3);
+  --status-blocked-bg: rgb(100 116 139 / 0.16);
+  --status-blocked-fg: #94a3b8;
+  --status-blocked-border: rgb(148 163 184 / 0.3);
+
+  --card-shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 16px 40px -16px rgb(0 0 0 / 0.7);
+}
+
+/* ---------- Layout metrics (see docs/design-system.md §5) ---------- */
+:root {
+  /* Desktop (>= lg): full executive sidebar. Tablet (md): icon-only rail. */
+  --sidebar-width: 16rem;
+  --sidebar-width-collapsed: 4.5rem;
+}
+
+/* ---------- Tailwind token mapping ---------- */
+@theme inline {
+  --font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display:
+    var(--font-outfit), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-muted: var(--muted);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-foreground-active: var(--sidebar-foreground-active);
+  --color-sidebar-border: var(--sidebar-border);
+
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-faint-foreground: var(--faint-foreground);
+
+  --color-border: var(--border);
+  --color-border-medium: var(--border-medium);
+  --color-border-strong: var(--border-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-ring: var(--ring);
+
+  --color-link: var(--link);
+  --color-link-hover: var(--link-hover);
+
+  /* Feedback (alerts, form errors) reuses the operational status palette. */
+  --color-destructive: var(--status-cancelled-fg);
+  --color-destructive-subtle: var(--status-cancelled-bg);
+  --color-success: var(--status-available-fg);
+  --color-success-subtle: var(--status-available-bg);
+  --color-warning: var(--status-hold-fg);
+  --color-warning-subtle: var(--status-hold-bg);
+
+  --color-status-available-bg: var(--status-available-bg);
+  --color-status-available-fg: var(--status-available-fg);
+  --color-status-available-border: var(--status-available-border);
+  --color-status-hold-bg: var(--status-hold-bg);
+  --color-status-hold-fg: var(--status-hold-fg);
+  --color-status-hold-border: var(--status-hold-border);
+  --color-status-confirmed-bg: var(--status-confirmed-bg);
+  --color-status-confirmed-fg: var(--status-confirmed-fg);
+  --color-status-confirmed-border: var(--status-confirmed-border);
+  --color-status-completed-bg: var(--status-completed-bg);
+  --color-status-completed-fg: var(--status-completed-fg);
+  --color-status-completed-border: var(--status-completed-border);
+  --color-status-cancelled-bg: var(--status-cancelled-bg);
+  --color-status-cancelled-fg: var(--status-cancelled-fg);
+  --color-status-cancelled-border: var(--status-cancelled-border);
+  --color-status-blocked-bg: var(--status-blocked-bg);
+  --color-status-blocked-fg: var(--status-blocked-fg);
+  --color-status-blocked-border: var(--status-blocked-border);
+
+  --shadow-card: var(--card-shadow);
+  --shadow-cta:
+    0 8px 20px -10px color-mix(in oklab, var(--accent) 70%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 0.4);
+  --shadow-cta-hover:
+    0 12px 26px -10px color-mix(in oklab, var(--accent) 85%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 0.5);
+
+  --animate-fade-up: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade-in: fade-in 0.3s ease-out both;
+  --animate-shake: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  /* Flyout drawers (desktop) and bottom sheets (mobile). */
+  --animate-slide-in-right: slide-in-right 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-slide-in-up: slide-in-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes shake {
+    10%,
+    90% {
+      transform: translateX(-1px);
+    }
+    20%,
+    80% {
+      transform: translateX(2px);
+    }
+    30%,
+    50%,
+    70% {
+      transform: translateX(-4px);
+    }
+    40%,
+    60% {
+      transform: translateX(4px);
+    }
+  }
+
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slide-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* ---------- Base styles ---------- */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2 {
+    font-family: var(--font-display);
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--accent) 55%, transparent);
+    color: var(--foreground);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Keep browser autofill consistent with the active theme. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--foreground);
+    caret-color: var(--foreground);
+    box-shadow: 0 0 0 1000px var(--muted) inset;
+    transition: background-color 9999s ease-in-out 0s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

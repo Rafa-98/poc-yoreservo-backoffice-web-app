@@ -1,0 +1,9 @@
+{
+  "VALIDATION_ERROR": "Check the information you entered and try again.",
+  "UNAUTHORIZED": "Your session expired. Please sign in again.",
+  "FORBIDDEN": "You do not have permission to perform this action.",
+  "NETWORK_ERROR": "We couldn't reach the server. Check your connection and try again.",
+  "SERVICE_UNAVAILABLE": "The service is currently unavailable. Please try again in a few minutes.",
+  "INVALID_SERVER_RESPONSE": "We received an unexpected response from the server. Please try again in a few minutes.",
+  "UNKNOWN_ERROR": "An unexpected error occurred. Please try again."
+}

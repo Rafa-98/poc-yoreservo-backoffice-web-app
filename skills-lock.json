@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "feature-sliced-design": {
+      "source": "feature-sliced/skills",
+      "sourceType": "github",
+      "skillPath": "feature-sliced-design/SKILL.md",
+      "computedHash": "e2b86275fffc384951c307f0f6285d11fa9fdfc2a3738581189567a5fc9a1b38"
+    },
+    "nextjs-app-router-patterns": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/frontend-mobile-development/skills/nextjs-app-router-patterns/SKILL.md",
+      "computedHash": "3a46e9093baecb3a85819529ce05006f817663f48d9e872868c32ae6049c0d5c"
+    },
+    "tailwind-design-system": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/frontend-mobile-development/skills/tailwind-design-system/SKILL.md",
+      "computedHash": "9e60f9fad6a645b173f076102b76f67d2dc4a1c0867e26c4bff9b9c7dd7f99cd"
+    },
+    "zod": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/.curated/zod/SKILL.md",
+      "computedHash": "e15dbf6f7f4f81616843cf855cbc984ad301455c7e298d7820c02fb3280e16f3"
+    }
+  }
+}

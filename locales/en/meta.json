@@ -1,0 +1,8 @@
+{
+  "tagline": "Operations control center",
+  "description": "Manage YoReservo's agenda, bookings, payments, venues and settlements from a single console.",
+  "titles": {
+    "home": "Home",
+    "notFound": "Page not found"
+  }
+}

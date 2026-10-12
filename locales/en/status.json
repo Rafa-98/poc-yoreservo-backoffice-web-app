@@ -1,0 +1,20 @@
+{
+  "notFound": {
+    "eyebrow": "Error 404",
+    "title": "Page not found",
+    "description": "The page you're looking for doesn't exist or has been moved. Check the address or go back home."
+  },
+  "error": {
+    "title": "Something went wrong",
+    "description": "We hit an unexpected problem. You can try again or go back home.",
+    "reference": "Reference code: {digest}"
+  },
+  "operational": {
+    "available": "Available",
+    "hold": "Pre-reserved",
+    "confirmed": "Confirmed",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "blocked": "Blocked"
+  }
+}

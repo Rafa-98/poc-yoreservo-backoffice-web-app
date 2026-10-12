@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# YoReservo — Backoffice Web App
 
-## Getting Started
+Operations panel for YoReservo staff (platform admins, venue allies, accounting and validators): agenda, bookings, treasury, venues, users and settlements.
 
-First, run the development server:
+> **Status:** project foundation only (toolchain, design system, i18n, theme, skills, rules). No module is implemented yet; the home page is a placeholder. Module order and screen blueprints: `../poc-yoreservo-templates/backoffice-ui-designs/backoffice_modules.md`.
+
+## Stack
+
+Next.js 16 (App Router) · React 19 · TypeScript (strict) · Tailwind CSS v4 · next-intl · TanStack Query · react-hook-form + zod · lucide-react.
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local   # adjust API_BASE_URL if needed
+npm install
+npm run dev                   # http://localhost:3001
 ```
 
-Open [http://localhost:3001](http://localhost:3001) with your browser to see the result (the dev and start scripts are pinned to port 3001).
+| Script              | Purpose                                      |
+| ------------------- | -------------------------------------------- |
+| `npm run dev`       | Dev server on **port 3001**                  |
+| `npm run build`     | Production build                             |
+| `npm start`         | Production server on port 3001               |
+| `npm run lint`      | ESLint                                       |
+| `npm run typecheck` | Route types + `tsc --noEmit`                 |
+| `npm run i18n:check`| Verifies `es`/`en` locale key parity         |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+See [`.env.example`](.env.example): `API_BASE_URL` (backend, default `http://localhost:4000`), `BUSINESS_TIME_ZONE`, `ASSETS_BASE_URL` (uploaded images host).
 
-## Learn More
+## Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/          routes only
+src/_app/     styles, fonts, providers, layouts
+src/_pages/   screen compositions
+src/features/ user actions
+src/shared/   api, auth, config, i18n, lib, ui
+locales/      es + en copy
+docs/         architecture & design system
+.agents/      rules and skills for AI agents
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Documentation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [Architecture](docs/architecture.md) — FSD layers, module→route map, BFF, roles.
+- [Design system](docs/design-system.md) — tokens, typography, layout, components, i18n and theme.
+- Design source: `../poc-yoreservo-templates/backoffice-ui-designs` (`STYLE_GUIDE.md`, prototypes, `claude_comments.md`).
+- Sibling app: `../poc-yoreservo-client-web-app` (port 3000) shares the same architecture.
 
-## Deploy on Vercel
+## Conventions
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Spanish is the default language, English has full parity (`/locales`). No hardcoded UI text.
+- Semantic color tokens only; light and dark themes are mandatory on every screen.
+- Code, comments and docs are written in English.

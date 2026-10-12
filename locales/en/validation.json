@@ -1,0 +1,22 @@
+{
+  "email": {
+    "required": "Enter the email address",
+    "invalid": "Enter a valid email address"
+  },
+  "password": {
+    "required": "Enter the password",
+    "weak": "The password does not meet the requirements",
+    "tooLong": "The password cannot exceed 72 characters"
+  },
+  "phone": {
+    "required": "Enter the phone or WhatsApp number",
+    "invalid": "Enter a valid phone number"
+  },
+  "name": {
+    "required": "Enter the name",
+    "tooShort": "The name is too short",
+    "tooLong": "The name is too long"
+  },
+  "required": "This field is required",
+  "invalid": "The value entered is not valid"
+}

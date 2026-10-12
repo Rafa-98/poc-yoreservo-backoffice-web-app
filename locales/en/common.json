@@ -1,0 +1,38 @@
+{
+  "language": {
+    "label": "Change language",
+    "es": "Español",
+    "en": "English"
+  },
+  "theme": {
+    "toLight": "Switch to light mode",
+    "toDark": "Switch to dark mode"
+  },
+  "actions": {
+    "retry": "Try again",
+    "goHome": "Go to home",
+    "logout": "Log out",
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save"
+  },
+  "nav": {
+    "label": "Main navigation",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "breadcrumb": "Breadcrumb"
+  },
+  "roles": {
+    "ADMIN": "Platform administrator",
+    "ALLY": "Venue owner (ally)",
+    "ACCOUNTING": "Accounting & treasury",
+    "VALIDATOR": "Validator / Front desk"
+  },
+  "footer": {
+    "copyright": "© {year} YoReservo"
+  },
+  "localized": {
+    "unavailable": "Translation not available"
+  },
+  "errorReference": "Reference code: <code>{reference}</code>"
+}

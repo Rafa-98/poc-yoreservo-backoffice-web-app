@@ -1,0 +1,8 @@
+{
+  "tagline": "Centro de control operativo",
+  "description": "Gestiona agenda, reservas, pagos, recintos y liquidaciones de YoReservo desde un solo panel.",
+  "titles": {
+    "home": "Inicio",
+    "notFound": "Página no encontrada"
+  }
+}

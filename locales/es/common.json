@@ -1,0 +1,38 @@
+{
+  "language": {
+    "label": "Cambiar idioma",
+    "es": "Español",
+    "en": "English"
+  },
+  "theme": {
+    "toLight": "Cambiar a modo claro",
+    "toDark": "Cambiar a modo oscuro"
+  },
+  "actions": {
+    "retry": "Reintentar",
+    "goHome": "Ir al inicio",
+    "logout": "Cerrar sesión",
+    "close": "Cerrar",
+    "cancel": "Cancelar",
+    "save": "Guardar"
+  },
+  "nav": {
+    "label": "Navegación principal",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú",
+    "breadcrumb": "Ruta de navegación"
+  },
+  "roles": {
+    "ADMIN": "Administrador de plataforma",
+    "ALLY": "Aliado propietario",
+    "ACCOUNTING": "Contabilidad y tesorería",
+    "VALIDATOR": "Validador / Recepción"
+  },
+  "footer": {
+    "copyright": "© {year} YoReservo"
+  },
+  "localized": {
+    "unavailable": "Traducción no disponible"
+  },
+  "errorReference": "Código de referencia: <code>{reference}</code>"
+}

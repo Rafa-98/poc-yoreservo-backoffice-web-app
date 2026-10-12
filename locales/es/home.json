@@ -1,0 +1,7 @@
+{
+  "eyebrow": "Backoffice",
+  "title": "Base del proyecto lista",
+  "description": "Configuración global, sistema de diseño, idiomas y tema listos. Los módulos del Backoffice se construirán sobre esta base.",
+  "statusesLabel": "Estados operativos",
+  "primaryAction": "Acción principal"
+}

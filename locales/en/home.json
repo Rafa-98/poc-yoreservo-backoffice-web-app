@@ -1,0 +1,7 @@
+{
+  "eyebrow": "Backoffice",
+  "title": "Project foundation ready",
+  "description": "Global configuration, design system, languages and theme are in place. The Backoffice modules will be built on top of this foundation.",
+  "statusesLabel": "Operational statuses",
+  "primaryAction": "Primary action"
+}
