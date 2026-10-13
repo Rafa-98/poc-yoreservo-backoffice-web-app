@@ -122,26 +122,35 @@ export function ExpressCheckInModal({
           </div>
 
           {/* Feedback Banners */}
+          {/* Feedback Banners */}
           {feedback && (
             <div className="mt-4">
               {feedback.type === "success" ? (
                 <div className="rounded-xl border border-status-available-border bg-status-available-bg p-3.5 text-xs text-status-available-fg flex items-start gap-2.5">
-                  <CheckCircle2 className="size-5 shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="block font-semibold">{feedback.message}</strong>
+                  <CheckCircle2 className="size-5 shrink-0 mt-0.5 text-emerald-500" />
+                  <div className="space-y-1">
+                    <strong className="block text-sm font-bold">{feedback.message}</strong>
                     {feedback.details && (
-                      <span className="mt-0.5 block text-status-available-fg/90">
-                        Cancha: {feedback.details.space?.spaceNumber || "Cancha 1"} • Titular:{" "}
-                        {feedback.details.customerName || "Jugador"}
-                      </span>
+                      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs opacity-95">
+                        <span><strong>Cancha:</strong> {feedback.details.space?.spaceNumber || "Cancha"}</span>
+                        <span><strong>Titular:</strong> {feedback.details.client ? `${feedback.details.client.name} ${feedback.details.client.lastName}` : (feedback.details.customerName || "Jugador")}</span>
+                        <span><strong>Código:</strong> #{feedback.details.shortCode}</span>
+                        <span><strong>Estado:</strong> Entrada Validada (Completada)</span>
+                      </div>
                     )}
                   </div>
                 </div>
               ) : feedback.type === "already" ? (
-                <div className="rounded-xl border border-status-hold-border bg-status-hold-bg p-3.5 text-xs text-status-hold-fg flex items-start gap-2.5">
-                  <CheckCircle2 className="size-5 shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="block font-semibold">{feedback.message}</strong>
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-700 dark:text-amber-300 flex items-start gap-2.5">
+                  <CheckCircle2 className="size-5 shrink-0 mt-0.5 text-amber-500" />
+                  <div className="space-y-1">
+                    <strong className="block text-sm font-bold">{feedback.message}</strong>
+                    {feedback.details && (
+                      <div className="mt-1 text-xs">
+                        <span>Validada previamente el {feedback.details.validatedAt ? new Date(feedback.details.validatedAt).toLocaleTimeString() : "previamente"}.</span>
+                        {feedback.details.space && <span className="ml-2 font-semibold">Cancha: {feedback.details.space.spaceNumber}</span>}
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -163,8 +172,11 @@ export function ExpressCheckInModal({
                 }`}
               />
               <span className="mt-2 text-xs font-semibold text-foreground">
-                {isScanning ? "Escaneando código QR..." : "Cámara de Recepción Activa"}
+                {isScanning ? "Escaneando código QR con lector óptico..." : "Cámara de Recepción & Lector QR"}
               </span>
+              <p className="mt-0.5 text-[11px] text-muted-foreground max-w-xs">
+                Apunta el ticket QR del cliente hacia el lector o ingresa el código de 6 caracteres.
+              </p>
               <button
                 type="button"
                 onClick={handleSimulateScan}
@@ -175,22 +187,36 @@ export function ExpressCheckInModal({
               </button>
             </div>
 
-            {/* Short-Code Input */}
+            {/* Short-Code or QR Hash Input */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Ingresar Código Corto
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Código Corto (#AB4553) o Hash QR
+                </label>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const text = await navigator.clipboard.readText();
+                      if (text) setCode(text.trim());
+                    } catch {}
+                  }}
+                  className="text-[11px] font-semibold text-accent hover:underline"
+                >
+                  Pegar Portapapeles
+                </button>
+              </div>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 font-mono text-sm font-bold text-muted-foreground">
                   #
                 </span>
                 <input
                   type="text"
-                  maxLength={10}
+                  maxLength={64}
                   value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  placeholder={t("qrInputPlaceholder")}
-                  className="w-full rounded-xl border border-border bg-background py-2.5 pl-8 pr-4 font-mono text-base font-bold tracking-widest text-foreground focus:border-accent focus:outline-none"
+                  onChange={(e) => setCode(e.target.value.trim())}
+                  placeholder="Ej. AB4553 o hash QR"
+                  className="w-full rounded-xl border border-border bg-background py-2.5 pl-8 pr-4 font-mono text-sm font-bold tracking-wider text-foreground focus:border-accent focus:outline-none"
                 />
               </div>
             </div>

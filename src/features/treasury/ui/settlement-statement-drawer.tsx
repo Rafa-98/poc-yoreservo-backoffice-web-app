@@ -4,7 +4,10 @@ import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import type { SettlementBatchItem, SettlementItemDetail } from "../model/types";
-import { getSettlementDetailAction } from "../actions/treasury-actions";
+import {
+  exportSettlementBankingFileAction,
+  getSettlementDetailAction,
+} from "../actions/treasury-actions";
 
 interface SettlementStatementDrawerProps {
   isOpen: boolean;
@@ -372,26 +375,126 @@ export function SettlementStatementDrawer({
         </div>
 
         {/* FOOTER */}
-        <div className="border-t border-border bg-muted/40 p-5 flex items-center justify-between">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={onClose}
-          >
-            {t("btnClose")}
-          </Button>
+        <div className="border-t border-border bg-muted/40 p-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground mr-1">
+              Exportar Pago Bancario:
+            </span>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                const res = await exportSettlementBankingFileAction(current.id, "BDV");
+                if (res.ok && res.data) {
+                  const blob = new Blob([res.data.content], { type: res.data.mimeType });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = res.data.filename;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                }
+              }}
+              title="Descargar archivo TXT para nómina / proveedores Banco de Venezuela"
+            >
+              <span>🏛️</span>
+              <span>BDV (TXT)</span>
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                const res = await exportSettlementBankingFileAction(current.id, "BANESCO");
+                if (res.ok && res.data) {
+                  const blob = new Blob([res.data.content], { type: res.data.mimeType });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = res.data.filename;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                }
+              }}
+              title="Descargar CSV Multipagos Banesco"
+            >
+              <span>🟩</span>
+              <span>Banesco (CSV)</span>
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                const res = await exportSettlementBankingFileAction(current.id, "PAGO_MOVIL");
+                if (res.ok && res.data) {
+                  const blob = new Blob([res.data.content], { type: res.data.mimeType });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = res.data.filename;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                }
+              }}
+              title="Descargar CSV Pago Móvil Masivo"
+            >
+              <span>📱</span>
+              <span>Pago Móvil (CSV)</span>
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                const res = await exportSettlementBankingFileAction(current.id, "CSV");
+                if (res.ok && res.data) {
+                  const blob = new Blob([res.data.content], { type: res.data.mimeType });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = res.data.filename;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                }
+              }}
+              title="Descargar planilla detallada de conciliación"
+            >
+              <span>📊</span>
+              <span>Conciliación (CSV)</span>
+            </Button>
+          </div>
 
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={handlePrintPdf}
-            id="btn-print-statement"
-          >
-            <span>🖨️</span>
-            <span>{t("btnPrintPdf")}</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={onClose}
+            >
+              {t("btnClose")}
+            </Button>
+
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={handlePrintPdf}
+              id="btn-print-statement"
+            >
+              <span>🖨️</span>
+              <span>{t("btnPrintPdf")}</span>
+            </Button>
+          </div>
         </div>
       </div>
     </div>

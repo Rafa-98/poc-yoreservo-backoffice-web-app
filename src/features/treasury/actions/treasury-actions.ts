@@ -597,3 +597,80 @@ export async function disburseSettlementAction(
   }
 }
 
+export async function syncBcvExchangeRatesAction(): Promise<
+  ActionResult<{ message: string; usdRate?: number; eurRate?: number }>
+> {
+  try {
+    await requireSession();
+    const accessToken = await getAuthToken();
+
+    const res = await backendRequest("/backoffice/treasury/exchange-rates/sync", {
+      method: "POST",
+      accessToken,
+    });
+
+    if (!res.ok) {
+      return fail("FAILED_TO_SYNC_BCV");
+    }
+
+    revalidatePath(ROUTES.exchangeRate);
+    return ok(res.body as any);
+  } catch (e) {
+    console.error("[treasury] syncBcvExchangeRatesAction failed:", e);
+    return fail("SERVICE_UNAVAILABLE");
+  }
+}
+
+export async function generateSettlementBatchAction(input: {
+  organizationId: string;
+  periodStartDate: string;
+  periodEndDate: string;
+  venueId?: string;
+}): Promise<ActionResult<any>> {
+  try {
+    await requireSession();
+    const accessToken = await getAuthToken();
+
+    const res = await backendRequest("/backoffice/settlements/generate", {
+      method: "POST",
+      accessToken,
+      body: input,
+    });
+
+    if (!res.ok) {
+      const msg = (res.body as any)?.message ?? "FAILED_TO_GENERATE_BATCH";
+      return fail(msg);
+    }
+
+    revalidatePath(ROUTES.settlements);
+    return ok(res.body);
+  } catch (e) {
+    console.error("[settlements] generateSettlementBatchAction failed:", e);
+    return fail("SERVICE_UNAVAILABLE");
+  }
+}
+
+export async function exportSettlementBankingFileAction(
+  id: string,
+  format: "BDV" | "BANESCO" | "PAGO_MOVIL" | "CSV" = "CSV",
+): Promise<ActionResult<{ filename: string; mimeType: string; content: string }>> {
+  try {
+    await requireSession();
+    const accessToken = await getAuthToken();
+
+    const res = await backendRequest(`/backoffice/settlements/${id}/export?format=${format}`, {
+      accessToken,
+    });
+
+    if (!res.ok) {
+      return fail("FAILED_TO_EXPORT_FILE");
+    }
+
+    return ok(res.body as any);
+  } catch (e) {
+    console.error("[settlements] exportSettlementBankingFileAction failed:", e);
+    return fail("SERVICE_UNAVAILABLE");
+  }
+}
+
+

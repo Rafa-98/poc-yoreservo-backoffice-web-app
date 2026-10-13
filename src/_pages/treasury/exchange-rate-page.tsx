@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import {
   getExchangeRatesAction,
   overrideExchangeRateAction,
+  syncBcvExchangeRatesAction,
 } from "@/features/treasury/actions/treasury-actions";
 import type {
   ExchangeRateData,
@@ -35,6 +36,7 @@ export function ExchangeRatePage({
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleForceSync = async () => {
+    await syncBcvExchangeRatesAction();
     const res = await getExchangeRatesAction();
     if (res.ok) {
       setActiveUsd(res.data.activeUsd);
