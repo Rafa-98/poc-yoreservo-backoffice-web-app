@@ -1,0 +1,78 @@
+{
+  "title": "Mi Perfil & Seguridad de Cuenta",
+  "subtitle": "Configuración de datos personales, idioma preferido, credenciales bcrypt y sesiones de dispositivo",
+  "activeAccount": "Cuenta Activa",
+  "signOut": "Cerrar Sesión",
+  "sidebar": {
+    "roleDisclaimer": "🔒 Rol gestionado centralmente por políticas RBAC",
+    "assignedVenue": "Sede Asignada",
+    "assignedOrg": "Organización / Club",
+    "memberSince": "Miembro Desde",
+    "securityStatus": "Estado de Seguridad",
+    "securityBcryptActive": "✓ Contraseña bcrypt activa",
+    "changePhoto": "Cambiar Foto de Perfil"
+  },
+  "tabs": {
+    "general": "Datos Personales",
+    "security": "Seguridad & Contraseña",
+    "sessions": "Dispositivos & Sesiones"
+  },
+  "general": {
+    "firstName": "Nombre *",
+    "lastName": "Apellido *",
+    "document": "Cédula / Documento *",
+    "phone": "Teléfono WhatsApp *",
+    "email": "Correo Electrónico",
+    "emailVerified": "✓ Verificado",
+    "emailDisclaimer": "Para cambiar tu correo de acceso contacta al Administrador de Sistema.",
+    "prefLang": "Idioma Preferido de la Interfaz *",
+    "langEs": "Español (Latinoamérica) — Predeterminado",
+    "langEn": "English (United States)",
+    "notifTitle": "Preferencias de Alertas & Notificaciones",
+    "notifPm": "Alertas inmediatas de nuevos pagos Pago Móvil por verificar",
+    "notifPayout": "Avisos de desembolso quincenal y cierres contables",
+    "notifSec": "Alertas de seguridad al iniciar sesión en un dispositivo nuevo",
+    "saveChanges": "Guardar Cambios",
+    "saving": "Guardando..."
+  },
+  "security": {
+    "currentPass": "Contraseña Actual *",
+    "currentPassPlaceholder": "Ingresa tu contraseña actual",
+    "newPass": "Nueva Contraseña *",
+    "newPassPlaceholder": "Ingresa nueva contraseña segura",
+    "confirmPass": "Confirmar Nueva Contraseña *",
+    "confirmPassPlaceholder": "Repite la nueva contraseña",
+    "passReqsTitle": "Requisitos de seguridad (bcrypt):",
+    "reqLength": "Al menos 8 caracteres (máximo 72)",
+    "reqUpper": "Al menos una letra mayúscula (A-Z)",
+    "reqLower": "Al menos una letra minúscula (a-z)",
+    "reqNumber": "Al menos un número (0-9)",
+    "reqSymbol": "Al menos un carácter especial (@, $, !, %, *, ?, &)",
+    "passwordsMatch": "✓ Las contraseñas coinciden",
+    "passwordsMismatch": "✕ Las contraseñas no coinciden",
+    "twofaTitle": "Autenticación en Dos Pasos (2FA)",
+    "twofaDesc": "Protege tu cuenta agregando un código temporal de Google Authenticator.",
+    "configure2fa": "Configurar 2FA",
+    "updatePass": "Actualizar Contraseña",
+    "updating": "Actualizando..."
+  },
+  "sessions": {
+    "title": "Sesiones de Dispositivo Activas",
+    "desc": "Dispositivos que han iniciado sesión con tu cuenta en la consola YoReservo.",
+    "revokeAll": "Cerrar todas las demás sesiones",
+    "thisDevice": "Este Dispositivo",
+    "activeNow": "Activo ahora",
+    "revoke": "Cerrar Sesión",
+    "modalTitle": "¿Cerrar todas las demás sesiones?",
+    "modalDesc": "Esta acción invalidará de inmediato los tokens de acceso en todos tus otros teléfonos, tablets o computadoras conectadas.",
+    "modalConfirm": "Sí, cerrar otras sesiones",
+    "modalCancel": "Cancelar"
+  },
+  "toast": {
+    "profileSaved": "Datos personales actualizados exitosamente.",
+    "passwordUpdated": "¡Contraseña actualizada con éxito!",
+    "sessionRevoked": "Sesión cerrada correctamente.",
+    "allSessionsRevoked": "Todas las demás sesiones remotas han sido revocadas.",
+    "langUpdated": "Preferencia de idioma guardada."
+  }
+}

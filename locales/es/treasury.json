@@ -1,0 +1,118 @@
+{
+  "inbox": {
+    "title": "Bandeja de Conciliación Pago Móvil",
+    "subtitle": "Módulo de Finanzas & Tesorería",
+    "kpi": {
+      "pendingTitle": "Por Validar (Pendientes)",
+      "pendingCount": "{count} Pagos",
+      "pendingAmount": "Bs. {bs} (${usd} USD)",
+      "verifiedToday": "Conciliados Hoy",
+      "verifiedCount": "{count} Pagos",
+      "verifiedBadge": "100% OK",
+      "rejected": "Rechazados / Dudosos",
+      "rejectedCount": "{count} Pagos",
+      "rejectedSub": "Ref no encontrada",
+      "speed": "Tiempo Promedio de Validación",
+      "speedValue": "4.2 min",
+      "speedTarget": "Meta: < 15 min"
+    },
+    "filters": {
+      "all": "Todos",
+      "pending": "Pendientes",
+      "verified": "Conciliados",
+      "rejected": "Rechazados",
+      "allBanks": "Todos los Bancos",
+      "searchPlaceholder": "Buscar por ref, cliente, teléfono, código..."
+    },
+    "table": {
+      "ref": "Referencia & Comprobante",
+      "client": "Cliente & Reserva",
+      "bank": "Banco Origen / Teléfono",
+      "amount": "Monto en Bs. (USD)",
+      "age": "Antigüedad",
+      "status": "Estatus",
+      "actions": "Acciones de Auditoría",
+      "inspect": "Ver Recibo",
+      "validate": "Validar",
+      "reject": "Rechazar",
+      "audit": "Auditar",
+      "viewReason": "Ver Causa",
+      "empty": "No se encontraron pagos en la bandeja con los filtros seleccionados."
+    },
+    "voucher": {
+      "title": "Auditoría de Comprobante",
+      "refTitle": "Comprobante Pago Móvil #{ref}",
+      "directViewer": "Visor Directo en Pantalla:",
+      "directViewerDesc": "No requiere descargar archivos al equipo. Coteja los datos del extracto bancario con la captura digital en tiempo real.",
+      "transferredAmount": "MONTO TRANSFERIDO",
+      "rateEquivalent": "Equivalente a: ${usd} USD @ {rate}",
+      "refCode": "Nro. Referencia:",
+      "payer": "Ordenante (Cliente):",
+      "idDoc": "Cédula / RIF:",
+      "phone": "Teléfono Origen:",
+      "destination": "Destino YoReservo:",
+      "dateTime": "Fecha / Hora:",
+      "suicheNotice": "TRANSACCIÓN APROBADA POR LA RED INTERBANCARIA SUICHE 7B",
+      "linkedBooking": "Reserva Asociada",
+      "reconcileConfirm": "Conciliar & Confirmar",
+      "reject": "Rechazar"
+    },
+    "rejectModal": {
+      "title": "Rechazar Pago Móvil",
+      "desc": "Al rechazar este pago, la reserva asociada pasará a estatus PENDIENTE_PAGO y se notificará la observación al cliente.",
+      "reasonLabel": "Motivo de no coincidencia bancaria *",
+      "reasons": {
+        "notFound": "Referencia no localizada en el extracto bancario",
+        "incorrectAmount": "Monto en Bs. insuficiente o cálculo de tasa erróneo",
+        "duplicated": "Referencia duplicada o reutilizada previamente",
+        "other": "Otro motivo administrativo (especificar en nota)"
+      },
+      "notesLabel": "Observación interna de auditoría",
+      "notesPlaceholder": "ej. Revisado corte bancario a las 15:45, no figura ingreso.",
+      "cancel": "Cancelar",
+      "confirm": "Confirmar Rechazo"
+    }
+  },
+  "rate": {
+    "title": "Gestor de Tasa Oficial BCV & Historial",
+    "subtitle": "Auditoría Cambiaria Institucional",
+    "usdActive": "Tasa Oficial BCV — Dólar",
+    "eurActive": "Tasa Oficial BCV — Euro",
+    "valDate": "Fecha Valor:",
+    "usdDesc": "Referencia aplicada a los aliados que cobran en Dólares ($).",
+    "eurDesc": "Referencia aplicada a los aliados que cobran en Euros (€).",
+    "otherCurrencies": "Otras Divisas Publicadas por el BCV:",
+    "lastSync": "Última sync: Hoy a las 09:00 AM",
+    "syncNow": "Forzar Sincronización BCV",
+    "syncSuccess": "Tasas sincronizadas con éxito desde el Banco Central de Venezuela",
+    "syncing": "Consultando BCV...",
+    "override": {
+      "badge": "Procedimiento Excepcional",
+      "title": "Ajuste Manual Extraordinario de Tasa",
+      "desc": "Úsalo en días de feriado bancario o contingencia. Requiere justificación de auditoría obligatoria que quedará registrada en el modelo ExchangeRate.",
+      "currencyTarget": "Moneda a Ajustar *",
+      "dollarBcv": "Dólar BCV ($ USD)",
+      "euroBcv": "Euro BCV (€ EUR)",
+      "newRate": "Nueva Tasa en Bolívares (Bs.) *",
+      "operator": "Operador Responsable",
+      "justification": "Justificación de Auditoría *",
+      "justificationPlaceholder": "ej. Ajuste preventivo por cierre bancario nacional (feriado bancario lunes).",
+      "save": "Registrar Tasa Manual en el Ledger",
+      "success": "Tasa manual registrada exitosamente en el ledger"
+    },
+    "ledger": {
+      "title": "Libro Histórico de Tasas (ExchangeRate)",
+      "desc": "Trazabilidad inmutable de cada tasa aplicada en YoReservo para fines fiscales y contables.",
+      "export": "Exportar Historial",
+      "exportSuccess": "Exportando registro histórico en formato CSV/Excel...",
+      "thDate": "Fecha & Hora",
+      "thCurrency": "Moneda / Par",
+      "thRate": "Tasa Oficial (Bs.)",
+      "thOrigin": "Origen / Generado Por",
+      "thJustification": "Operador / Justificación",
+      "thStatus": "Estado",
+      "active": "ACTIVA",
+      "historical": "HISTÓRICA"
+    }
+  }
+}

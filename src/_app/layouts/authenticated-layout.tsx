@@ -1,0 +1,44 @@
+"use client";
+
+import { useState, type ReactNode } from "react";
+import type { SessionUser } from "@/shared/auth";
+import { VenueProvider } from "@/features/venues/context/venue-context";
+import { AppHeader } from "./app-header";
+import { AppSidebar } from "./app-sidebar";
+
+export interface AuthenticatedLayoutProps {
+  user: SessionUser;
+  children: ReactNode;
+}
+
+export function AuthenticatedLayout({
+  user,
+  children,
+}: AuthenticatedLayoutProps) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  return (
+    <VenueProvider user={user}>
+      <div className="flex h-screen w-full overflow-hidden bg-background">
+      {/* Dynamic RBAC Sidebar */}
+      <AppSidebar
+        user={user}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
+
+      {/* Main Workspace Frame */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <AppHeader
+          user={user}
+          onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+        />
+
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto max-w-7xl">{children}</div>
+        </main>
+      </div>
+    </div>
+    </VenueProvider>
+  );
+}

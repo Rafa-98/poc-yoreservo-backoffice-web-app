@@ -1,0 +1,82 @@
+{
+  "title": "Master Catalogs & Sports Taxonomy",
+  "subtitle": "Hierarchical structure of sports activities, court formats, surfaces, and club amenities",
+  "badge": "3-Tier Taxonomy",
+  "btnAddSport": "New Sport",
+  "btnAddSurface": "New Surface",
+  "btnAddAmenity": "New Amenity",
+  "tabs": {
+    "sports": "Sports & Categories (3-Tier Taxonomy)",
+    "surfaces": "Court Surfaces",
+    "amenities": "Amenities & Services"
+  },
+  "taxonomy": {
+    "bannerTitle": "📐 Relational Taxonomy in Database (Fixing Data Model Omissions)",
+    "bannerDesc": "Physical spaces are not bound to a generic flat sport. They are structured as: ActivityType (Activity Type) ➔ Activity (Specific sport with icon) ➔ ActivityCategory (Game format: 5v5, Doubles, etc., to which Space.activityCategoryId points).",
+    "parityBadge": "i18n JSONB Parity (ES / EN)",
+    "btnAddSport": "+ Add Sport",
+    "btnAddCategory": "+ Format / Category",
+    "btnEditSport": "Edit Sport",
+    "btnEditCategory": "Edit Category",
+    "spacesCount": "{count} courts on platform",
+    "active": "Active"
+  },
+  "surfaces": {
+    "bannerTitle": "Official Court Surfaces Catalog",
+    "bannerDesc": "Technical specification of the physical court base for wear calculation and player footwear recommendations.",
+    "thName": "Surface & Code",
+    "thSuited": "Compatible Sports",
+    "thMaintenance": "Recommended Maintenance",
+    "thStatus": "Status",
+    "thActions": "Actions",
+    "btnEdit": "Edit",
+    "active": "Active"
+  },
+  "amenities": {
+    "bannerTitle": "Global Amenities & Services Catalog",
+    "bannerDesc": "Infrastructure features and services that sports venues can activate on their public YoReservo profile.",
+    "activeInVenues": "✓ Active in {count} Venues",
+    "btnEdit": "Edit"
+  },
+  "modalSport": {
+    "title": "New Sport / Activity",
+    "desc": "Register a new sports discipline under an activity type",
+    "activityType": "Activity Type *",
+    "nameEs": "Spanish Name *",
+    "nameEn": "English Name *",
+    "imageUrl": "Image / Icon URL *",
+    "cancel": "Cancel",
+    "save": "Save Sport ✓"
+  },
+  "modalCategory": {
+    "title": "New Court Format",
+    "desc": "Define a regulated game format or category (e.g. 5v5, Doubles)",
+    "sportLabel": "Parent Sport",
+    "nameEs": "Format Name in Spanish *",
+    "nameEn": "Format Name in English *",
+    "imageUrl": "Image URL (Optional)",
+    "cancel": "Cancel",
+    "save": "Save Format ✓"
+  },
+  "modalSurface": {
+    "title": "Register Court Surface",
+    "desc": "Add a new base specification for sports courts",
+    "code": "Unique Code (e.g. SURF_PADEL_MONO) *",
+    "name": "Surface Name *",
+    "description": "Composition Details *",
+    "maintenance": "Maintenance Protocol *",
+    "suitedSports": "Compatible Sports (comma-separated) *",
+    "cancel": "Cancel",
+    "save": "Save Surface ✓"
+  },
+  "modalAmenity": {
+    "title": "Register Amenity / Service",
+    "desc": "Add an infrastructure facility service for sports clubs",
+    "code": "Unique Code (e.g. AMN_SAUNA) *",
+    "name": "Service Name *",
+    "icon": "Emoji / Icon *",
+    "description": "Short Description of Service *",
+    "cancel": "Cancel",
+    "save": "Save Amenity ✓"
+  }
+}

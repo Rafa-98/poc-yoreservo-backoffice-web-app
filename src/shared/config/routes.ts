@@ -57,3 +57,16 @@ export const GUEST_ONLY_ROUTES: readonly string[] = [
   ROUTES.recoverPassword,
   ROUTES.setPassword,
 ];
+
+/** Routes that require an active Backoffice staff session. */
+export const PROTECTED_ROUTE_PREFIXES: readonly string[] = [
+  ROUTES.dashboard,
+  ROUTES.agenda,
+  ROUTES.reservations,
+  "/treasury",
+  ROUTES.venues,
+  ROUTES.users,
+  ROUTES.catalogs,
+  ROUTES.profile,
+];
+

@@ -1,0 +1,234 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Eye, EyeOff, Lock, Mail, ArrowRight } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { ROUTES, REDIRECT_QUERY_KEY } from "@/shared/config";
+import { Button } from "@/shared/ui/button";
+import { Alert } from "@/shared/ui/alert";
+import { loginAction } from "../actions/login-action";
+
+interface DemoRolePreset {
+  id: string;
+  labelKey: string;
+  email: string;
+  pass: string;
+}
+
+const DEMO_PRESETS: readonly DemoRolePreset[] = [
+  {
+    id: "aliado",
+    labelKey: "roleAlly",
+    email: "aliado@sanagustin.com",
+    pass: "AliadoPass123",
+  },
+  {
+    id: "validator",
+    labelKey: "roleValidator",
+    email: "recepcion@sanagustin.com",
+    pass: "StaffPass123",
+  },
+  {
+    id: "admin",
+    labelKey: "roleAdmin",
+    email: "admin@yoreservo.com",
+    pass: "AdminPass123",
+  },
+  {
+    id: "accounting",
+    labelKey: "roleAccounting",
+    email: "tesoreria@yoreservo.com",
+    pass: "FinancePass123",
+  },
+];
+
+export function LoginForm() {
+  const t = useTranslations("auth");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [email, setEmail] = useState("aliado@sanagustin.com");
+  const [password, setPassword] = useState("AliadoPass123");
+  const [remember, setRemember] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [selectedRole, setSelectedRole] = useState("aliado");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleRoleSelect = (preset: DemoRolePreset) => {
+    setSelectedRole(preset.id);
+    setEmail(preset.email);
+    setPassword(preset.pass);
+    setErrorMessage(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    const result = await loginAction({
+      email,
+      password,
+      remember,
+    });
+
+    if (!result.ok) {
+      setIsLoading(false);
+      if (result.error.code === "INVALID_CREDENTIALS") {
+        setErrorMessage(t("errorInvalidCredentials"));
+      } else if (result.error.code === "FORBIDDEN_ROLE") {
+        setErrorMessage(t("errorRoleForbidden"));
+      } else {
+        setErrorMessage(t("errorInvalidCredentials"));
+      }
+      return;
+    }
+
+    // Success! Redirect to target route
+    const nextRoute = searchParams.get(REDIRECT_QUERY_KEY) || ROUTES.dashboard;
+    router.push(nextRoute);
+    router.refresh();
+  };
+
+  return (
+    <div className="w-full rounded-2xl border border-border bg-surface p-6 sm:p-8 shadow-card">
+      <div className="mb-6">
+        <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
+          {t("loginTitle")}
+        </h2>
+        <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground">
+          {t("loginSubtitle")}
+        </p>
+      </div>
+
+      {errorMessage && (
+        <div className="mb-5">
+          <Alert variant="error">{errorMessage}</Alert>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Email field */}
+        <div className="space-y-1.5">
+          <label
+            htmlFor="email"
+            className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+          >
+            {t("labelEmail")}
+          </label>
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground">
+              <Mail className="size-4" />
+            </div>
+            <input
+              id="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="ejemplo@yoreservo.com"
+              className="w-full rounded-xl border border-border bg-background py-2.5 pl-10 pr-4 text-sm text-foreground transition-colors placeholder:text-muted-foreground/60 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+          </div>
+        </div>
+
+        {/* Password field */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label
+              htmlFor="password"
+              className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+            >
+              {t("labelPassword")}
+            </label>
+            <Link
+              href={ROUTES.recoverPassword}
+              className="text-xs font-medium text-link hover:underline"
+            >
+              {t("linkForgot")}
+            </Link>
+          </div>
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground">
+              <Lock className="size-4" />
+            </div>
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full rounded-xl border border-border bg-background py-2.5 pl-10 pr-10 text-sm text-foreground transition-colors placeholder:text-muted-foreground/60 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+            >
+              {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Remember me */}
+        <div className="flex items-center justify-between pt-1">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+              className="size-4 rounded border-border accent-accent"
+            />
+            <span className="text-xs text-muted-foreground font-medium">
+              {t("labelRemember")}
+            </span>
+          </label>
+        </div>
+
+        {/* Submit button */}
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          fullWidth
+          isLoading={isLoading}
+          className="mt-2"
+        >
+          <span>{isLoading ? t("btnLoggingIn") : t("btnLogin")}</span>
+          {!isLoading && <ArrowRight className="size-4" />}
+        </Button>
+
+        {/* Prototype Quick Role Simulator */}
+        <div className="mt-6 border-t border-dashed border-border pt-4">
+          <div className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            {t("roleSimTitle")}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {DEMO_PRESETS.map((preset) => {
+              const isActive = selectedRole === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => handleRoleSelect(preset)}
+                  className={`rounded-lg border px-2.5 py-1.5 text-left text-xs font-semibold transition-all ${
+                    isActive
+                      ? "border-accent bg-accent/15 text-foreground shadow-sm"
+                      : "border-border bg-background text-muted-foreground hover:border-border-medium hover:text-foreground"
+                  }`}
+                >
+                  {t(preset.labelKey as any)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}

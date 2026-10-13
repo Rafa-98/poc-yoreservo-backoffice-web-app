@@ -1,0 +1,82 @@
+{
+  "title": "Catálogos Maestros & Taxonomía",
+  "subtitle": "Estructura jerárquica de actividades deportivas, formatos de cancha, superficies y amenidades de clubes",
+  "badge": "3-Tier Taxonomy",
+  "btnAddSport": "Nuevo Deporte",
+  "btnAddSurface": "Nueva Superficie",
+  "btnAddAmenity": "Nueva Amenidad",
+  "tabs": {
+    "sports": "Deportes & Categorías (Taxonomía 3 Niveles)",
+    "surfaces": "Superficies de Cancha",
+    "amenities": "Amenidades & Servicios"
+  },
+  "taxonomy": {
+    "bannerTitle": "📐 Taxonomía Relacional en Base de Datos (Solución a Fallas de Modelo)",
+    "bannerDesc": "Las canchas físicas no se vinculan a un deporte genérico plano. Se estructuran en: ActivityType (Tipo de Actividad) ➔ Activity (Deporte específico con ícono) ➔ ActivityCategory (Formato de juego: 5v5, Dobles, etc., al cual se asocia Space.activityCategoryId).",
+    "parityBadge": "i18n JSONB Parity (ES / EN)",
+    "btnAddSport": "+ Agregar Deporte",
+    "btnAddCategory": "+ Formato / Categoría",
+    "btnEditSport": "Editar Deporte",
+    "btnEditCategory": "Editar Categoría",
+    "spacesCount": "{count} canchas en plataforma",
+    "active": "Activo"
+  },
+  "surfaces": {
+    "bannerTitle": "Catálogo Oficial de Superficies de Cancha",
+    "bannerDesc": "Especificación técnica de la base física de cada cancha para cálculo de desgaste y recomendaciones de calzado a jugadores.",
+    "thName": "Superficie & Código",
+    "thSuited": "Deportes Compatibles",
+    "thMaintenance": "Mantenimiento Recomendado",
+    "thStatus": "Estatus",
+    "thActions": "Acciones",
+    "btnEdit": "Editar",
+    "active": "Activo"
+  },
+  "amenities": {
+    "bannerTitle": "Catálogo Global de Amenidades & Servicios",
+    "bannerDesc": "Características e infraestructura que los recintos deportivos pueden activar en su perfil público de YoReservo.",
+    "activeInVenues": "✓ Activo en {count} Sedes",
+    "btnEdit": "Editar"
+  },
+  "modalSport": {
+    "title": "Nuevo Deporte / Actividad",
+    "desc": "Registrar una nueva disciplina deportiva dentro de un tipo de actividad",
+    "activityType": "Tipo de Actividad *",
+    "nameEs": "Nombre en Español *",
+    "nameEn": "Nombre en Inglés *",
+    "imageUrl": "URL de Imagen / Ícono *",
+    "cancel": "Cancelar",
+    "save": "Guardar Deporte ✓"
+  },
+  "modalCategory": {
+    "title": "Nuevo Formato de Cancha",
+    "desc": "Definir un formato de juego o categoría reglamentaria (ej: 5v5, Dobles)",
+    "sportLabel": "Deporte Padre",
+    "nameEs": "Nombre del Formato en Español *",
+    "nameEn": "Nombre del Formato en Inglés *",
+    "imageUrl": "URL de Imagen (Opcional)",
+    "cancel": "Cancelar",
+    "save": "Guardar Formato ✓"
+  },
+  "modalSurface": {
+    "title": "Registrar Superficie de Cancha",
+    "desc": "Añadir una nueva especificación de base para canchas",
+    "code": "Código Único (Ej: SURF_PADEL_MONO) *",
+    "name": "Nombre de la Superficie *",
+    "description": "Detalle de Composición *",
+    "maintenance": "Protocolo de Mantenimiento *",
+    "suitedSports": "Deportes Compatibles (separados por coma) *",
+    "cancel": "Cancelar",
+    "save": "Guardar Superficie ✓"
+  },
+  "modalAmenity": {
+    "title": "Registrar Amenidad / Servicio",
+    "desc": "Añadir un servicio de infraestructura para recintos deportivos",
+    "code": "Código Único (Ej: AMN_SAUNA) *",
+    "name": "Nombre del Servicio *",
+    "icon": "Emoji / Ícono *",
+    "description": "Descripción Corta del Servicio *",
+    "cancel": "Cancelar",
+    "save": "Guardar Amenidad ✓"
+  }
+}

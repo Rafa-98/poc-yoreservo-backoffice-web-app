@@ -1,0 +1,78 @@
+{
+  "title": "My Profile & Account Security",
+  "subtitle": "Personal details management, interface language, bcrypt password security, and active sessions",
+  "activeAccount": "Active Account",
+  "signOut": "Sign Out",
+  "sidebar": {
+    "roleDisclaimer": "🔒 Role managed centrally via RBAC security policies",
+    "assignedVenue": "Assigned Venue",
+    "assignedOrg": "Organization / Club",
+    "memberSince": "Member Since",
+    "securityStatus": "Security Health",
+    "securityBcryptActive": "✓ Active bcrypt password",
+    "changePhoto": "Change Profile Picture"
+  },
+  "tabs": {
+    "general": "Personal Details",
+    "security": "Security & Password",
+    "sessions": "Devices & Sessions"
+  },
+  "general": {
+    "firstName": "First Name *",
+    "lastName": "Last Name *",
+    "document": "National ID / Document *",
+    "phone": "WhatsApp Phone *",
+    "email": "Email Address",
+    "emailVerified": "✓ Verified",
+    "emailDisclaimer": "To update your login email contact the System Administrator.",
+    "prefLang": "Preferred Interface Language *",
+    "langEs": "Español (Latinoamérica) — Default",
+    "langEn": "English (United States)",
+    "notifTitle": "Alerts & Notifications Preferences",
+    "notifPm": "Instant alerts for incoming Pago Móvil payments pending review",
+    "notifPayout": "Fortnightly settlement closing and disbursement notifications",
+    "notifSec": "Security alerts upon new device sign-ins",
+    "saveChanges": "Save Changes",
+    "saving": "Saving..."
+  },
+  "security": {
+    "currentPass": "Current Password *",
+    "currentPassPlaceholder": "Enter your current password",
+    "newPass": "New Password *",
+    "newPassPlaceholder": "Enter secure new password",
+    "confirmPass": "Confirm New Password *",
+    "confirmPassPlaceholder": "Repeat new password",
+    "passReqsTitle": "Security requirements (bcrypt):",
+    "reqLength": "At least 8 characters (maximum 72)",
+    "reqUpper": "At least one uppercase letter (A-Z)",
+    "reqLower": "At least one lowercase letter (a-z)",
+    "reqNumber": "At least one number (0-9)",
+    "reqSymbol": "At least one special character (@, $, !, %, *, ?, &)",
+    "passwordsMatch": "✓ Passwords match",
+    "passwordsMismatch": "✕ Passwords do not match",
+    "twofaTitle": "Two-Factor Authentication (2FA)",
+    "twofaDesc": "Enhance account security with temporary codes via Google Authenticator.",
+    "configure2fa": "Configure 2FA",
+    "updatePass": "Update Password",
+    "updating": "Updating..."
+  },
+  "sessions": {
+    "title": "Active Device Sessions",
+    "desc": "Devices currently signed in with your account across YoReservo console.",
+    "revokeAll": "Revoke all other sessions",
+    "thisDevice": "This Device",
+    "activeNow": "Active now",
+    "revoke": "Revoke Session",
+    "modalTitle": "Revoke all other sessions?",
+    "modalDesc": "This action will immediately invalidate access tokens across all your other connected phones, tablets, or computers.",
+    "modalConfirm": "Yes, revoke other sessions",
+    "modalCancel": "Cancel"
+  },
+  "toast": {
+    "profileSaved": "Personal details updated successfully.",
+    "passwordUpdated": "Password updated successfully!",
+    "sessionRevoked": "Session revoked successfully.",
+    "allSessionsRevoked": "All other remote sessions have been revoked.",
+    "langUpdated": "Language preference saved."
+  }
+}
