@@ -37,7 +37,7 @@ export function ResetPasswordModal({
     if (res.ok && res.data?.tempPassword) {
       setTempPass(res.data.tempPassword);
     } else if (!res.ok) {
-      setErrorMsg(res.error.code || "Error al restablecer la contraseña");
+      setErrorMsg(res.error.code || t("errorReset"));
     }
   }
 
@@ -88,7 +88,7 @@ export function ResetPasswordModal({
           )}
 
           <div className="rounded-xl border border-border bg-muted/60 p-3.5 text-xs text-foreground">
-            Colaborador: <strong>{user.name}</strong> ({user.email})
+            {t("collaboratorLabel")}: <strong>{user.name}</strong> ({user.email})
           </div>
 
           {tempPass ? (
@@ -116,7 +116,7 @@ export function ResetPasswordModal({
             </div>
           ) : (
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Al confirmar, el sistema generará una clave temporal aleatoria con cifrado bcrypt que podrás copiar y compartir con el usuario de manera segura.
+              {t("confirmDesc")}
             </p>
           )}
 

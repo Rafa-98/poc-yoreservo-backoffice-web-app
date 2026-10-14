@@ -2,32 +2,51 @@
 
 import { useTranslations } from "next-intl";
 import { TrendingUp } from "lucide-react";
-import type { TimeframeKey, TimeframeChartData } from "../model/types";
+import type {
+  AdminKpisData,
+  DashboardMetrics,
+  TimeframeChartData,
+  TimeframeKey,
+} from "../model/types";
 
 interface DashboardAdminKpisProps {
   timeframe: TimeframeKey;
   chartData: TimeframeChartData;
   bcvRate: number;
+  metrics?: DashboardMetrics;
+  adminKpis?: AdminKpisData;
 }
 
 export function DashboardAdminKpis({
   timeframe,
   chartData,
   bcvRate,
+  metrics,
+  adminKpis,
 }: DashboardAdminKpisProps) {
   const t = useTranslations("dashboard");
 
-  const totalGmv = chartData.gmv.reduce((a, b) => a + b, 0);
-  const totalFee = chartData.fee.reduce((a, b) => a + b, 0);
+  const totalGmv =
+    timeframe === "MES" && metrics?.gmv
+      ? metrics.gmv
+      : chartData.gmv.reduce((a, b) => a + b, 0);
+  const totalFee =
+    timeframe === "MES" && metrics?.platformFeeRevenue
+      ? metrics.platformFeeRevenue
+      : chartData.fee.reduce((a, b) => a + b, 0);
 
   const getBookingsCount = () => {
+    const dynamicCount = adminKpis?.bookingsByTimeframe?.[timeframe];
+    if (typeof dynamicCount === "number") {
+      return dynamicCount.toLocaleString("en-US");
+    }
     switch (timeframe) {
       case "HOY":
         return "84";
       case "SEMANA":
         return "612";
       case "MES":
-        return "2,840";
+        return (metrics?.totalReservations ?? 2840).toLocaleString("en-US");
       case "ANO":
         return "28,940";
     }
@@ -39,6 +58,9 @@ export function DashboardAdminKpis({
   const formatBs = (val: number) =>
     `≈ Bs. ${(val * bcvRate).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  const venuesCount = adminKpis?.totalVenues ?? metrics?.totalVenues;
+  const spacesCount = adminKpis?.totalSpaces ?? metrics?.totalSpaces;
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* KPI 1: GMV */}
@@ -49,7 +71,7 @@ export function DashboardAdminKpis({
           </span>
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
             <TrendingUp className="size-3" />
-            <span>+18.4%</span>
+            <span>{adminKpis?.gmvGrowthPct || t("kpis.adminGmvGrowth")}</span>
           </span>
         </div>
         <div className="font-display text-2xl sm:text-3xl font-extrabold text-foreground">
@@ -107,10 +129,14 @@ export function DashboardAdminKpis({
           </span>
         </div>
         <div className="font-display text-2xl sm:text-3xl font-extrabold text-foreground">
-          {t("kpis.adminVenuesCount")}
+          {venuesCount !== undefined
+            ? t("kpis.adminVenuesDynamicCount", { count: venuesCount })
+            : t("kpis.adminVenuesCount")}
         </div>
         <div className="mt-1 text-xs text-muted-foreground">
-          {t("kpis.adminVenuesSub")}
+          {spacesCount !== undefined
+            ? t("kpis.adminVenuesDynamicSub", { count: spacesCount })
+            : t("kpis.adminVenuesSub")}
         </div>
       </div>
     </div>

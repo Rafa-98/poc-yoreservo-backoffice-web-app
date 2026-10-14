@@ -112,7 +112,7 @@ export function ReservationDetailModal({
                   </div>
                   <div className="text-muted-foreground text-[11px] flex items-center gap-1">
                     <Phone className="size-3" />
-                    <span>{reservation.customerPhone || "Sin teléfono registrado"}</span>
+                    <span>{reservation.customerPhone || t("noPhoneRegistered")}</span>
                   </div>
                 </div>
               </div>
@@ -125,7 +125,7 @@ export function ReservationDetailModal({
                   className="flex items-center gap-1 rounded-lg bg-emerald-500/20 px-2.5 py-1.5 font-bold text-emerald-600 hover:bg-emerald-500/30 transition-colors"
                 >
                   <MessageSquare className="size-3.5" />
-                  <span>WhatsApp</span>
+                  <span>{t("whatsappLabel")}</span>
                 </a>
               )}
             </div>
@@ -156,7 +156,7 @@ export function ReservationDetailModal({
             {reservation.internalNotes && (
               <div className="rounded-xl border border-border bg-muted/60 p-3 text-muted-foreground">
                 <span className="block font-semibold text-[11px] uppercase mb-0.5">
-                  Notas de Taquilla:
+                  {t("deskNotesLabel")}:
                 </span>
                 <p>{reservation.internalNotes}</p>
               </div>
@@ -177,7 +177,7 @@ export function ReservationDetailModal({
               </Button>
             )}
             <Button variant="secondary" fullWidth onClick={onClose}>
-              Cerrar
+              {t("btnClose")}
             </Button>
           </div>
         </div>

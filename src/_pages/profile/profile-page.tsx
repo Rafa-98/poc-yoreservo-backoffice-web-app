@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { CheckCircle2, Info, LogOut } from "lucide-react";
-import { ROUTES } from "@/shared/config";
+import { AlertCircle, CheckCircle2, Info, LogOut } from "lucide-react";
+import { logoutAction } from "@/features/auth/actions/logout-action";
 import type {
   ChangePasswordInput,
   ProfileTab,
@@ -37,10 +36,13 @@ export function ProfilePage({ initialData }: ProfilePageProps) {
   const [isRevokeModalOpen, setIsRevokeModalOpen] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
-    type: "success" | "info";
+    type: "success" | "info" | "error";
   } | null>(null);
 
-  const showToast = (message: string, type: "success" | "info" = "success") => {
+  const showToast = (
+    message: string,
+    type: "success" | "info" | "error" = "success",
+  ) => {
     setToast({ message, type });
     setTimeout(() => {
       setToast(null);
@@ -51,36 +53,29 @@ export function ProfilePage({ initialData }: ProfilePageProps) {
     setIsSubmitting(true);
     try {
       const res = await updateProfileAction(input);
-      if (res.ok && res.data) {
-        setProfile(res.data);
-        showToast(t("toast.profileSaved"), "success");
-      } else {
-        // Optimistic update
-        setProfile((prev) => ({
-          ...prev,
-          name: input.name,
-          lastName: input.lastName,
-          fullName: `${input.name} ${input.lastName}`.trim(),
-          phone: input.phone || prev.phone,
-          documentType: input.documentType || prev.documentType,
-          documentNumber: input.documentNumber || prev.documentNumber,
-          preferredLanguage: input.preferredLanguage || prev.preferredLanguage,
-        }));
-        showToast(t("toast.profileSaved"), "success");
+      if (!res.ok || !res.data) {
+        showToast(t("toast.actionError"), "error");
+        return;
       }
+      setProfile(res.data);
+      showToast(t("toast.profileSaved"), "success");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleChangePassword = async (input: ChangePasswordInput) => {
+  const handleChangePassword = async (
+    input: ChangePasswordInput,
+  ): Promise<boolean> => {
     setIsSubmitting(true);
     try {
       const res = await changePasswordAction(input);
       if (res.ok) {
         showToast(t("toast.passwordUpdated"), "success");
+        return true;
       } else {
-        showToast(t("toast.passwordUpdated"), "success");
+        showToast(t("toast.passwordError"), "error");
+        return false;
       }
     } finally {
       setIsSubmitting(false);
@@ -90,7 +85,11 @@ export function ProfilePage({ initialData }: ProfilePageProps) {
   const handleRevokeAllSessions = async () => {
     setIsSubmitting(true);
     try {
-      await revokeOtherSessionsAction();
+      const res = await revokeOtherSessionsAction();
+      if (!res.ok) {
+        showToast(t("toast.actionError"), "error");
+        return;
+      }
       setProfile((prev) => ({
         ...prev,
         sessions: prev.sessions.filter((s) => s.isCurrent),
@@ -105,7 +104,11 @@ export function ProfilePage({ initialData }: ProfilePageProps) {
   const handleRevokeSingleSession = async (sessionId: string) => {
     setIsSubmitting(true);
     try {
-      await revokeSessionAction(sessionId);
+      const res = await revokeSessionAction(sessionId);
+      if (!res.ok) {
+        showToast(t("toast.actionError"), "error");
+        return;
+      }
       setProfile((prev) => ({
         ...prev,
         sessions: prev.sessions.filter((s) => s.id !== sessionId),
@@ -135,13 +138,15 @@ export function ProfilePage({ initialData }: ProfilePageProps) {
         </div>
 
         {/* Sign Out Action Button */}
-        <Link
-          href={ROUTES.login}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-surface text-foreground text-xs sm:text-sm font-semibold hover:bg-surface-muted hover:text-red-500 active:scale-98 transition-all shadow-2xs self-start sm:self-auto cursor-pointer"
-        >
-          <LogOut className="size-4" />
-          <span>{t("signOut")}</span>
-        </Link>
+        <form action={logoutAction} className="self-start sm:self-auto">
+          <button
+            type="submit"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-surface text-foreground text-xs sm:text-sm font-semibold hover:bg-surface-muted hover:text-red-500 active:scale-98 transition-all shadow-2xs cursor-pointer"
+          >
+            <LogOut className="size-4" />
+            <span>{t("signOut")}</span>
+          </button>
+        </form>
       </div>
 
       {/* Main 2-Column Layout */}
@@ -151,10 +156,7 @@ export function ProfilePage({ initialData }: ProfilePageProps) {
           <ProfileUserCard
             profile={profile}
             onAvatarChange={() =>
-              showToast(
-                t("sidebar.changePhoto") + " (URL configurada)",
-                "info"
-              )
+              showToast(t("sidebar.changePhoto"), "info")
             }
           />
         </div>
@@ -210,6 +212,8 @@ export function ProfilePage({ initialData }: ProfilePageProps) {
         >
           {toast.type === "success" ? (
             <CheckCircle2 className="size-5 text-accent-foreground shrink-0" />
+          ) : toast.type === "error" ? (
+            <AlertCircle className="size-5 text-red-400 shrink-0" />
           ) : (
             <Info className="size-5 text-blue-400 shrink-0" />
           )}

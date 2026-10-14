@@ -23,30 +23,17 @@ async function getAuthToken(): Promise<string | undefined> {
   }
 }
 
-const DEFAULT_REMOTE_SESSIONS: ProfileSessionItem[] = [
-  {
-    id: "session-iphone-15",
-    deviceIp: "190.202.44.15",
-    userAgent: "Safari en iPhone 15 Pro",
-    deviceLabel: "Safari en iPhone 15 Pro",
-    deviceType: "mobile",
-    location: "Caracas, Venezuela",
-    lastActiveText: "Hace 2 horas",
-    isCurrent: false,
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "session-macbook-pro",
-    deviceIp: "200.84.110.2",
-    userAgent: "Google Chrome en macOS",
-    deviceLabel: "Google Chrome en macOS",
-    deviceType: "desktop",
-    location: "Valencia, Carabobo",
-    lastActiveText: "Ayer a las 18:30",
-    isCurrent: false,
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
+const CURRENT_SESSION_FALLBACK: ProfileSessionItem = {
+  id: "current-session-id",
+  deviceIp: "190.202.44.12",
+  userAgent: "Google Chrome en Windows 11",
+  deviceLabel: "Google Chrome en Windows 11",
+  deviceType: "desktop",
+  location: "Caracas, Venezuela",
+  lastActiveText: "Activo ahora",
+  isCurrent: true,
+  createdAt: new Date().toISOString(),
+};
 
 function enrichSession(s: any): ProfileSessionItem {
   const ua = s.userAgent || "";
@@ -95,12 +82,8 @@ export async function getProfileAction(): Promise<UserProfileData> {
       const data = res.body as any;
       const rawSessions: any[] = data.sessions || [];
       const mappedSessions = rawSessions.map(enrichSession);
-
-      // If backend only has the current session, augment with demo remote devices for rich session management
-      const hasOtherSessions = mappedSessions.some((s) => !s.isCurrent);
-      const allSessions = hasOtherSessions
-        ? mappedSessions
-        : [...mappedSessions, ...DEFAULT_REMOTE_SESSIONS];
+      const allSessions =
+        mappedSessions.length > 0 ? mappedSessions : [CURRENT_SESSION_FALLBACK];
 
       return {
         id: data.id || session.user.id,
@@ -157,20 +140,7 @@ export async function getProfileAction(): Promise<UserProfileData> {
       id: "ven-avila-1",
       name: "Complejo Deportivo Ávila",
     },
-    sessions: [
-      {
-        id: "current-session-id",
-        deviceIp: "190.202.44.12",
-        userAgent: "Google Chrome en Windows 11",
-        deviceLabel: "Google Chrome en Windows 11",
-        deviceType: "desktop",
-        location: "Caracas, Venezuela",
-        lastActiveText: "Activo ahora",
-        isCurrent: true,
-        createdAt: new Date().toISOString(),
-      },
-      ...DEFAULT_REMOTE_SESSIONS,
-    ],
+    sessions: [CURRENT_SESSION_FALLBACK],
   };
 }
 
@@ -230,13 +200,17 @@ export async function revokeOtherSessionsAction(): Promise<ActionResult<{ count:
     await requireSession();
     const accessToken = await getAuthToken();
 
-    await backendRequest("/backoffice/profile/sessions/revoke-others", {
+    const res = await backendRequest("/backoffice/profile/sessions/revoke-others", {
       method: "DELETE",
       accessToken,
     });
 
+    if (!res.ok) {
+      return fail("SESSION_REVOKE_FAILED");
+    }
+
     revalidatePath(ROUTES.profile);
-    return ok({ count: 2 });
+    return ok({ count: 1 });
   } catch {
     return fail("NETWORK_ERROR");
   }
@@ -249,10 +223,14 @@ export async function revokeSessionAction(
     await requireSession();
     const accessToken = await getAuthToken();
 
-    await backendRequest(`/backoffice/profile/sessions/${sessionId}`, {
+    const res = await backendRequest(`/backoffice/profile/sessions/${sessionId}`, {
       method: "DELETE",
       accessToken,
     });
+
+    if (!res.ok) {
+      return fail("SESSION_REVOKE_FAILED");
+    }
 
     revalidatePath(ROUTES.profile);
     return ok({ sessionId });

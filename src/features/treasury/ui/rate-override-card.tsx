@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import type { ManualRateOverrideInput } from "../model/types";
 
 interface RateOverrideCardProps {
@@ -18,10 +19,9 @@ export function RateOverrideCard({
   const t = useTranslations("treasury.rate.override");
 
   const [currencyCode, setCurrencyCode] = useState<"USD" | "EUR">("USD");
-  const [rate, setRate] = useState<string>("878.00");
-  const [justification, setJustification] = useState(
-    "Ajuste preventivo por cierre bancario y fecha valor extendida del BCV.",
-  );
+  const [rate, setRate] = useState<string>(() => DEFAULT_BCV_USD_RATE.toFixed(2));
+  const [valueDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [justification, setJustification] = useState(() => t("defaultJustification"));
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,7 +34,7 @@ export function RateOverrideCard({
       await onSaveOverride({
         currencyCode,
         rate: numRate,
-        valueDate: "2026-10-13",
+        valueDate,
         notes: justification,
         sourceDetails: `Manual Admin Override by ${operatorName}`,
       });
@@ -46,72 +46,35 @@ export function RateOverrideCard({
   };
 
   return (
-    <div
-      className="card"
-      style={{
-        background: "var(--bg-surface)",
-        border: "1px solid var(--border-subtle)",
-        borderTop: "4px solid var(--status-hold-text)",
-        borderRadius: 20,
-        padding: 24,
-        boxShadow: "var(--shadow-sm)",
-        marginBottom: 24,
-      }}
-    >
-      <div style={{ marginBottom: 18 }}>
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            color: "var(--status-hold-text)",
-          }}
-        >
+    <div className="card mb-6 rounded-[20px] border border-border border-t-4 border-t-status-hold-fg bg-surface p-6 shadow-xs">
+      <div className="mb-4.5">
+        <div className="text-[11px] font-bold uppercase tracking-wider text-status-hold-fg">
           {t("badge")}
         </div>
-        <h3 style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: "var(--text-main)" }}>
+        <h3 className="mt-0.5 text-lg font-bold text-foreground">
           {t("title")}
         </h3>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4, lineHeight: 1.5 }}>
+        <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
           {t("desc")}
         </p>
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 16,
-            marginBottom: 16,
-          }}
-        >
+        <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* CURRENCY TARGET */}
           <div className="form-group">
             <label
-              className="form-label"
+              className="form-label mb-1.5 block text-xs font-bold text-foreground"
               htmlFor="manual-currency-select"
-              style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 6, color: "var(--text-main)" }}
             >
               {t("currencyTarget")}
             </label>
             <select
               id="manual-currency-select"
-              className="input-field"
+              className="input-field w-full cursor-pointer rounded-[10px] border border-border bg-muted px-3 py-2 text-[13px] text-foreground"
               required
               value={currencyCode}
               onChange={(e) => setCurrencyCode(e.target.value as "USD" | "EUR")}
-              style={{
-                width: "100%",
-                padding: "9px 12px",
-                fontSize: 13,
-                borderRadius: 10,
-                background: "var(--bg-muted)",
-                border: "1px solid var(--border-subtle)",
-                color: "var(--text-main)",
-                cursor: "pointer",
-              }}
             >
               <option value="USD">{t("dollarBcv")}</option>
               <option value="EUR">{t("euroBcv")}</option>
@@ -121,9 +84,8 @@ export function RateOverrideCard({
           {/* NEW RATE */}
           <div className="form-group">
             <label
-              className="form-label"
+              className="form-label mb-1.5 block text-xs font-bold text-foreground"
               htmlFor="manual-rate-input"
-              style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 6, color: "var(--text-main)" }}
             >
               {t("newRate")}
             </label>
@@ -134,26 +96,16 @@ export function RateOverrideCard({
               required
               value={rate}
               onChange={(e) => setRate(e.target.value)}
-              className="input-field"
-              placeholder="ej. 880.50"
-              style={{
-                width: "100%",
-                padding: "9px 12px",
-                fontSize: 13,
-                borderRadius: 10,
-                background: "var(--bg-muted)",
-                border: "1px solid var(--border-subtle)",
-                color: "var(--text-main)",
-              }}
+              className="input-field w-full rounded-[10px] border border-border bg-muted px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground"
+              placeholder={t("ratePlaceholder")}
             />
           </div>
 
           {/* OPERATOR */}
           <div className="form-group">
             <label
-              className="form-label"
+              className="form-label mb-1.5 block text-xs font-bold text-foreground"
               htmlFor="manual-operator-input"
-              style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 6, color: "var(--text-main)" }}
             >
               {t("operator")}
             </label>
@@ -162,26 +114,16 @@ export function RateOverrideCard({
               type="text"
               readOnly
               value={operatorName}
-              className="input-field"
-              style={{
-                width: "100%",
-                padding: "9px 12px",
-                fontSize: 13,
-                borderRadius: 10,
-                background: "var(--bg-muted)",
-                border: "1px solid var(--border-subtle)",
-                color: "var(--text-muted)",
-              }}
+              className="input-field w-full rounded-[10px] border border-border bg-muted px-3 py-2 text-[13px] text-muted-foreground"
             />
           </div>
         </div>
 
         {/* JUSTIFICATION */}
-        <div className="form-group" style={{ marginBottom: 18 }}>
+        <div className="form-group mb-4.5">
           <label
-            className="form-label"
+            className="form-label mb-1.5 block text-xs font-bold text-foreground"
             htmlFor="manual-justification-input"
-            style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 6, color: "var(--text-main)" }}
           >
             {t("justification")}
           </label>
@@ -191,49 +133,29 @@ export function RateOverrideCard({
             required
             value={justification}
             onChange={(e) => setJustification(e.target.value)}
-            className="input-field"
+            className="input-field w-full resize-y rounded-[10px] border border-border bg-muted px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground"
             placeholder={t("justificationPlaceholder")}
-            style={{
-              width: "100%",
-              padding: "9px 12px",
-              fontSize: 13,
-              borderRadius: 10,
-              background: "var(--bg-muted)",
-              border: "1px solid var(--border-subtle)",
-              color: "var(--text-main)",
-              fontFamily: "inherit",
-              resize: "vertical",
-            }}
           />
         </div>
 
         {/* ACTIONS */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
           {statusMessage ? (
-            <span style={{ fontSize: 12, color: "#059669", fontWeight: 700 }}>
+            <span className="text-xs font-bold text-status-available-fg">
               ✓ {statusMessage}
             </span>
-          ) : <div />}
+          ) : (
+            <div />
+          )}
 
           <button
             id="btn-save-manual-rate"
             type="submit"
-            className="btn btn-outline"
+            className="btn btn-outline inline-flex items-center gap-2 rounded-[10px] border-status-hold-border px-4.5 py-2.5 text-[13px] font-bold text-status-hold-fg"
             disabled={isProcessing}
-            style={{
-              borderColor: "var(--status-hold-border)",
-              color: "var(--status-hold-text)",
-              padding: "10px 18px",
-              fontSize: 13,
-              borderRadius: 10,
-              fontWeight: 700,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-            }}
           >
             <span>💾</span>
-            <span>{isProcessing ? "Registrando..." : t("save")}</span>
+            <span>{isProcessing ? t("saving") : t("save")}</span>
           </button>
         </div>
       </form>

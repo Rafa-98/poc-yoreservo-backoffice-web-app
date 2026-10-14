@@ -29,9 +29,9 @@ export function CourtCardsGrid({
 }: CourtCardsGridProps) {
   const t = useTranslations("venues.spaces");
 
-  const currentVenue = venues.find((v) => v.id === selectedVenueId) || venues[0];
   const currencySymbol = referenceCurrencyCode === "EUR" ? "€" : "$";
-  const currencySuffix = referenceCurrencyCode === "EUR" ? "EUR / h" : "USD / h";
+  const currencySuffix =
+    referenceCurrencyCode === "EUR" ? t("rateUnitEur") : t("rateUnit");
 
   function getSportBadge(space: SpaceItem): string {
     const raw =
@@ -46,36 +46,29 @@ export function CourtCardsGrid({
 
     if (raw) return `⚽ ${raw}`;
     if (act) return `🎾 ${act}`;
-    return "⚽ Deporte";
+    return `⚽ ${t("defaultSport")}`;
   }
 
   return (
-    <section style={{ padding: "20px 0" }}>
+    <section className="py-5">
       {/* Venue Selector & Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "14px",
-          padding: "0 20px 16px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <label style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-muted)" }}>
-            Sede:
+      <div className="flex flex-wrap items-center justify-between gap-3.5 px-5 pb-4">
+        <div className="flex items-center gap-2.5">
+          <label
+            htmlFor="venue-selector"
+            className="text-[13px] font-semibold text-muted-foreground"
+          >
+            {t("venueLabel")}
           </label>
           <select
             id="venue-selector"
-            className="input-field"
+            className="input-field form-select px-3.5 py-2 text-sm font-bold"
             value={selectedVenueId}
             onChange={(e) => onSelectVenueId(e.target.value)}
-            style={{ fontWeight: 700, padding: "8px 14px", fontSize: "14px" }}
           >
             {venues.map((v) => (
               <option key={v.id} value={v.id}>
-                {v.name} ({v.spacesCount} canchas)
+                {t("venueOption", { name: v.name, count: v.spacesCount })}
               </option>
             ))}
           </select>
@@ -83,10 +76,9 @@ export function CourtCardsGrid({
 
         <button
           type="button"
-          className="btn btn-primary"
+          className="btn btn-primary text-[13px]"
           onClick={onOpenCreateCourt}
           id="btn-add-court"
-          style={{ fontSize: "13px" }}
         >
           <span>+</span>
           <span>{t("btnAdd")}</span>
@@ -94,70 +86,39 @@ export function CourtCardsGrid({
       </div>
 
       {/* Database Entity Info Box */}
-      <div style={{ padding: "0 20px 20px" }}>
-        <div
-          style={{
-            background: "var(--bg-muted)",
-            border: "1px solid var(--border-subtle)",
-            borderRadius: "14px",
-            padding: "14px 18px",
-            fontSize: "12.5px",
-            lineHeight: "1.5",
-          }}
-        >
-          <strong style={{ color: "var(--text-main)" }}>
+      <div className="px-5 pb-5">
+        <div className="rounded-xl border border-border bg-muted px-4.5 py-3.5 text-[12.5px] leading-relaxed">
+          <strong className="text-foreground">
             {t("infoTitle")}
           </strong>{" "}
-          <span style={{ color: "var(--text-muted)" }}>
+          <span className="text-muted-foreground">
             {t("infoDesc")}
           </span>
         </div>
       </div>
 
       {/* Grid of Courts */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-          gap: "20px",
-          padding: "0 20px 32px",
-        }}
-      >
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-5 px-5 pb-8">
         {spaces.map((court) => {
           const isEnabled = court.status === "ENABLED";
           const bcvTotal = (court.pricePerHour * bcvRate).toLocaleString("es-VE", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           });
+          const minCap = court.capacity || 10;
+          const maxCap = minCap + 2;
 
           return (
             <div
               key={court.id}
-              className="court-config-card"
-              style={{
-                background: "var(--bg-surface)",
-                border: "1px solid var(--border-subtle)",
-                borderRadius: "20px",
-                padding: "22px",
-                boxShadow: "var(--shadow-sm)",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                borderTop: isEnabled
-                  ? "4px solid var(--brand-lime)"
-                  : "4px solid var(--status-hold-text, #EAB308)",
-                opacity: isEnabled ? 1 : 0.85,
-              }}
+              className={`court-config-card flex flex-col justify-between rounded-[20px] border border-border border-t-4 bg-surface p-5.5 shadow-card ${
+                isEnabled
+                  ? "border-t-accent opacity-100"
+                  : "border-t-status-hold-fg opacity-85"
+              }`}
             >
               <div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "12px",
-                  }}
-                >
+                <div className="mb-3 flex items-center justify-between">
                   <span className="badge badge-confirmed">
                     {getSportBadge(court)}
                   </span>
@@ -172,119 +133,57 @@ export function CourtCardsGrid({
                   )}
                 </div>
 
-                <h3
-                  style={{
-                    fontSize: "19px",
-                    fontWeight: 700,
-                    marginBottom: "6px",
-                    color: "var(--text-main)",
-                  }}
-                >
+                <h3 className="mb-1.5 text-[19px] font-bold text-foreground">
                   {court.spaceNumber}
                 </h3>
-                <div
-                  style={{
-                    fontSize: "12.5px",
-                    color: "var(--text-muted)",
-                    marginBottom: "14px",
-                  }}
-                >
-                  Superficie:{" "}
-                  <strong style={{ color: "var(--text-main)" }}>
-                    {court.surfaceType || "Grama Estándar"}
+                <div className="mb-3.5 text-[12.5px] text-muted-foreground">
+                  {t("surfaceLabel")}{" "}
+                  <strong className="text-foreground">
+                    {court.surfaceType || t("defaultSurface")}
                   </strong>
                 </div>
 
                 {/* Price Box */}
-                <div
-                  style={{
-                    background: "var(--bg-muted)",
-                    borderRadius: "14px",
-                    padding: "14px",
-                    marginBottom: "16px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      textTransform: "uppercase",
-                      color: "var(--text-muted)",
-                      fontWeight: 700,
-                      marginBottom: "4px",
-                    }}
-                  >
+                <div className="mb-4 rounded-xl bg-muted p-3.5">
+                  <div className="mb-1 text-[11px] font-bold text-muted-foreground uppercase">
                     {t("hourlyRate")}
                   </div>
-                  <div
-                    style={{
-                      fontFamily: "'Outfit', sans-serif",
-                      fontSize: "24px",
-                      fontWeight: 700,
-                      color: "var(--text-link)",
-                      display: "flex",
-                      alignItems: "baseline",
-                      gap: "4px",
-                    }}
-                  >
+                  <div className="flex items-baseline gap-1 font-display text-2xl font-bold text-link">
                     {currencySymbol}
                     {court.pricePerHour.toFixed(2)}{" "}
-                    <span
-                      style={{
-                        fontSize: "13px",
-                        color: "var(--text-muted)",
-                        fontWeight: 500,
-                      }}
-                    >
+                    <span className="text-[13px] font-medium text-muted-foreground">
                       {currencySuffix}
                     </span>
                   </div>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "var(--text-muted)",
-                      marginTop: "2px",
-                    }}
-                  >
+                  <div className="mt-0.5 text-xs text-muted-foreground">
                     {t("bcvEquivalent", { amount: bcvTotal })}
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--text-muted)",
-                    lineHeight: "1.6",
-                    marginBottom: "16px",
-                  }}
-                >
-                  • Capacidad: {court.capacity || 10} a{" "}
-                  {(court.capacity || 10) + 2} jugadores
+                <div className="mb-4 text-xs leading-relaxed text-muted-foreground">
+                  • {t("capacityRange", { min: minCap, max: maxCap })}
                   <br />
-                  • Techado: {court.isCovered ? "100% techada indoor" : "Al aire libre"}
-                  <br />
-                  • Iluminación LED: Incluida en tarifa
+                  •{" "}
+                  {t("coveredLabel", {
+                    value: court.isCovered ? t("coveredYes") : t("coveredNo"),
+                  })}
+                  <br />• {t("lighting")}
                   {court.activeBookingsCount > 0 && (
-                    <div style={{ marginTop: "4px", color: "var(--brand-lime-text, var(--text-link))", fontWeight: 600 }}>
-                      ⚡ {court.activeBookingsCount} reservas confirmadas activas
+                    <div className="mt-1 font-semibold text-link">
+                      {t("activeBookingsBadge", {
+                        count: court.activeBookingsCount,
+                      })}
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: "8px",
-                  borderTop: "1px solid var(--border-subtle)",
-                  paddingTop: "14px",
-                }}
-              >
+              <div className="flex gap-2 border-t border-border pt-3.5">
                 <button
                   type="button"
-                  className="btn btn-outline"
+                  className="btn btn-outline flex-1 text-[12.5px]"
                   onClick={() => onOpenEditCourt(court)}
-                  style={{ flex: 1, fontSize: "12.5px" }}
                 >
                   ✏️ <span>{t("btnEdit")}</span>
                 </button>
@@ -292,9 +191,8 @@ export function CourtCardsGrid({
                 {isEnabled ? (
                   <button
                     type="button"
-                    className="btn btn-destructive"
+                    className="btn btn-destructive px-3 py-2 text-xs"
                     onClick={() => onToggleCourtStatus(court)}
-                    style={{ padding: "8px 12px", fontSize: "12px" }}
                     id={`btn-disable-${court.id}`}
                   >
                     ⏸️ <span>{t("btnDisable")}</span>
@@ -302,9 +200,8 @@ export function CourtCardsGrid({
                 ) : (
                   <button
                     type="button"
-                    className="btn btn-primary"
+                    className="btn btn-primary px-3 py-2 text-xs"
                     onClick={() => onToggleCourtStatus(court)}
-                    style={{ padding: "8px 12px", fontSize: "12px" }}
                     id={`btn-enable-${court.id}`}
                   >
                     ▶️ <span>{t("btnEnable")}</span>

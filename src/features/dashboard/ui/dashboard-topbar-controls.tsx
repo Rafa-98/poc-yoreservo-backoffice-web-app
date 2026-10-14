@@ -23,7 +23,7 @@ export function DashboardTopbarControls({
       <div
         className="inline-flex items-center p-1 rounded-full bg-surface-muted border border-border gap-1 shadow-2xs"
         role="group"
-        aria-label="Role Perspective Switcher"
+        aria-label={t("roles.switcherAriaLabel")}
       >
         <button
           type="button"

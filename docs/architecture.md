@@ -9,8 +9,8 @@ src/
   _pages/       one slice per screen (composition only)
   features/     user-facing actions (login, approve-payment, ...)
   shared/
-    api/        backend client (server-only)        [placeholder]
-    auth/       session, roles, guards              [placeholder]
+    api/        backend client (server-only)
+    auth/       session, roles, guards
     config/     site, routes, roles, server env
     i18n/       next-intl setup, localized-text helpers
     lib/        cn, money, app-error, theme, ...
@@ -21,24 +21,23 @@ docs/           this folder
 
 Import direction: `app → _pages → features → shared`. `_pages` is named with an underscore because `pages/` is reserved by Next.js.
 
-## Foundation vs. modules
+## Implemented modules
 
-This repo ships **configuration only**: toolchain, tokens, i18n, theme, shared UI, skills and rules. The placeholder home page (`app/page.tsx`) only proves the foundation works.
-Modules are built in the order defined by `backoffice_modules.md`:
+All 9 Backoffice modules defined in `backoffice_modules.md` are implemented and wired to the backend API through BFF Server Actions and RBAC route/action guards:
 
-| # | Module                                  | Routes (`ROUTES`)                                   |
-| - | --------------------------------------- | --------------------------------------------------- |
-| 1 | Authentication, invitation, access      | `login`, `recoverPassword`, `setPassword`           |
-| 2 | Operations hub (multi-court agenda)     | `agenda`                                            |
-| 3 | Finance & treasury                      | `paymentsInbox`, `exchangeRate`                     |
-| 4 | Venues, courts & schedules              | `venues`, `spaces`, `schedules`                     |
-| 5 | Master catalogs & RBAC users            | `catalogs`, `users`                                 |
-| 6 | Bookings ledger & check-in              | `reservations`                                      |
-| 7 | Ally settlements                        | `settlements`                                       |
-| 8 | Role-adaptive dashboard                 | `dashboard`                                         |
-| 9 | Self-service profile                    | `profile`                                           |
+| # | Module                                  | Routes (`ROUTES`)                                   | Status      |
+| - | --------------------------------------- | --------------------------------------------------- | ----------- |
+| 1 | Authentication, invitation, access      | `login`, `recoverPassword`, `setPassword`           | Implemented |
+| 2 | Operations hub (multi-court agenda)     | `agenda`                                            | Implemented |
+| 3 | Finance & treasury                      | `paymentsInbox`, `exchangeRate`                     | Implemented |
+| 4 | Venues, courts & schedules              | `venues`, `spaces`, `schedules`                     | Implemented |
+| 5 | Master catalogs & RBAC users            | `catalogs`, `users`                                 | Implemented |
+| 6 | Bookings ledger & check-in              | `reservations`                                      | Implemented |
+| 7 | Ally settlements                        | `settlements`                                       | Implemented |
+| 8 | Role-adaptive dashboard                 | `dashboard`                                         | Implemented |
+| 9 | Self-service profile                    | `profile`                                           | Implemented |
 
-Planned shared pieces for Module 1: `shared/api` (backend client), `shared/auth` (session cookies, role guards), `proxy.ts` (route protection) and the authenticated app shell in `_app/layouts`.
+Core infrastructure pieces include `shared/api` (typed server-only backend client), `shared/auth` (HTTP-only session cookies and `requireSession` RBAC guards), `proxy.ts` (middleware route protection and token refresh), and the authenticated executive shell in `_app/layouts`.
 
 ## Backend access (BFF)
 
@@ -46,7 +45,7 @@ The browser never calls the API directly. Server Components/Actions talk to `API
 
 ## Roles (RBAC)
 
-`ADMIN`, `ALLY`, `ACCOUNTING`, `VALIDATOR` (see [`roles.ts`](../src/shared/config/roles.ts)); they mirror the backend `UserRole`. Navigation and screens adapt per role.
+`ADMIN`, `ALLY`, `ACCOUNTING`, `VALIDATOR` (see [`roles.ts`](../src/shared/config/roles.ts)); they mirror the backend `UserRole`. Navigation, Server Components, and Server Actions enforce role permissions via `ROUTE_ALLOWED_ROLES` and `requireSession`.
 
 ## Next.js configuration notes
 

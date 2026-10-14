@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { PaymentsInboxPage } from "@/_pages/treasury/payments-inbox-page";
 import { getPaymentsInboxAction } from "@/features/treasury/actions/treasury-actions";
+import { requireSession } from "@/shared/auth/index.server";
+import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
+  await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.paymentsInbox]);
   const res = await getPaymentsInboxAction();
 
   const initialData = res.ok

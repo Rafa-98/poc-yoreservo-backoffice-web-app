@@ -16,7 +16,7 @@ export function RoleSimulatorBar({
   const t = useTranslations("users.simulator");
 
   const roles: Array<{ id: UserRole | "ALL"; icon: string; label: string }> = [
-    { id: "ALL", icon: "🌐", label: "Todos los Roles" },
+    { id: "ALL", icon: "🌐", label: t("allRoles") },
     { id: "ADMIN", icon: "👑", label: t("admin") },
     { id: "ALLY", icon: "🏢", label: t("ally") },
     { id: "ACCOUNTING", icon: "💳", label: t("accounting") },

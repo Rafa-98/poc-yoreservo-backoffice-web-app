@@ -1,16 +1,24 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { backendRequest } from "@/shared/api/index.server";
+import { ACCESS_COOKIE_NAME } from "@/shared/auth";
 import { requireSession } from "@/shared/auth/index.server";
+import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
+import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import type {
+  ActivityStreamItem,
+  AdminKpisData,
+  AllyKpisData,
   BackendDashboardSummary,
-  ExecutiveDashboardData,
   CourtRibbonItem,
-  TimeframeKey,
+  CourtStatusType,
+  ExecutiveDashboardData,
+  SportDistributionItem,
+  SportsDistributionData,
   TimeframeChartData,
+  TimeframeKey,
 } from "../model/types";
-
-const BCV_RATE = 40.0;
 
 const DEFAULT_CHART_DATA: Record<TimeframeKey, TimeframeChartData> = {
   HOY: {
@@ -88,13 +96,13 @@ const DEFAULT_COURTS_RIBBON: CourtRibbonItem[] = [
   },
 ];
 
-const DEFAULT_ADMIN_ACTIVITY_FEED = [
+const DEFAULT_ADMIN_ACTIVITY_FEED: ActivityStreamItem[] = [
   {
     id: "feed-1",
     icon: "💳",
     bg: "rgba(16, 185, 129, 0.15)",
     title: "Pago Móvil Verificado (#AB4553)",
-    desc: "Carlos Mendoza pagó $35.00 (Bs. 1,400.00) por Cancha 1 en Complejo Ávila.",
+    desc: "Carlos Mendoza pagó $35.00 (Bs. 1,435.00) por Cancha 1 en Complejo Ávila.",
     time: "Hace 4 min",
   },
   {
@@ -123,7 +131,7 @@ const DEFAULT_ADMIN_ACTIVITY_FEED = [
   },
 ];
 
-const DEFAULT_ALLY_ACTIVITY_FEED = [
+const DEFAULT_ALLY_ACTIVITY_FEED: ActivityStreamItem[] = [
   {
     id: "feed-ally-1",
     icon: "🎟️",
@@ -150,8 +158,40 @@ const DEFAULT_ALLY_ACTIVITY_FEED = [
   },
 ];
 
-import { cookies } from "next/headers";
-import { ACCESS_COOKIE_NAME } from "@/shared/auth";
+const DEFAULT_SPORTS_ITEMS: SportDistributionItem[] = [
+  {
+    key: "padel",
+    labelKey: "sports.padel",
+    percentage: 48,
+    count: 1363,
+    barColorClass: "bg-accent",
+    textColorClass: "text-accent-foreground",
+  },
+  {
+    key: "futbol",
+    labelKey: "sports.futbol",
+    percentage: 34,
+    count: 965,
+    barColorClass: "bg-emerald-500",
+    textColorClass: "text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    key: "tennis",
+    labelKey: "sports.tennis",
+    percentage: 12,
+    count: 341,
+    barColorClass: "bg-blue-500",
+    textColorClass: "text-blue-600 dark:text-blue-400",
+  },
+  {
+    key: "other",
+    labelKey: "sports.other",
+    percentage: 6,
+    count: 171,
+    barColorClass: "bg-purple-500",
+    textColorClass: "text-purple-600 dark:text-purple-400",
+  },
+];
 
 async function getAuthToken(): Promise<string | undefined> {
   try {
@@ -163,7 +203,7 @@ async function getAuthToken(): Promise<string | undefined> {
 }
 
 export async function getDashboardSummaryAction(): Promise<ExecutiveDashboardData> {
-  const session = await requireSession();
+  const session = await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.dashboard]);
   const isGlobalAdmin = session.user.role === "ADMIN";
   const accessToken = await getAuthToken();
 
@@ -180,12 +220,19 @@ export async function getDashboardSummaryAction(): Promise<ExecutiveDashboardDat
     backendSummary = null;
   }
 
+  const bcvRate =
+    backendSummary?.bcvRate && Number(backendSummary.bcvRate) > 0
+      ? Number(backendSummary.bcvRate)
+      : DEFAULT_BCV_USD_RATE;
+
   const metrics = {
-    gmv: backendSummary?.metrics?.gmv && backendSummary.metrics.gmv > 0
-      ? backendSummary.metrics.gmv
-      : 112450.0,
+    gmv:
+      backendSummary?.metrics?.gmv && backendSummary.metrics.gmv > 0
+        ? backendSummary.metrics.gmv
+        : 112450.0,
     platformFeeRevenue:
-      backendSummary?.metrics?.platformFeeRevenue && backendSummary.metrics.platformFeeRevenue > 0
+      backendSummary?.metrics?.platformFeeRevenue &&
+      backendSummary.metrics.platformFeeRevenue > 0
         ? backendSummary.metrics.platformFeeRevenue
         : 5622.5,
     netPayout:
@@ -193,7 +240,8 @@ export async function getDashboardSummaryAction(): Promise<ExecutiveDashboardDat
         ? backendSummary.metrics.netPayout
         : 106827.5,
     totalReservations:
-      backendSummary?.metrics?.totalReservations && backendSummary.metrics.totalReservations > 0
+      backendSummary?.metrics?.totalReservations &&
+      backendSummary.metrics.totalReservations > 0
         ? backendSummary.metrics.totalReservations
         : 2840,
     totalVenues:
@@ -206,13 +254,169 @@ export async function getDashboardSummaryAction(): Promise<ExecutiveDashboardDat
         : 88,
   };
 
+  // Map courtsRibbon from backend when available
+  const courtsRibbon: CourtRibbonItem[] =
+    Array.isArray(backendSummary?.courtsRibbon) &&
+    backendSummary.courtsRibbon.length > 0
+      ? backendSummary.courtsRibbon.map((c) => {
+          const rawStatus = String(c.status || "").toLowerCase();
+          const status: CourtStatusType =
+            rawStatus === "in-play" ||
+            rawStatus === "in_play" ||
+            rawStatus === "occupied"
+              ? "in-play"
+              : rawStatus === "upcoming" ||
+                rawStatus === "reserved" ||
+                rawStatus === "confirmed"
+              ? "upcoming"
+              : "available";
+          const rate = Number(c.ratePerHour ?? c.pricePerHour ?? 40);
+          return {
+            id: String(c.id),
+            reservationId: c.reservationId ? String(c.reservationId) : undefined,
+            name: c.name || "Cancha",
+            courtType: c.courtType || c.category || "Pádel",
+            surface: c.surface || "Superficie Estándar",
+            status,
+            timeSlot: c.timeSlot || "18:00 - 19:00",
+            customerName: c.customerName,
+            bookingCode: c.bookingCode || c.shortCode,
+            amount: c.amount !== undefined ? Number(c.amount) : rate,
+            ratePerHour: rate,
+            freeSlotText: c.freeSlotText || `$${rate.toFixed(2)}/h`,
+            checkInDone: Boolean(c.checkInDone),
+          };
+        })
+      : DEFAULT_COURTS_RIBBON;
+
+  // Map activityFeed / recentBookings from backend when available
+  const mappedRecentBookingsFeed: ActivityStreamItem[] =
+    Array.isArray(backendSummary?.recentBookings) &&
+    backendSummary.recentBookings.length > 0
+      ? backendSummary.recentBookings.map((b) => {
+          const isCompleted = b.status === "COMPLETED";
+          const isConfirmed = b.status === "CONFIRMED";
+          return {
+            id: String(b.id),
+            icon: isCompleted ? "🎟️" : isConfirmed ? "🎾" : "💳",
+            bg: isCompleted
+              ? "rgba(16, 185, 129, 0.15)"
+              : isConfirmed
+              ? "rgba(198, 242, 59, 0.2)"
+              : "rgba(59, 130, 246, 0.15)",
+            title: `${
+              isCompleted
+                ? "Check-in Realizado"
+                : isConfirmed
+                ? "Reserva Confirmada"
+                : "Actividad de Reserva"
+            } (#${b.shortCode || String(b.id).slice(0, 6).toUpperCase()})`,
+            desc: `${b.customerName} • ${b.spaceName} en ${b.venueName} ($${Number(
+              b.totalAmount || 0
+            ).toFixed(2)})`,
+            time: b.createdAt
+              ? new Date(b.createdAt).toLocaleTimeString("es-VE", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "Reciente",
+          };
+        })
+      : [];
+
+  const adminActivityFeed: ActivityStreamItem[] =
+    Array.isArray(backendSummary?.adminActivityFeed) &&
+    backendSummary.adminActivityFeed.length > 0
+      ? backendSummary.adminActivityFeed
+      : Array.isArray(backendSummary?.activityFeed) &&
+        backendSummary.activityFeed.length > 0
+      ? backendSummary.activityFeed
+      : mappedRecentBookingsFeed.length > 0
+      ? mappedRecentBookingsFeed
+      : DEFAULT_ADMIN_ACTIVITY_FEED;
+
+  const allyActivityFeed: ActivityStreamItem[] =
+    Array.isArray(backendSummary?.allyActivityFeed) &&
+    backendSummary.allyActivityFeed.length > 0
+      ? backendSummary.allyActivityFeed
+      : Array.isArray(backendSummary?.activityFeed) &&
+        backendSummary.activityFeed.length > 0
+      ? backendSummary.activityFeed
+      : mappedRecentBookingsFeed.length > 0
+      ? mappedRecentBookingsFeed
+      : DEFAULT_ALLY_ACTIVITY_FEED;
+
+  const chartData: Record<TimeframeKey, TimeframeChartData> = {
+    HOY: backendSummary?.chartData?.HOY ?? DEFAULT_CHART_DATA.HOY,
+    SEMANA: backendSummary?.chartData?.SEMANA ?? DEFAULT_CHART_DATA.SEMANA,
+    MES: backendSummary?.chartData?.MES ?? DEFAULT_CHART_DATA.MES,
+    ANO: backendSummary?.chartData?.ANO ?? DEFAULT_CHART_DATA.ANO,
+  };
+
+  const sportsDistribution: SportsDistributionData = Array.isArray(
+    backendSummary?.sportsDistribution
+  )
+    ? {
+        items:
+          backendSummary.sportsDistribution.length > 0
+            ? backendSummary.sportsDistribution
+            : DEFAULT_SPORTS_ITEMS,
+      }
+    : {
+        items:
+          backendSummary?.sportsDistribution?.items &&
+          backendSummary.sportsDistribution.items.length > 0
+            ? backendSummary.sportsDistribution.items
+            : DEFAULT_SPORTS_ITEMS,
+        peakHoursTime: backendSummary?.sportsDistribution?.peakHoursTime,
+        peakHoursSub: backendSummary?.sportsDistribution?.peakHoursSub,
+      };
+
+  const adminKpis: AdminKpisData = {
+    gmvGrowthPct: backendSummary?.adminKpis?.gmvGrowthPct ?? "+18.4%",
+    bookingsByTimeframe: backendSummary?.adminKpis?.bookingsByTimeframe ?? {
+      HOY: 84,
+      SEMANA: 612,
+      MES: metrics.totalReservations,
+      ANO: 28940,
+    },
+    totalBookings:
+      backendSummary?.adminKpis?.totalBookings ?? metrics.totalReservations,
+    totalVenues: backendSummary?.adminKpis?.totalVenues ?? metrics.totalVenues,
+    totalSpaces: backendSummary?.adminKpis?.totalSpaces ?? metrics.totalSpaces,
+    onboardingVenues: backendSummary?.adminKpis?.onboardingVenues ?? 3,
+    fulfillmentPct: backendSummary?.adminKpis?.fulfillmentPct ?? "98.2%",
+  };
+
+  const allyKpis: AllyKpisData = {
+    occupiedSlots: backendSummary?.allyKpis?.occupiedSlots ?? 22,
+    totalSlots: backendSummary?.allyKpis?.totalSlots ?? 28,
+    availableWalkInSlots: backendSummary?.allyKpis?.availableWalkInSlots ?? 6,
+    occupancyPeakPct: backendSummary?.allyKpis?.occupancyPeakPct ?? "78.5%",
+    todayNetRevenue: backendSummary?.allyKpis?.todayNetRevenue ?? 665.0,
+    checkedInMatches: backendSummary?.allyKpis?.checkedInMatches ?? 18,
+    playersOnCourt: backendSummary?.allyKpis?.playersOnCourt ?? 14,
+    pendingCheckInCount:
+      backendSummary?.allyKpis?.pendingCheckInCount ??
+      Math.max(
+        1,
+        courtsRibbon.filter((c) => c.status !== "available" && !c.checkInDone).length
+      ),
+    nextMatchTime: backendSummary?.allyKpis?.nextMatchTime,
+    nextMatchDesc: backendSummary?.allyKpis?.nextMatchDesc,
+    nextMatchCourt: backendSummary?.allyKpis?.nextMatchCourt,
+  };
+
   return {
     perspective: isGlobalAdmin ? "ADMIN" : "ALLY",
-    bcvRate: BCV_RATE,
+    bcvRate,
     metrics,
-    chartData: DEFAULT_CHART_DATA,
-    courtsRibbon: DEFAULT_COURTS_RIBBON,
-    adminActivityFeed: DEFAULT_ADMIN_ACTIVITY_FEED,
-    allyActivityFeed: DEFAULT_ALLY_ACTIVITY_FEED,
+    adminKpis,
+    allyKpis,
+    sportsDistribution,
+    chartData,
+    courtsRibbon,
+    adminActivityFeed,
+    allyActivityFeed,
   };
 }

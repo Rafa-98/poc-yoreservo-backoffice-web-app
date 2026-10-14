@@ -47,7 +47,7 @@ export function AmenityModal({
       onSuccess(res.data);
       onClose();
     } else {
-      setErrorMsg(res.error.code || "Error al crear la amenidad");
+      setErrorMsg(res.error.code || t("errorCreate"));
     }
   }
 
@@ -127,7 +127,7 @@ export function AmenityModal({
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Sauna & Spa Finlandés"
+                placeholder={t("placeholderName")}
                 className="form-input"
               />
             </div>
@@ -142,7 +142,7 @@ export function AmenityModal({
               required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Servicio de relajación muscular y vapor para miembros"
+              placeholder={t("placeholderDesc")}
               className="form-input text-xs"
             />
           </div>

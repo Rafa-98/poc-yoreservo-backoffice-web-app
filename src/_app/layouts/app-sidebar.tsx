@@ -188,7 +188,7 @@ export function AppSidebar({ user, isOpen, onClose }: AppSidebarProps) {
             type="button"
             onClick={onClose}
             className="inline-flex size-8 items-center justify-center rounded-lg text-sidebar-foreground hover:bg-sidebar-hover lg:hidden"
-            aria-label="Cerrar menú"
+            aria-label={t("closeMenu")}
           >
             <X className="size-5" />
           </button>

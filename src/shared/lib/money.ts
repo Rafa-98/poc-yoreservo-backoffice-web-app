@@ -1,3 +1,7 @@
+/** Canonical fallback BCV exchange rates when the backend rate service is unreachable. */
+export const DEFAULT_BCV_USD_RATE = 41.0;
+export const DEFAULT_BCV_EUR_RATE = 44.28;
+
 const USD_FORMATTERS = {
   whole: new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,

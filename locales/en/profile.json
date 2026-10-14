@@ -8,6 +8,7 @@
     "assignedVenue": "Assigned Venue",
     "assignedOrg": "Organization / Club",
     "memberSince": "Member Since",
+    "memberSinceDate": "January 15, 2026",
     "securityStatus": "Security Health",
     "securityBcryptActive": "✓ Active bcrypt password",
     "changePhoto": "Change Profile Picture"
@@ -21,7 +22,15 @@
     "firstName": "First Name *",
     "lastName": "Last Name *",
     "document": "National ID / Document *",
+    "docV": "V - Venezuelan",
+    "docE": "E - Foreigner",
+    "docJ": "J - Corporate",
+    "docG": "G - Government",
+    "docP": "P - Passport",
+    "docC": "C - Communal",
     "phone": "WhatsApp Phone *",
+    "opLandline": "0212 (Landline CCS)",
+    "opOther": "Other / Int.",
     "email": "Email Address",
     "emailVerified": "✓ Verified",
     "emailDisclaimer": "To update your login email contact the System Administrator.",
@@ -62,6 +71,7 @@
     "revokeAll": "Revoke all other sessions",
     "thisDevice": "This Device",
     "activeNow": "Active now",
+    "recent": "Recent",
     "revoke": "Revoke Session",
     "modalTitle": "Revoke all other sessions?",
     "modalDesc": "This action will immediately invalidate access tokens across all your other connected phones, tablets, or computers.",
@@ -71,8 +81,10 @@
   "toast": {
     "profileSaved": "Personal details updated successfully.",
     "passwordUpdated": "Password updated successfully!",
+    "passwordError": "Could not update password. Please verify your current password.",
     "sessionRevoked": "Session revoked successfully.",
     "allSessionsRevoked": "All other remote sessions have been revoked.",
-    "langUpdated": "Language preference saved."
+    "langUpdated": "Language preference saved.",
+    "actionError": "Could not complete the action. Please try again."
   }
 }

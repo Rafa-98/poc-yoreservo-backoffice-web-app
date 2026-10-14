@@ -28,43 +28,43 @@ interface SchedulesPageProps {
 
 const DEFAULT_DAYS: DaySchedule[] = [
   {
-    dayOfWeek: 1, // Lunes
+    dayOfWeek: 1, // Monday
     isOpen: true,
     shift1: { openTime: "07:00", closeTime: "12:00", isEnabled: true },
     shift2: { openTime: "16:00", closeTime: "23:00", isEnabled: true },
   },
   {
-    dayOfWeek: 2, // Martes
+    dayOfWeek: 2, // Tuesday
     isOpen: true,
     shift1: { openTime: "07:00", closeTime: "12:00", isEnabled: true },
     shift2: { openTime: "16:00", closeTime: "23:00", isEnabled: true },
   },
   {
-    dayOfWeek: 3, // Miércoles
+    dayOfWeek: 3, // Wednesday
     isOpen: true,
     shift1: { openTime: "07:00", closeTime: "12:00", isEnabled: true },
     shift2: { openTime: "16:00", closeTime: "23:00", isEnabled: true },
   },
   {
-    dayOfWeek: 4, // Jueves
+    dayOfWeek: 4, // Thursday
     isOpen: true,
     shift1: { openTime: "07:00", closeTime: "12:00", isEnabled: true },
     shift2: { openTime: "16:00", closeTime: "23:00", isEnabled: true },
   },
   {
-    dayOfWeek: 5, // Viernes
+    dayOfWeek: 5, // Friday
     isOpen: true,
     shift1: { openTime: "07:00", closeTime: "12:00", isEnabled: true },
     shift2: { openTime: "16:00", closeTime: "23:00", isEnabled: true },
   },
   {
-    dayOfWeek: 6, // Sábado
+    dayOfWeek: 6, // Saturday
     isOpen: true,
     shift1: { openTime: "08:00", closeTime: "14:00", isEnabled: true },
     shift2: { openTime: "16:00", closeTime: "22:00", isEnabled: true },
   },
   {
-    dayOfWeek: 0, // Domingo
+    dayOfWeek: 0, // Sunday
     isOpen: true,
     shift1: { openTime: "08:00", closeTime: "18:00", isEnabled: true },
     shift2: { openTime: "18:00", closeTime: "22:00", isEnabled: false },
@@ -93,7 +93,7 @@ export function SchedulesPage({
 
   const [applyToAllVenueSpaces, setApplyToAllVenueSpaces] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
 
   // Initialize 7 days
   const [days, setDays] = useState<DaySchedule[]>(() => {
@@ -111,25 +111,41 @@ export function SchedulesPage({
 
   const currentVenue = venues.find((v) => v.id === selectedVenueId) || venues[0];
 
+  function showToast(message: string, isError = false) {
+    setToast({ message, isError });
+    setTimeout(() => setToast(null), 4000);
+  }
+
   async function handleSelectVenue(venueId: string) {
     setSelectedVenueId(venueId);
     const spacesRes = await getSpacesAction(venueId);
-    if (spacesRes.ok && spacesRes.data && spacesRes.data.length > 0) {
+    if (!spacesRes.ok) {
+      showToast(topT("errorLoadSpaces", { code: spacesRes.error.code }), true);
+      return;
+    }
+    if (spacesRes.data && spacesRes.data.length > 0) {
       setSpaces(spacesRes.data);
       const firstSpaceId = spacesRes.data[0].id;
       setSelectedSpaceId(firstSpaceId);
-      loadSpaceSchedules(firstSpaceId);
+      await loadSpaceSchedules(firstSpaceId);
+    } else {
+      setSpaces([]);
+      setSelectedSpaceId("");
     }
   }
 
   async function handleSelectSpace(spaceId: string) {
     setSelectedSpaceId(spaceId);
-    loadSpaceSchedules(spaceId);
+    await loadSpaceSchedules(spaceId);
   }
 
   async function loadSpaceSchedules(spaceId: string) {
     const res = await getSpaceSchedulesAction(spaceId);
-    if (res.ok && res.data && res.data.days?.length > 0) {
+    if (!res.ok) {
+      showToast(schedT("toastLoadError", { code: res.error.code }), true);
+      return;
+    }
+    if (res.data && res.data.days?.length > 0) {
       const sorted = [...res.data.days].sort((a, b) => {
         const orderA = a.dayOfWeek === 0 ? 7 : a.dayOfWeek;
         const orderB = b.dayOfWeek === 0 ? 7 : b.dayOfWeek;
@@ -166,8 +182,7 @@ export function SchedulesPage({
       })
     );
 
-    setToastMessage("¡Horario de Lunes copiado a Martes-Viernes!");
-    setTimeout(() => setToastMessage(null), 3000);
+    showToast(schedT("toastCopiedMonday"), false);
   }
 
   async function handleSaveSchedules() {
@@ -183,14 +198,14 @@ export function SchedulesPage({
     setIsSaving(false);
 
     if (res.ok) {
-      const countDesc = applyToAllVenueSpaces
-        ? `todas las ${spaces.length} canchas de la sede`
-        : "la cancha seleccionada";
-      setToastMessage(`✓ Horarios semanales guardados exitosamente para ${countDesc}`);
-      setTimeout(() => setToastMessage(null), 4000);
+      showToast(
+        applyToAllVenueSpaces
+          ? schedT("toastSavedAll", { count: spaces.length })
+          : schedT("toastSavedSingle"),
+        false
+      );
     } else {
-      setToastMessage(`Error al guardar horarios: ${res.error.code}`);
-      setTimeout(() => setToastMessage(null), 4000);
+      showToast(schedT("toastSaveError", { code: res.error.code }), true);
     }
   }
 
@@ -200,40 +215,16 @@ export function SchedulesPage({
   }
 
   return (
-    <div className="schedules-page" style={{ paddingBottom: "40px" }}>
+    <div className="schedules-page pb-10">
       {/* Top Header */}
-      <div
-        style={{
-          padding: "20px 20px 10px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "10px",
-        }}
-      >
+      <div className="flex flex-wrap items-center justify-between gap-2.5 px-5 pt-5 pb-2.5">
         <div>
-          <div
-            style={{
-              fontSize: "11px",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              color: "var(--text-link)",
-            }}
-          >
+          <div className="text-[11px] font-bold tracking-wider text-link uppercase">
             {topT("schedulesSubtitle", {
-              venueName: currentVenue?.name || "Sede Activa",
+              venueName: currentVenue?.name || topT("defaultVenueName"),
             })}
           </div>
-          <h1
-            style={{
-              fontSize: "22px",
-              fontWeight: 800,
-              color: "var(--text-main)",
-              margin: "4px 0 0",
-            }}
-          >
+          <h1 className="mt-1 text-[22px] font-extrabold text-foreground">
             {topT("schedulesTitle")}
           </h1>
         </div>
@@ -246,38 +237,20 @@ export function SchedulesPage({
       />
 
       {/* Toast feedback banner */}
-      {toastMessage && (
-        <div style={{ padding: "0 20px", marginTop: "16px" }}>
+      {toast && (
+        <div className="mt-4 px-5">
           <div
-            style={{
-              background: toastMessage.startsWith("Error")
-                ? "rgba(220, 38, 38, 0.15)"
-                : "rgba(198, 242, 59, 0.15)",
-              border: toastMessage.startsWith("Error")
-                ? "1px solid rgba(220, 38, 38, 0.4)"
-                : "1px solid rgba(198, 242, 59, 0.4)",
-              color: toastMessage.startsWith("Error")
-                ? "var(--status-cancelled-text, #ef4444)"
-                : "var(--brand-lime-text, var(--text-link))",
-              padding: "12px 18px",
-              borderRadius: "12px",
-              fontSize: "13.5px",
-              fontWeight: 600,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
+            className={`flex items-center justify-between rounded-xl border px-4 py-3 text-[13.5px] font-semibold ${
+              toast.isError
+                ? "border-status-cancelled-border bg-status-cancelled-bg text-status-cancelled-fg"
+                : "border-status-available-border bg-status-available-bg text-status-available-fg"
+            }`}
           >
-            <span>{toastMessage}</span>
+            <span>{toast.message}</span>
             <button
               type="button"
-              onClick={() => setToastMessage(null)}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontWeight: 700,
-              }}
+              onClick={() => setToast(null)}
+              className="cursor-pointer border-none bg-transparent font-bold text-current"
             >
               ✕
             </button>
@@ -286,7 +259,7 @@ export function SchedulesPage({
       )}
 
       {/* Scope Bar */}
-      <div style={{ marginTop: "16px" }}>
+      <div className="mt-4">
         <ScheduleScopeBar
           venues={venues}
           selectedVenueId={selectedVenueId}
@@ -303,14 +276,7 @@ export function SchedulesPage({
       </div>
 
       {/* 7 Days Matrix */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "16px",
-          padding: "0 20px 32px",
-        }}
-      >
+      <div className="flex flex-col gap-4 px-5 pb-8">
         {days.map((day, idx) => (
           <DayScheduleCard
             key={day.dayOfWeek}

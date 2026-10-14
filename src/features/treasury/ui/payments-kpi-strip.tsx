@@ -11,19 +11,22 @@ export function PaymentsKpiStrip({ kpis }: PaymentsKpiStripProps) {
   const t = useTranslations("treasury.inbox.kpi");
 
   return (
-    <section className="agenda-kpi-strip" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, padding: "0 20px 20px" }}>
+    <section className="agenda-kpi-strip grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 px-5 pb-5">
       {/* 1. Pending */}
-      <div className="kpi-card-mini" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 16, padding: "16px 18px" }}>
-        <span className="kpi-label" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>
+      <div className="kpi-card-mini rounded-2xl border border-border bg-surface px-4.5 py-4">
+        <span className="kpi-label text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
           {t("pendingTitle")}
         </span>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
-          <span style={{ fontSize: 22, fontWeight: 800, color: "var(--status-hold-text)" }}>
+        <div className="mt-1 flex items-baseline gap-2">
+          <span className="text-[22px] font-extrabold text-status-hold-fg">
             {t("pendingCount", { count: kpis.pendingCount })}
           </span>
-          <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
+          <span className="text-xs text-muted-foreground">
             {t("pendingAmount", {
-              bs: kpis.pendingAmountBs.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+              bs: kpis.pendingAmountBs.toLocaleString("es-VE", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              }),
               usd: kpis.pendingAmountUsd.toFixed(2),
             })}
           </span>
@@ -31,45 +34,45 @@ export function PaymentsKpiStrip({ kpis }: PaymentsKpiStripProps) {
       </div>
 
       {/* 2. Verified Today */}
-      <div className="kpi-card-mini" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 16, padding: "16px 18px" }}>
-        <span className="kpi-label" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>
+      <div className="kpi-card-mini rounded-2xl border border-border bg-surface px-4.5 py-4">
+        <span className="kpi-label text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
           {t("verifiedToday")}
         </span>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
-          <span style={{ fontSize: 22, fontWeight: 800, color: "#059669" }}>
+        <div className="mt-1 flex items-baseline gap-2">
+          <span className="text-[22px] font-extrabold text-status-available-fg">
             {t("verifiedCount", { count: kpis.verifiedTodayCount })}
           </span>
-          <span className="badge badge-available" style={{ fontSize: 10, padding: "2px 8px", borderRadius: 6, fontWeight: 700, background: "rgba(16, 185, 129, 0.15)", color: "#059669" }}>
+          <span className="badge badge-available rounded-md bg-status-available-bg px-2 py-0.5 text-[10px] font-bold text-status-available-fg">
             {t("verifiedBadge")}
           </span>
         </div>
       </div>
 
       {/* 3. Rejected */}
-      <div className="kpi-card-mini" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 16, padding: "16px 18px" }}>
-        <span className="kpi-label" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>
+      <div className="kpi-card-mini rounded-2xl border border-border bg-surface px-4.5 py-4">
+        <span className="kpi-label text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
           {t("rejected")}
         </span>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
-          <span style={{ fontSize: 22, fontWeight: 800, color: "var(--status-cancelled-text)" }}>
+        <div className="mt-1 flex items-baseline gap-2">
+          <span className="text-[22px] font-extrabold text-status-cancelled-fg">
             {t("rejectedCount", { count: kpis.rejectedCount })}
           </span>
-          <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
+          <span className="text-xs text-muted-foreground">
             {t("rejectedSub")}
           </span>
         </div>
       </div>
 
       {/* 4. Speed */}
-      <div className="kpi-card-mini" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 16, padding: "16px 18px" }}>
-        <span className="kpi-label" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>
+      <div className="kpi-card-mini rounded-2xl border border-border bg-surface px-4.5 py-4">
+        <span className="kpi-label text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
           {t("speed")}
         </span>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
-          <span style={{ fontSize: 22, fontWeight: 800, color: "var(--text-link)" }}>
-            {t("speedValue")}
+        <div className="mt-1 flex items-baseline gap-2">
+          <span className="text-[22px] font-extrabold text-link">
+            {kpis.averageSpeedMin || t("speedValue")}
           </span>
-          <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
+          <span className="text-xs text-muted-foreground">
             {t("speedTarget")}
           </span>
         </div>

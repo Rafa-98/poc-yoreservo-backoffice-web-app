@@ -97,7 +97,7 @@ export function SettlementsTable({
                           type="button"
                           onClick={() => copyToClipboard(batch.batchCode)}
                           className="font-mono text-xs font-bold text-foreground bg-muted hover:bg-muted/80 px-2 py-1 rounded-md border border-border transition-all cursor-pointer flex items-center gap-1.5"
-                          title="Copiar código de lote"
+                          title={t("copyBatchCode")}
                         >
                           <span>#{batch.batchCode}</span>
                           <span className="text-[10px] text-muted-foreground">
@@ -109,7 +109,7 @@ export function SettlementsTable({
                         {batch.organization?.tradeName}
                       </div>
                       <div className="text-[11px] text-muted-foreground">
-                        {batch.organization?.rif} • {batch.venue?.name || "Todas las sedes"}
+                        {batch.organization?.rif} • {batch.venue?.name || t("allVenues")}
                       </div>
                     </td>
 
@@ -119,7 +119,7 @@ export function SettlementsTable({
                         {batch.periodDisplay || `${batch.periodStartDate} - ${batch.periodEndDate}`}
                       </div>
                       <div className="text-[11px] text-muted-foreground mt-0.5">
-                        {batch.totalReservations} reservas concil.
+                        {batch.totalReservations} {t("reconciledBookingsShort")}
                       </div>
                     </td>
 
@@ -135,7 +135,7 @@ export function SettlementsTable({
 
                     {/* Platform Fee (5%) */}
                     <td className="px-4 py-4 text-right">
-                      <div className="font-bold text-rose-500">
+                      <div className="font-bold text-status-cancelled-fg">
                         -${batch.platformFeeAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                       <div className="text-[11px] text-muted-foreground">
@@ -145,7 +145,7 @@ export function SettlementsTable({
 
                     {/* Net Amount to Pay */}
                     <td className="px-4 py-4 text-right">
-                      <div className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
+                      <div className="font-extrabold text-status-available-fg text-sm">
                         ${batch.netPayoutAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                       <div className="text-[11px] text-muted-foreground">
@@ -156,12 +156,12 @@ export function SettlementsTable({
                     {/* Destination Account */}
                     <td className="px-4 py-4">
                       <div className="font-semibold text-foreground truncate max-w-[190px]">
-                        {batch.organization?.payoutBank || "Banesco Banco Universal"}
+                        {batch.organization?.payoutBank || "—"}
                       </div>
                       <div className="font-mono text-[11px] text-muted-foreground mt-0.5">
                         {batch.organization?.payoutAccountNumber
                           ? `••• ${batch.organization.payoutAccountNumber.slice(-6)}`
-                          : "••• 4401-2918"}
+                          : "—"}
                       </div>
                       <div className="text-[10px] text-muted-foreground truncate max-w-[190px]">
                         {batch.organization?.payoutAccountHolder || batch.organization?.legalName}
@@ -171,7 +171,7 @@ export function SettlementsTable({
                     {/* Status Badge */}
                     <td className="px-4 py-4 text-center">
                       {isDisbursed ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 border border-blue-500/30 px-2.5 py-1 text-[11px] font-bold text-blue-400">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-status-confirmed-bg border border-status-confirmed-border px-2.5 py-1 text-[11px] font-bold text-status-confirmed-fg">
                           <span>✓</span>
                           <span>{t("statusDisbursed")}</span>
                         </span>
@@ -180,7 +180,7 @@ export function SettlementsTable({
                           {t("statusDraft")}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 text-[11px] font-bold text-amber-500">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-status-hold-bg border border-status-hold-border px-2.5 py-1 text-[11px] font-bold text-status-hold-fg">
                           <span>⏳</span>
                           <span>{t("statusPending")}</span>
                         </span>
@@ -197,7 +197,7 @@ export function SettlementsTable({
                           size="sm"
                           onClick={() => onOpenDrawer(batch)}
                           className="px-2.5 py-1 text-xs"
-                          title="Ver estado de cuenta y partidos conciliados"
+                          title={t("btnStatementTitle")}
                         >
                           <span>📄</span>
                           <span className="hidden sm:inline">{t("btnStatement")}</span>
@@ -210,8 +210,8 @@ export function SettlementsTable({
                             variant="secondary"
                             size="sm"
                             onClick={() => onOpenDrawer(batch)}
-                            className="px-2.5 py-1 text-xs text-blue-400"
-                            title="Ver comprobante bancario emitido"
+                            className="px-2.5 py-1 text-xs text-status-confirmed-fg"
+                            title={t("btnReceiptTitle")}
                           >
                             <span>🧾</span>
                             <span className="hidden sm:inline">{t("btnReceipt")}</span>
@@ -223,7 +223,7 @@ export function SettlementsTable({
                             size="sm"
                             onClick={() => onOpenPayout(batch)}
                             className="px-2.5 py-1 text-xs"
-                            title="Ejecutar y registrar desembolso bancario"
+                            title={t("btnPayNowTitle")}
                           >
                             <span>💸</span>
                             <span>{t("btnPayNow")}</span>

@@ -45,6 +45,7 @@ export function CatalogsPage({
   const [activityTypeIdForSport, setActivityTypeIdForSport] = useState<string | null>(null);
   const [activityForCategory, setActivityForCategory] = useState<ActivityItem | null>(null);
   const [isSurfaceModalOpen, setIsSurfaceModalOpen] = useState(false);
+  const [editingSurface, setEditingSurface] = useState<SurfaceItem | null>(null);
   const [isAmenityModalOpen, setIsAmenityModalOpen] = useState(false);
 
   async function refreshTaxonomy() {
@@ -108,8 +109,14 @@ export function CatalogsPage({
         {activeTab === "surfaces" && (
           <SurfacesTable
             surfaces={surfaces}
-            onAddSurface={() => setIsSurfaceModalOpen(true)}
-            onEditSurface={() => setIsSurfaceModalOpen(true)}
+            onAddSurface={() => {
+              setEditingSurface(null);
+              setIsSurfaceModalOpen(true);
+            }}
+            onEditSurface={(surface) => {
+              setEditingSurface(surface);
+              setIsSurfaceModalOpen(true);
+            }}
           />
         )}
 
@@ -144,9 +151,21 @@ export function CatalogsPage({
 
       <SurfaceModal
         isOpen={isSurfaceModalOpen}
-        onClose={() => setIsSurfaceModalOpen(false)}
-        onSuccess={() => {
+        initialData={editingSurface}
+        onClose={() => {
           setIsSurfaceModalOpen(false);
+          setEditingSurface(null);
+        }}
+        onSuccess={(savedSurface) => {
+          if (savedSurface) {
+            setSurfaces((prev) =>
+              prev.some((s) => s.id === savedSurface.id)
+                ? prev.map((s) => (s.id === savedSurface.id ? savedSurface : s))
+                : [...prev, savedSurface],
+            );
+          }
+          setIsSurfaceModalOpen(false);
+          setEditingSurface(null);
           refreshSurfaces();
         }}
       />

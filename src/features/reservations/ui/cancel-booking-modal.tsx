@@ -40,7 +40,7 @@ export function CancelBookingModal({
       onSuccess();
       onClose();
     } else {
-      setErrorMsg(res.error.code || "Error al cancelar la reserva");
+      setErrorMsg(res.error.code || t("errorCancel"));
     }
   }
 
@@ -121,7 +121,7 @@ export function CancelBookingModal({
               disabled={loading}
               id="btn-confirm-cancel"
             >
-              {loading ? "Cancelando..." : t("btnConfirm")}
+              {loading ? t("btnCancelling") : t("btnConfirm")}
             </Button>
           </div>
         </form>

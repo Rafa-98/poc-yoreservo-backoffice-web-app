@@ -62,7 +62,7 @@ export function ReservationsFilterBar({
 
         <div className="flex items-center gap-2">
           <span className="rounded-xl border border-border bg-muted/60 px-3 py-1 text-xs font-bold text-foreground">
-            Ref BCV: ${bcvRate.toFixed(2)} Bs.
+            {t("bcvRefBadge", { rate: bcvRate.toFixed(2) })}
           </span>
         </div>
       </div>

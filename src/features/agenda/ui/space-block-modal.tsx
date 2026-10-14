@@ -31,7 +31,7 @@ export function SpaceBlockModal({
 }: SpaceBlockModalProps) {
   const t = useTranslations("agenda");
 
-  const [reason, setReason] = useState("Lluvia / Clima adverso");
+  const [reason, setReason] = useState(t("blockRain"));
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -85,7 +85,7 @@ export function SpaceBlockModal({
               </div>
               <div>
                 <h3 className="font-display text-base font-bold text-foreground">
-                  {existingBlock ? "Turno Inhabilitado" : t("blockModalTitle")}
+                  {existingBlock ? t("blockDisabledTitle") : t("blockModalTitle")}
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   {court.spaceNumber} ({startTime} - {endTime})
@@ -106,27 +106,27 @@ export function SpaceBlockModal({
             <div className="py-4 space-y-4">
               <div className="rounded-xl border border-border bg-background p-3.5 space-y-2 text-xs">
                 <div>
-                  <span className="text-muted-foreground">Motivo:</span>
+                  <span className="text-muted-foreground">{t("blockReasonLabel")}:</span>
                   <strong className="block text-foreground text-sm font-semibold mt-0.5">
                     {existingBlock.reason}
                   </strong>
                 </div>
                 {existingBlock.notes && (
                   <div>
-                    <span className="text-muted-foreground">Observaciones:</span>
+                    <span className="text-muted-foreground">{t("blockNotesLabel")}:</span>
                     <p className="text-foreground mt-0.5">{existingBlock.notes}</p>
                   </div>
                 )}
                 {existingBlock.creator && (
                   <div className="text-[11px] text-muted-foreground pt-1 border-t border-border">
-                    Registrado por: {existingBlock.creator}
+                    {t("blockCreatedBy", { name: existingBlock.creator })}
                   </div>
                 )}
               </div>
 
               <div className="flex gap-3">
                 <Button variant="secondary" fullWidth onClick={onClose}>
-                  Cerrar
+                  {t("btnClose")}
                 </Button>
                 <Button
                   variant="destructive"
@@ -150,9 +150,9 @@ export function SpaceBlockModal({
                   onChange={(e) => setReason(e.target.value)}
                   className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-accent focus:outline-none cursor-pointer"
                 >
-                  <option value="Lluvia / Clima adverso">{t("blockRain")}</option>
-                  <option value="Mantenimiento preventivo">{t("blockMaintenance")}</option>
-                  <option value="Uso interno / Evento privado">{t("blockPrivate")}</option>
+                  <option value={t("blockRain")}>{t("blockRain")}</option>
+                  <option value={t("blockMaintenance")}>{t("blockMaintenance")}</option>
+                  <option value={t("blockPrivate")}>{t("blockPrivate")}</option>
                 </select>
               </div>
 
@@ -164,14 +164,14 @@ export function SpaceBlockModal({
                   rows={2}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Detalles adicionales sobre el cierre..."
+                  placeholder={t("blockNotesPlaceholder")}
                   className="w-full rounded-xl border border-border bg-background px-3 py-2 text-foreground focus:border-accent focus:outline-none"
                 />
               </div>
 
               <div className="flex gap-3 pt-2">
                 <Button variant="secondary" fullWidth onClick={onClose}>
-                  Cancelar
+                  {t("btnCancel")}
                 </Button>
                 <Button
                   type="submit"

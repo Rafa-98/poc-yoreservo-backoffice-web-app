@@ -19,6 +19,7 @@
     "btnEditSport": "Edit Sport",
     "btnEditCategory": "Edit Category",
     "spacesCount": "{count} courts on platform",
+    "courtsCount": "{count} courts",
     "active": "Active"
   },
   "surfaces": {
@@ -29,6 +30,7 @@
     "thMaintenance": "Recommended Maintenance",
     "thStatus": "Status",
     "thActions": "Actions",
+    "btnAdd": "New Surface",
     "btnEdit": "Edit",
     "active": "Active"
   },
@@ -36,6 +38,7 @@
     "bannerTitle": "Global Amenities & Services Catalog",
     "bannerDesc": "Infrastructure features and services that sports venues can activate on their public YoReservo profile.",
     "activeInVenues": "✓ Active in {count} Venues",
+    "btnAdd": "New Amenity",
     "btnEdit": "Edit"
   },
   "modalSport": {
@@ -43,8 +46,11 @@
     "desc": "Register a new sports discipline under an activity type",
     "activityType": "Activity Type *",
     "nameEs": "Spanish Name *",
+    "placeholderEs": "e.g. Pádel",
     "nameEn": "English Name *",
+    "placeholderEn": "e.g. Padel",
     "imageUrl": "Image / Icon URL *",
+    "errorCreate": "Error registering sport",
     "cancel": "Cancel",
     "save": "Save Sport ✓"
   },
@@ -53,19 +59,28 @@
     "desc": "Define a regulated game format or category (e.g. 5v5, Doubles)",
     "sportLabel": "Parent Sport",
     "nameEs": "Format Name in Spanish *",
+    "placeholderEs": "e.g. Pádel Dobles (4 Jugadores)",
     "nameEn": "Format Name in English *",
+    "placeholderEn": "e.g. Padel Doubles (4 Players)",
     "imageUrl": "Image URL (Optional)",
+    "errorCreate": "Error registering court format",
     "cancel": "Cancel",
     "save": "Save Format ✓"
   },
   "modalSurface": {
     "title": "Register Court Surface",
+    "editTitle": "Edit Court Surface",
     "desc": "Add a new base specification for sports courts",
     "code": "Unique Code (e.g. SURF_PADEL_MONO) *",
     "name": "Surface Name *",
+    "placeholderName": "Padel Monofilament Turf",
     "description": "Composition Details *",
+    "placeholderDesc": "Silica sand 0.2-0.6mm",
     "maintenance": "Maintenance Protocol *",
+    "placeholderMaintenance": "Fortnightly brushing",
     "suitedSports": "Compatible Sports (comma-separated) *",
+    "placeholderSports": "Padel Doubles, Padel Singles",
+    "errorSave": "Error saving surface",
     "cancel": "Cancel",
     "save": "Save Surface ✓"
   },
@@ -74,8 +89,11 @@
     "desc": "Add an infrastructure facility service for sports clubs",
     "code": "Unique Code (e.g. AMN_SAUNA) *",
     "name": "Service Name *",
+    "placeholderName": "Finnish Sauna & Spa",
     "icon": "Emoji / Icon *",
     "description": "Short Description of Service *",
+    "placeholderDesc": "Muscle relaxation and steam service for members",
+    "errorCreate": "Error creating amenity",
     "cancel": "Cancel",
     "save": "Save Amenity ✓"
   }

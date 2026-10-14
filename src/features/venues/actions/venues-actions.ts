@@ -19,6 +19,7 @@ import type {
   UpdateSpaceInput,
   UpdateSpaceStatusInput,
   UpdateVenueInput,
+  VenueItem,
   WeeklyScheduleData,
   WeeklySchedulesInput,
 } from "../model/types";
@@ -30,13 +31,45 @@ async function getAuthToken(): Promise<string> {
   return token;
 }
 
+function mapVenueItem(v: any): VenueItem {
+  const amenities = Array.isArray(v?.amenities)
+    ? v.amenities
+        .map((a: any) =>
+          typeof a === "string"
+            ? a
+            : a?.name?.es || a?.name?.en || a?.name || String(a)
+        )
+        .filter(Boolean)
+    : undefined;
+
+  return {
+    ...v,
+    id: String(v?.id ?? ""),
+    organizationId: String(v?.organizationId ?? ""),
+    name: String(v?.name ?? ""),
+    rif: String(v?.rif ?? ""),
+    address: String(v?.address ?? ""),
+    contactPhone: String(v?.contactPhone ?? ""),
+    contactEmail: v?.contactEmail ? String(v.contactEmail) : undefined,
+    status: v?.status ?? "ACTIVE",
+    imageUrl: v?.imageUrl ?? null,
+    locationLat: Number(v?.locationLat ?? 0),
+    locationLng: Number(v?.locationLng ?? 0),
+    location: v?.location,
+    spacesCount: Number(v?.spacesCount ?? 0),
+    sports: Array.isArray(v?.sports) ? v.sports : [],
+    staffCount: Number(v?.staffCount ?? 0),
+    amenities,
+  };
+}
+
 // =============================================================================
 // ORGANIZATION ACTIONS
 // =============================================================================
 
 export async function getOrganizationAction(): Promise<ActionResult<OrganizationData>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/organization", { accessToken });
@@ -54,7 +87,7 @@ export async function updateOrganizationAction(
   input: UpdateOrganizationInput
 ): Promise<ActionResult<OrganizationData>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/organization", {
@@ -81,9 +114,9 @@ export async function updateOrganizationAction(
 // VENUES ACTIONS
 // =============================================================================
 
-export async function getVenuesListAction(): Promise<ActionResult<any[]>> {
+export async function getVenuesListAction(): Promise<ActionResult<VenueItem[]>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY", "ACCOUNTING", "VALIDATOR"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/venues", { accessToken });
@@ -91,7 +124,8 @@ export async function getVenuesListAction(): Promise<ActionResult<any[]>> {
       return fail("FAILED_TO_LOAD_VENUES");
     }
 
-    return ok((res.body as any[]) ?? []);
+    const raw = Array.isArray(res.body) ? res.body : [];
+    return ok(raw.map(mapVenueItem));
   } catch (error) {
     return fail(error instanceof Error ? error.message : "UNKNOWN_ERROR");
   }
@@ -99,9 +133,9 @@ export async function getVenuesListAction(): Promise<ActionResult<any[]>> {
 
 export async function createVenueAction(
   input: CreateVenueInput
-): Promise<ActionResult<any>> {
+): Promise<ActionResult<VenueItem>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/venues", {
@@ -115,7 +149,7 @@ export async function createVenueAction(
     }
 
     revalidatePath(ROUTES.venues);
-    return ok(res.body);
+    return ok(mapVenueItem(res.body));
   } catch (error) {
     return fail(error instanceof Error ? error.message : "UNKNOWN_ERROR");
   }
@@ -124,9 +158,9 @@ export async function createVenueAction(
 export async function updateVenueAction(
   venueId: string,
   input: UpdateVenueInput
-): Promise<ActionResult<any>> {
+): Promise<ActionResult<VenueItem>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/venues/${venueId}`, {
@@ -140,7 +174,7 @@ export async function updateVenueAction(
     }
 
     revalidatePath(ROUTES.venues);
-    return ok(res.body);
+    return ok(mapVenueItem(res.body));
   } catch (error) {
     return fail(error instanceof Error ? error.message : "UNKNOWN_ERROR");
   }
@@ -154,7 +188,7 @@ export async function getSpacesAction(
   venueId: string
 ): Promise<ActionResult<SpaceItem[]>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY", "ACCOUNTING", "VALIDATOR"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/venues/${venueId}/spaces`, {
@@ -175,7 +209,7 @@ export async function createSpaceAction(
   input: CreateSpaceInput
 ): Promise<ActionResult<SpaceItem>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/venues/${venueId}/spaces`, {
@@ -201,7 +235,7 @@ export async function updateSpaceAction(
   input: UpdateSpaceInput
 ): Promise<ActionResult<SpaceItem>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/spaces/${spaceId}`, {
@@ -227,7 +261,7 @@ export async function updateSpaceStatusAction(
   input: UpdateSpaceStatusInput
 ): Promise<ActionResult<SpaceStatusConflictResult>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/spaces/${spaceId}/status`, {
@@ -255,7 +289,7 @@ export async function getSpaceSchedulesAction(
   spaceId: string
 ): Promise<ActionResult<WeeklyScheduleData>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/spaces/${spaceId}/schedules`, {
@@ -271,12 +305,19 @@ export async function getSpaceSchedulesAction(
   }
 }
 
+export async function getWeeklySchedulesAction(
+  spaceId: string
+): Promise<ActionResult<WeeklyScheduleData>> {
+  await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
+  return getSpaceSchedulesAction(spaceId);
+}
+
 export async function updateSpaceSchedulesAction(
   spaceId: string,
   input: WeeklySchedulesInput
 ): Promise<ActionResult<any>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/spaces/${spaceId}/schedules`, {
@@ -296,13 +337,21 @@ export async function updateSpaceSchedulesAction(
   }
 }
 
+export async function saveWeeklySchedulesAction(
+  spaceId: string,
+  input: WeeklySchedulesInput
+): Promise<ActionResult<any>> {
+  await requireSession(["ADMIN", "ALLY"]);
+  return updateSpaceSchedulesAction(spaceId, input);
+}
+
 // =============================================================================
 // CATALOGS & GEOGRAPHY HELPERS
 // =============================================================================
 
 export async function getLocationsTreeAction(): Promise<ActionResult<LocationNode[]>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/locations/tree", {
@@ -320,7 +369,7 @@ export async function getLocationsTreeAction(): Promise<ActionResult<LocationNod
 
 export async function getCategoriesAction(): Promise<ActionResult<SportCategoryItem[]>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/categories", {
@@ -334,4 +383,9 @@ export async function getCategoriesAction(): Promise<ActionResult<SportCategoryI
   } catch (error) {
     return fail(error instanceof Error ? error.message : "UNKNOWN_ERROR");
   }
+}
+
+export async function getSportCategoriesAction(): Promise<ActionResult<SportCategoryItem[]>> {
+  await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
+  return getCategoriesAction();
 }

@@ -1,8 +1,7 @@
 import { z } from "zod";
-import { backofficeRoleSchema } from "./session-user";
 
-export const ACCESS_COOKIE_NAME = "yoreservo_access";
-export const REFRESH_COOKIE_NAME = "yoreservo_refresh";
+export const ACCESS_COOKIE_NAME = "yoreservo_bo_access";
+export const REFRESH_COOKIE_NAME = "yoreservo_bo_refresh";
 
 /** An access token is renewed this long before it expires (clock skew + latency). */
 export const ACCESS_REFRESH_MARGIN_SECONDS = 30;

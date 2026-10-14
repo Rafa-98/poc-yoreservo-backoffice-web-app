@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
 import {
   getExchangeRatesAction,
   overrideExchangeRateAction,
@@ -26,8 +25,6 @@ export function ExchangeRatePage({
   initialData,
   operatorName = "YoReservo Tesorería",
 }: ExchangeRatePageProps) {
-  const t = useTranslations("treasury.rate");
-
   const [activeUsd, setActiveUsd] = useState<ExchangeRateItem | null>(initialData.activeUsd);
   const [activeEur, setActiveEur] = useState<ExchangeRateItem | null>(initialData.activeEur);
   const [history, setHistory] = useState<ExchangeRateItem[]>(initialData.history);
@@ -51,7 +48,6 @@ export function ExchangeRatePage({
     try {
       const res = await overrideExchangeRateAction(input);
       if (res.ok) {
-        // Re-fetch updated rates
         const refreshed = await getExchangeRatesAction();
         if (refreshed.ok) {
           setActiveUsd(refreshed.data.activeUsd);
@@ -65,7 +61,7 @@ export function ExchangeRatePage({
   };
 
   return (
-    <div className="exchange-rate-container" style={{ padding: "0 20px 40px" }}>
+    <div className="exchange-rate-container px-5 pb-10">
       {/* DUAL HERO CARDS */}
       <RateHeroCards activeUsd={activeUsd} activeEur={activeEur} />
 

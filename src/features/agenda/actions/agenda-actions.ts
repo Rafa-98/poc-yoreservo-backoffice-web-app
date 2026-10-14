@@ -6,7 +6,7 @@ import { backendRequest } from "@/shared/api/index.server";
 import { ACCESS_COOKIE_NAME } from "@/shared/auth";
 import { requireSession } from "@/shared/auth/index.server";
 import { fail, ok, type ActionResult } from "@/shared/lib";
-import { ROUTES } from "@/shared/config";
+import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
 import type { AgendaData, VenueRef } from "../model/types";
 
 async function getAuthToken(): Promise<string> {
@@ -18,6 +18,7 @@ async function getAuthToken(): Promise<string> {
 
 export async function getVenuesListAction(): Promise<ActionResult<VenueRef[]>> {
   try {
+    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
     const accessToken = await getAuthToken();
     const res = await backendRequest("/venues", { accessToken });
     if (!res.ok) {
@@ -41,7 +42,7 @@ export async function getAgendaAction(
   date?: string,
 ): Promise<ActionResult<AgendaData>> {
   try {
-    const session = await requireSession();
+    const session = await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
     const accessToken = await getAuthToken();
 
     // 1. Resolve venueId
@@ -97,6 +98,7 @@ export async function createWalkInAction(
   input: CreateWalkInInput,
 ): Promise<ActionResult<{ id: string; shortCode: string }>> {
   try {
+    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
     const accessToken = await getAuthToken();
     const res = await backendRequest("/backoffice/agenda/walk-in", {
       method: "POST",
@@ -125,6 +127,7 @@ export async function checkInAction(
   input: CheckInInput,
 ): Promise<ActionResult<{ alreadyCheckedIn?: boolean; reservation: any }>> {
   try {
+    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
     const accessToken = await getAuthToken();
     const res = await backendRequest("/backoffice/agenda/check-in", {
       method: "POST",
@@ -164,6 +167,7 @@ export async function createBlockAction(
   input: CreateBlockInput,
 ): Promise<ActionResult<{ id: string }>> {
   try {
+    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
     const accessToken = await getAuthToken();
     const res = await backendRequest(`/backoffice/spaces/${input.spaceId}/blocks`, {
       method: "POST",
@@ -187,6 +191,7 @@ export async function deleteBlockAction(
   blockId: string,
 ): Promise<ActionResult<void>> {
   try {
+    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
     const accessToken = await getAuthToken();
     const res = await backendRequest(`/backoffice/spaces/blocks/${blockId}`, {
       method: "DELETE",

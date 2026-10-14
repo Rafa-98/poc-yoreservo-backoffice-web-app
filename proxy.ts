@@ -5,7 +5,10 @@ import {
   REDIRECT_QUERY_KEY,
   ROUTES,
   SESSION_INVALID_QUERY,
-  BACKOFFICE_ROLES,
+  canRoleAccessPath,
+  getDefaultRouteForRole,
+  isBackofficeRole,
+  type BackofficeRole,
 } from "@/shared/config";
 import {
   ACCESS_COOKIE_NAME,
@@ -42,6 +45,7 @@ export async function proxy(request: NextRequest) {
 
   let change: CookieChange = sessionRejected ? { kind: "clear" } : null;
   let isAuthenticated = false;
+  let userRole: BackofficeRole | null = null;
 
   if (!sessionRejected) {
     const accessToken = request.cookies.get(ACCESS_COOKIE_NAME)?.value;
@@ -50,8 +54,9 @@ export async function proxy(request: NextRequest) {
     if (isAccessTokenFresh(accessToken)) {
       const claims = decodeAccessToken(accessToken);
       // Strictly prevent CLIENT role from backoffice
-      if (claims && (BACKOFFICE_ROLES as readonly string[]).includes(claims.role)) {
+      if (claims && isBackofficeRole(claims.role)) {
         isAuthenticated = true;
+        userRole = claims.role;
       } else {
         change = { kind: "clear" };
       }
@@ -59,9 +64,10 @@ export async function proxy(request: NextRequest) {
       const result = await refreshTokens(refreshToken);
       if (result.kind === "refreshed") {
         const claims = decodeAccessToken(result.tokens.accessToken);
-        if (claims && (BACKOFFICE_ROLES as readonly string[]).includes(claims.role)) {
+        if (claims && isBackofficeRole(claims.role)) {
           change = { kind: "store", tokens: result.tokens };
           isAuthenticated = true;
+          userRole = claims.role;
         } else {
           change = { kind: "clear" };
         }
@@ -73,9 +79,11 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  const defaultLandingRoute = getDefaultRouteForRole(userRole);
+
   // Root redirect
   if (pathname === ROUTES.root) {
-    const targetUrl = new URL(isAuthenticated ? ROUTES.dashboard : ROUTES.login, request.url);
+    const targetUrl = new URL(isAuthenticated ? defaultLandingRoute : ROUTES.login, request.url);
     return withCookieChange(NextResponse.redirect(targetUrl), change);
   }
 
@@ -87,7 +95,14 @@ export async function proxy(request: NextRequest) {
 
   if (isGuestOnly && isAuthenticated) {
     return withCookieChange(
-      NextResponse.redirect(new URL(ROUTES.dashboard, request.url)),
+      NextResponse.redirect(new URL(defaultLandingRoute, request.url)),
+      change,
+    );
+  }
+
+  if (isProtected && isAuthenticated && userRole && !canRoleAccessPath(userRole, pathname)) {
+    return withCookieChange(
+      NextResponse.redirect(new URL(defaultLandingRoute, request.url)),
       change,
     );
   }

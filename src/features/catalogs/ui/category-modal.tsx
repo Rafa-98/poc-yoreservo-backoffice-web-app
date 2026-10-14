@@ -51,7 +51,7 @@ export function CategoryModal({
       onSuccess(res.data);
       onClose();
     } else {
-      setErrorMsg(res.error.code || "Error al registrar el formato de juego");
+      setErrorMsg(res.error.code || t("errorCreate"));
     }
   }
 
@@ -115,7 +115,7 @@ export function CategoryModal({
               required
               value={nameEs}
               onChange={(e) => setNameEs(e.target.value)}
-              placeholder="Ej: Pádel Dobles (4 Jugadores)"
+              placeholder={t("placeholderEs")}
               className="form-input"
             />
           </div>
@@ -129,7 +129,7 @@ export function CategoryModal({
               required
               value={nameEn}
               onChange={(e) => setNameEn(e.target.value)}
-              placeholder="Ej: Padel Doubles (4 Players)"
+              placeholder={t("placeholderEn")}
               className="form-input"
             />
           </div>

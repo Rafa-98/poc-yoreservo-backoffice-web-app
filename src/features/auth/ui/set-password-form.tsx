@@ -46,18 +46,8 @@ export function SetPasswordForm() {
     let isMounted = true;
     async function checkToken() {
       if (!token) {
-        // Prototype mode fallback so the screen is interactive even without a query token
         if (isMounted) {
-          setInvitation({
-            email: "recepcion@sanagustin.com",
-            role: "VALIDATOR",
-            organizationName: "Club Deportivo San Agustín",
-            venueName: "Colegio San Agustín del Paraíso",
-            name: "María",
-            lastName: "González",
-          });
-          setName("María");
-          setLastName("González");
+          setValidationError(t("errorInvalidToken"));
           setIsValidating(false);
         }
         return;
@@ -100,13 +90,13 @@ export function SetPasswordForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isFormValid) return;
+    if (!isFormValid || !token) return;
 
     setIsSubmitting(true);
     setSubmitError(null);
 
     const res = await setPasswordAction({
-      token: token || "demo-token",
+      token,
       password,
       name,
       lastName,
@@ -185,7 +175,7 @@ export function SetPasswordForm() {
             {t("activationSuccess")}
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Redirigiendo a la consola...
+            {t("redirectingToConsole")}
           </p>
         </div>
       ) : (
@@ -194,7 +184,7 @@ export function SetPasswordForm() {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="block text-[11px] font-semibold uppercase text-muted-foreground">
-                Nombre
+                {t("labelFirstName")}
               </label>
               <input
                 type="text"
@@ -206,7 +196,7 @@ export function SetPasswordForm() {
             </div>
             <div className="space-y-1">
               <label className="block text-[11px] font-semibold uppercase text-muted-foreground">
-                Apellido
+                {t("labelLastName")}
               </label>
               <input
                 type="text"
@@ -242,6 +232,7 @@ export function SetPasswordForm() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? t("hidePassword") : t("showPassword")}
                 className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
               >
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}

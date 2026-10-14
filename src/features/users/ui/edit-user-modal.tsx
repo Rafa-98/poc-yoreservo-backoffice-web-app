@@ -59,7 +59,7 @@ export function EditUserModal({
       onSuccess(res.data);
       onClose();
     } else {
-      setErrorMsg(res.error.code || "Error al actualizar privilegios");
+      setErrorMsg(res.error.code || t("errorUpdate"));
     }
   }
 
@@ -121,10 +121,10 @@ export function EditUserModal({
               className="form-select"
               id="edit-user-role"
             >
-              <option value="ALLY">🏢 ALLY (Propietario Club)</option>
-              <option value="VALIDATOR">🎟️ VALIDATOR (Recepción / Mostrador)</option>
-              <option value="ACCOUNTING">💳 ACCOUNTING (Finanzas / Facturación)</option>
-              <option value="ADMIN">👑 ADMIN (Superusuario Global)</option>
+              <option value="ALLY">🏢 {t("roleAlly")}</option>
+              <option value="VALIDATOR">🎟️ {t("roleValidator")}</option>
+              <option value="ACCOUNTING">💳 {t("roleAccounting")}</option>
+              <option value="ADMIN">👑 {t("roleAdmin")}</option>
             </select>
           </div>
 
@@ -138,7 +138,7 @@ export function EditUserModal({
               className="form-select"
               id="edit-user-venue"
             >
-              <option value="org-all">🏢 Toda la Organización (Todas las sedes)</option>
+              <option value="org-all">{t("orgWide")}</option>
               {venues.map((v) => (
                 <option key={v.id} value={v.id}>
                   📍 {v.name}
@@ -157,8 +157,8 @@ export function EditUserModal({
               className="form-select"
               id="edit-user-status"
             >
-              <option value="ACTIVE">Activo</option>
-              <option value="INACTIVE">Inactivo (Suspendido)</option>
+              <option value="ACTIVE">{t("statusActive")}</option>
+              <option value="INACTIVE">{t("statusInactive")}</option>
             </select>
           </div>
 

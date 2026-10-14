@@ -1,11 +1,14 @@
 import React from "react";
 import { Metadata } from "next";
 import { requireSession } from "@/shared/auth/index.server";
+import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
+import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import {
   getLocationsTreeAction,
   getOrganizationAction,
   getVenuesListAction,
 } from "@/features/venues/actions/venues-actions";
+import type { OrganizationData } from "@/features/venues/model/types";
 import { getExchangeRatesAction } from "@/features/treasury/actions/treasury-actions";
 import { VenuesPage } from "@/_pages/venues/venues-page";
 
@@ -16,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  await requireSession();
+  await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.venues]);
 
   const [orgRes, venuesRes, locsRes, ratesRes] = await Promise.all([
     getOrganizationAction(),
@@ -25,32 +28,39 @@ export default async function Page() {
     getExchangeRatesAction(),
   ]);
 
-  const org =
+  const org: OrganizationData =
     orgRes.ok && orgRes.data
       ? orgRes.data
       : {
-          id: "default-org",
-          tradeName: "San Agustín Sport Complex",
-          legalName: "Club Deportivo San Agustín C.A.",
-          rif: "J-40123456-7",
-          contactEmail: "aliado@sanagustin.com",
-          contactPhone: "+58 212 9912044",
-          fiscalAddress: "Av. Páez, El Paraíso, Caracas",
+          id: "",
+          tradeName: "",
+          legalName: "",
+          rif: "",
+          taxId: "",
+          contactEmail: "",
+          contactPhone: "",
+          fiscalAddress: "",
           referenceCurrencyCode: "USD",
-          payoutBank: "0102 - Banco de Venezuela",
-          payoutAccountNumber: "01020000000000000001",
-          payoutAccountType: "Corriente",
-          payoutAccountHolder: "Club Deportivo San Agustín C.A.",
+          payoutBank: "",
+          payoutAccountNumber: "",
+          payoutAccountType: "",
+          payoutAccountHolder: "",
           commissionRate: 0.05,
           status: "ACTIVE",
-          venuesCount: 1,
-          spacesCount: 4,
+          venuesCount: 0,
+          spacesCount: 0,
         };
 
   const venues = venuesRes.ok && venuesRes.data ? venuesRes.data : [];
   const locationsTree = locsRes.ok && locsRes.data ? locsRes.data : [];
   const bcvRate =
-    ratesRes.ok && ratesRes.data?.activeUsd ? ratesRes.data.activeUsd.rate : 41.0;
+    ratesRes.ok && ratesRes.data?.activeUsd
+      ? ratesRes.data.activeUsd.rate
+      : DEFAULT_BCV_USD_RATE;
+  const bcvEurRate =
+    ratesRes.ok && ratesRes.data?.activeEur
+      ? ratesRes.data.activeEur.rate
+      : DEFAULT_BCV_EUR_RATE;
 
   return (
     <VenuesPage
@@ -58,6 +68,7 @@ export default async function Page() {
       initialVenues={venues}
       locationsTree={locationsTree}
       bcvRate={bcvRate}
+      bcvEurRate={bcvEurRate}
     />
   );
 }

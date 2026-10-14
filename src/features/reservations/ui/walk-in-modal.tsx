@@ -83,7 +83,7 @@ export function WalkInModal({
       onSuccess();
       onClose();
     } else {
-      setErrorMsg(res.error.code || "Error al crear la reserva walk-in");
+      setErrorMsg(res.error.code || t("errorCreate"));
     }
   }
 
@@ -139,7 +139,7 @@ export function WalkInModal({
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Ej: Marcos Pérez"
+                  placeholder={t("clientNamePlaceholder")}
                   className="form-input"
                   id="walkin-name"
                 />
@@ -153,8 +153,7 @@ export function WalkInModal({
                   <select
                     value={docType}
                     onChange={(e) => setDocType(e.target.value as any)}
-                    className="form-select font-bold px-2 py-2 text-xs"
-                    style={{ width: "70px", flexShrink: 0 }}
+                    className="form-select font-bold px-2 py-2 text-xs w-[70px] shrink-0"
                     id="walkin-doc-type"
                   >
                     <option value="V">V</option>
@@ -169,7 +168,7 @@ export function WalkInModal({
                     required
                     value={docNum}
                     onChange={(e) => setDocNum(e.target.value)}
-                    placeholder="24889123"
+                    placeholder={t("clientDniPlaceholder")}
                     className="form-input flex-1 min-w-0"
                     id="walkin-doc-num"
                   />
@@ -186,8 +185,7 @@ export function WalkInModal({
                 <select
                   value={countryCode}
                   onChange={(e) => setCountryCode(e.target.value)}
-                  className="form-select text-xs px-2 py-2"
-                  style={{ width: "100px", flexShrink: 0 }}
+                  className="form-select text-xs px-2 py-2 w-[100px] shrink-0"
                 >
                   <option value="+58">🇻🇪 +58</option>
                   <option value="+1">🇺🇸 +1</option>
@@ -198,22 +196,21 @@ export function WalkInModal({
                 <select
                   value={phoneOp}
                   onChange={(e) => setPhoneOp(e.target.value)}
-                  className="form-select text-xs font-bold px-2 py-2"
-                  style={{ width: "85px", flexShrink: 0 }}
+                  className="form-select text-xs font-bold px-2 py-2 w-[85px] shrink-0"
                 >
                   <option value="0412">0412</option>
                   <option value="0414">0414</option>
                   <option value="0424">0424</option>
                   <option value="0416">0416</option>
                   <option value="0426">0426</option>
-                  <option value="OTRO">Otro</option>
+                  <option value="OTRO">{t("phoneOpOther")}</option>
                 </select>
                 <input
                   type="tel"
                   required
                   value={phoneNum}
                   onChange={(e) => setPhoneNum(e.target.value)}
-                  placeholder="7776655"
+                  placeholder={t("clientPhonePlaceholder")}
                   className="form-input flex-1 min-w-0"
                   id="walkin-phone-num"
                 />
@@ -375,7 +372,7 @@ export function WalkInModal({
               disabled={loading}
               id="btn-confirm-walkin"
             >
-              {loading ? "Creando..." : t("btnConfirm")}
+              {loading ? t("btnCreating") : t("btnConfirm")}
             </Button>
           </div>
         </form>

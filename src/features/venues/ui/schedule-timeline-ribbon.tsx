@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import type { ShiftRange } from "../model/types";
 
 interface ScheduleTimelineRibbonProps {
@@ -22,24 +23,13 @@ export function ScheduleTimelineRibbon({
   shift2,
   showTicks = true,
 }: ScheduleTimelineRibbonProps) {
+  const t = useTranslations("venues.schedules");
+
   if (!isOpen) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-        <div
-          style={{
-            height: "28px",
-            background: "var(--bg-muted)",
-            border: "1px dashed var(--border-medium)",
-            borderRadius: "8px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "11px",
-            color: "var(--text-faint, #6b7280)",
-            fontWeight: 600,
-          }}
-        >
-          Cerrado / Sin Turnos Disponibles
+      <div className="flex flex-col gap-1.5">
+        <div className="flex h-7 items-center justify-center rounded-lg border border-dashed border-border-medium bg-muted text-[11px] font-semibold text-faint-foreground">
+          {t("closedNoShifts")}
         </div>
         {showTicks && <TimelineTicks />}
       </div>
@@ -53,114 +43,75 @@ export function ScheduleTimelineRibbon({
   const s2Open = hasShift2 ? timeToMinutes(shift2?.openTime || "16:00") : 0;
   const s2Close = hasShift2 ? timeToMinutes(shift2?.closeTime || "23:00") : 0;
 
-  // Segment widths in percentages (1440 min = 100%)
-  const preS1Pct = (s1Open / 1440) * 100;
   const s1Pct = Math.max(0, ((s1Close - s1Open) / 1440) * 100);
+  const recessPct =
+    hasShift2 && s2Open > s1Close
+      ? Math.max(0, ((s2Open - s1Close) / 1440) * 100)
+      : 0;
+  const s2Pct =
+    hasShift2 && s2Close > s2Open
+      ? Math.max(0, ((s2Close - s2Open) / 1440) * 100)
+      : 0;
 
-  let recessPct = 0;
-  let s2Pct = 0;
-  let postPct = 0;
-
-  if (hasShift2 && s2Open > s1Close) {
-    recessPct = Math.max(0, ((s2Open - s1Close) / 1440) * 100);
-    s2Pct = Math.max(0, ((s2Close - s2Open) / 1440) * 100);
-    postPct = Math.max(0, ((1440 - s2Close) / 1440) * 100);
-  } else {
-    postPct = Math.max(0, ((1440 - s1Close) / 1440) * 100);
-  }
+  const slots = Array.from({ length: 48 }, (_, idx) => {
+    const slotStart = idx * 30;
+    if (slotStart >= s1Open && slotStart < s1Close) {
+      return "shift1";
+    }
+    if (hasShift2 && s2Open > s1Close && slotStart >= s1Close && slotStart < s2Open) {
+      return "recess";
+    }
+    if (hasShift2 && slotStart >= s2Open && slotStart < s2Close) {
+      return "shift2";
+    }
+    return "closed";
+  });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-      <div
-        className="timeline-ribbon"
-        style={{
-          height: "28px",
-          background: "var(--bg-muted)",
-          border: "1px solid var(--border-subtle)",
-          borderRadius: "8px",
-          display: "flex",
-          overflow: "hidden",
-          position: "relative",
-          width: "100%",
-        }}
-      >
-        {/* Pre-Shift 1 (closed) */}
-        {preS1Pct > 0 && <div style={{ width: `${preS1Pct}%`, height: "100%" }} />}
-
-        {/* Shift 1 */}
-        {s1Pct > 0 && (
+    <div className="flex flex-col gap-1.5">
+      <div className="timeline-ribbon relative flex h-7 w-full overflow-hidden rounded-lg border border-border bg-muted">
+        {slots.map((slotType, idx) => (
           <div
-            title={`Turno 1: ${shift1.openTime} - ${shift1.closeTime}`}
-            style={{
-              width: `${s1Pct}%`,
-              height: "100%",
-              background: "var(--brand-lime)",
-              color: "var(--brand-lime-text, #121811)",
-              borderRight: "1px solid rgba(0,0,0,0.15)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "10.5px",
-              fontWeight: 700,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              padding: "0 4px",
-            }}
-          >
-            T1: {shift1.openTime}-{shift1.closeTime}
-          </div>
-        )}
+            key={idx}
+            className={`h-full flex-1 ${
+              slotType === "shift1"
+                ? "bg-accent"
+                : slotType === "recess"
+                  ? "border-r border-border/50 bg-surface-hover"
+                  : slotType === "shift2"
+                    ? "bg-primary"
+                    : "bg-muted"
+            }`}
+          />
+        ))}
 
-        {/* Recess */}
-        {recessPct > 0 && (
-          <div
-            title="Receso Intermedio"
-            style={{
-              width: `${recessPct}%`,
-              height: "100%",
-              background:
-                "repeating-linear-gradient(-45deg, rgba(0,0,0,0.05), rgba(0,0,0,0.05) 6px, rgba(0,0,0,0.1) 6px, rgba(0,0,0,0.1) 12px)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "10px",
-              fontWeight: 600,
-              color: "var(--text-faint, #6b7280)",
-              overflow: "hidden",
-            }}
-          >
-            {recessPct > 8 ? "Receso" : ""}
-          </div>
-        )}
-
-        {/* Shift 2 */}
-        {s2Pct > 0 && (
-          <div
-            title={`Turno 2: ${shift2?.openTime} - ${shift2?.closeTime}`}
-            style={{
-              width: `${s2Pct}%`,
-              height: "100%",
-              background: "var(--brand-forest, #1F3316)",
-              color: "#E2FF80",
-              borderLeft: "1px solid rgba(198, 242, 59, 0.3)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "10.5px",
-              fontWeight: 700,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              padding: "0 4px",
-            }}
-          >
-            T2: {shift2?.openTime}-{shift2?.closeTime}
-          </div>
-        )}
-
-        {/* Post-Shift 2 (closed) */}
-        {postPct > 0 && <div style={{ width: `${postPct}%`, height: "100%" }} />}
+        {/* Labels Overlay */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-3 px-2">
+          {s1Pct > 0 && (
+            <span
+              title={`${t("legendShift1")}: ${shift1.openTime} - ${shift1.closeTime}`}
+              className="truncate rounded bg-accent px-1.5 py-0.5 text-[10.5px] font-bold text-accent-foreground"
+            >
+              {t("shift1Prefix")}: {shift1.openTime}-{shift1.closeTime}
+            </span>
+          )}
+          {recessPct > 8 && (
+            <span
+              title={t("legendRecess")}
+              className="truncate rounded bg-surface/90 px-1.5 py-0.5 text-[10px] font-semibold text-faint-foreground"
+            >
+              {t("recessShort")}
+            </span>
+          )}
+          {s2Pct > 0 && (
+            <span
+              title={`${t("legendShift2")}: ${shift2?.openTime} - ${shift2?.closeTime}`}
+              className="truncate rounded bg-primary px-1.5 py-0.5 text-[10.5px] font-bold text-primary-foreground"
+            >
+              {t("shift2Prefix")}: {shift2?.openTime}-{shift2?.closeTime}
+            </span>
+          )}
+        </div>
       </div>
 
       {showTicks && <TimelineTicks />}
@@ -170,16 +121,7 @@ export function ScheduleTimelineRibbon({
 
 function TimelineTicks() {
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        fontSize: "10px",
-        color: "var(--text-faint, #9ca3af)",
-        fontFamily: "monospace",
-        padding: "0 2px",
-      }}
-    >
+    <div className="flex justify-between px-0.5 font-mono text-[10px] text-faint-foreground">
       <span>00h</span>
       <span>04h</span>
       <span>08h</span>

@@ -5,8 +5,14 @@ import { revalidatePath } from "next/cache";
 import { backendRequest } from "@/shared/api/index.server";
 import { ACCESS_COOKIE_NAME } from "@/shared/auth";
 import { requireSession } from "@/shared/auth/index.server";
-import { fail, ok, type ActionResult } from "@/shared/lib";
 import { ROUTES } from "@/shared/config";
+import {
+  DEFAULT_BCV_EUR_RATE,
+  DEFAULT_BCV_USD_RATE,
+  fail,
+  ok,
+  type ActionResult,
+} from "@/shared/lib";
 import type {
   DisburseSettlementInput,
   ExchangeRateData,
@@ -26,13 +32,46 @@ async function getAuthToken(): Promise<string> {
   return token;
 }
 
+function formatSettlementPeriod(
+  periodStartDate?: string | null,
+  periodEndDate?: string | null,
+  backendDisplay?: string | null,
+): string {
+  if (backendDisplay) return String(backendDisplay);
+  const startStr = periodStartDate ? String(periodStartDate).slice(0, 10) : "";
+  const endStr = periodEndDate ? String(periodEndDate).slice(0, 10) : "";
+  const refDate = endStr ? new Date(`${endStr}T00:00:00Z`) : new Date();
+  const safeDate = Number.isNaN(refDate.getTime()) ? new Date() : refDate;
+  const monthYear = new Intl.DateTimeFormat("es-VE", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(safeDate);
+  const startDay = startStr ? startStr.slice(8, 10) : "01";
+  const endDay = endStr ? endStr.slice(8, 10) : "15";
+  return `${startDay} - ${endDay} ${monthYear}`;
+}
+
+function getCurrentCycleDeadline(backendDeadline?: string | null): string {
+  if (backendDeadline) return String(backendDeadline);
+  const now = new Date();
+  const deadlineDate =
+    now.getDate() <= 15
+      ? new Date(now.getFullYear(), now.getMonth(), 18)
+      : new Date(now.getFullYear(), now.getMonth() + 1, 3);
+  return new Intl.DateTimeFormat("es-VE", {
+    day: "2-digit",
+    month: "long",
+  }).format(deadlineDate);
+}
+
 export async function getPaymentsInboxAction(filters?: {
   status?: string;
   paymentMethod?: string;
   search?: string;
 }): Promise<ActionResult<PaymentsInboxData>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const query = new URLSearchParams();
@@ -67,10 +106,13 @@ export async function getPaymentsInboxAction(filters?: {
       payerIdDocument: p.payerIdDocument ?? null,
       payerDocumentType: p.payerDocumentType ?? null,
       amount: Number(p.amount ?? 0),
-      amountVes: p.amountVes !== null ? Number(p.amountVes) : null,
-      amountReference: p.amountReference !== null ? Number(p.amountReference) : null,
+      amountVes: p.amountVes !== null && p.amountVes !== undefined ? Number(p.amountVes) : null,
+      amountReference:
+        p.amountReference !== null && p.amountReference !== undefined
+          ? Number(p.amountReference)
+          : null,
       currency: p.currency ?? "USD",
-      exchangeRate: Number(p.exchangeRate ?? 0),
+      exchangeRate: Number(p.exchangeRate) || DEFAULT_BCV_USD_RATE,
       paymentMethod: p.paymentMethod ?? "PAGO_MOVIL",
       paymentDate: p.paymentDate ? String(p.paymentDate).slice(0, 10) : "",
       status: p.status,
@@ -83,7 +125,9 @@ export async function getPaymentsInboxAction(filters?: {
         id: p.reservation?.id ?? "",
         shortCode: p.reservation?.shortCode ?? "---",
         status: p.reservation?.status ?? "",
-        reservationDate: p.reservation?.reservationDate ? String(p.reservation.reservationDate).slice(0, 10) : "",
+        reservationDate: p.reservation?.reservationDate
+          ? String(p.reservation.reservationDate).slice(0, 10)
+          : "",
         startTime: p.reservation?.startTime ? String(p.reservation.startTime).slice(11, 16) : "",
         endTime: p.reservation?.endTime ? String(p.reservation.endTime).slice(11, 16) : "",
         client: {
@@ -152,7 +196,7 @@ export async function getPaymentsInboxAction(filters?: {
 
 export async function verifyPaymentAction(paymentId: string): Promise<ActionResult<void>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/treasury/payments/${paymentId}/verify`, {
@@ -173,13 +217,15 @@ export async function verifyPaymentAction(paymentId: string): Promise<ActionResu
   }
 }
 
+export const approvePaymentAction = verifyPaymentAction;
+
 export async function rejectPaymentAction(
   paymentId: string,
   reason: string,
   notes?: string,
 ): Promise<ActionResult<void>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/treasury/payments/${paymentId}/reject`, {
@@ -203,7 +249,7 @@ export async function rejectPaymentAction(
 
 export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRateData>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/treasury/exchange-rates", {
@@ -217,13 +263,16 @@ export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRat
     const data = res.body as {
       activeRates: any[];
       history: any[];
+      lastSync?: string;
     };
 
     const mapRate = (r: any): ExchangeRateItem => ({
       id: r.id,
       currencyCode: r.currencyCode,
       targetCurrencyCode: r.targetCurrencyCode ?? "VES",
-      rate: Number(r.rate),
+      rate:
+        Number(r.rate) ||
+        (r.currencyCode === "EUR" ? DEFAULT_BCV_EUR_RATE : DEFAULT_BCV_USD_RATE),
       valueDate: r.valueDate ? String(r.valueDate).slice(0, 10) : "",
       isActive: Boolean(r.isActive),
       generatedBy: r.generatedBy,
@@ -251,11 +300,21 @@ export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRat
       { currency: "RUB", symbol: "₽", rate: "10,34 Bs." },
     ];
 
+    const latestCreatedAt = activeUsd?.createdAt || activeEur?.createdAt;
+    const formattedSyncTime =
+      data?.lastSync ||
+      (latestCreatedAt
+        ? new Date(latestCreatedAt).toLocaleTimeString("es-VE", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "09:00 AM");
+
     return ok({
       activeUsd,
       activeEur,
       history: historyList,
-      lastSync: "Hoy a las 09:00 AM",
+      lastSync: formattedSyncTime,
       secondaryCurrencies,
     });
   } catch (e) {
@@ -268,7 +327,7 @@ export async function overrideExchangeRateAction(
   dto: ManualRateOverrideInput,
 ): Promise<ActionResult<void>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/treasury/exchange-rates/override", {
@@ -305,7 +364,7 @@ export async function getSettlementsAction(filters?: {
   }>
 > {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const query = new URLSearchParams();
@@ -325,7 +384,11 @@ export async function getSettlementsAction(filters?: {
       return fail("FAILED_TO_LOAD_SETTLEMENTS");
     }
 
-    const data = res.body as { total: number; items: any[] };
+    const data = res.body as {
+      total: number;
+      items: any[];
+      cycleDeadline?: string;
+    };
     const rawItems = data?.items ?? [];
 
     let totalGmv = 0;
@@ -374,16 +437,21 @@ export async function getSettlementsAction(filters?: {
         venue: b.venue ? { id: b.venue.id, name: b.venue.name } : null,
         periodStartDate: b.periodStartDate ? String(b.periodStartDate).slice(0, 10) : "",
         periodEndDate: b.periodEndDate ? String(b.periodEndDate).slice(0, 10) : "",
-        periodDisplay: `${b.periodStartDate ? String(b.periodStartDate).slice(8, 10) : "01"} - ${
-          b.periodEndDate ? String(b.periodEndDate).slice(8, 10) : "15"
-        } Oct 2026`,
+        periodDisplay: formatSettlementPeriod(
+          b.periodStartDate,
+          b.periodEndDate,
+          b.periodDisplay,
+        ),
         totalReservations: resCount,
         currencyCode: b.currencyCode ?? "USD",
         grossAmount: gross,
         platformFeeAmount: fee,
         netPayoutAmount: net,
         payoutCurrencyCode: b.payoutCurrencyCode ?? "VES",
-        payoutExchangeRate: b.payoutExchangeRate !== null ? Number(b.payoutExchangeRate) : null,
+        payoutExchangeRate:
+          b.payoutExchangeRate !== null && b.payoutExchangeRate !== undefined
+            ? Number(b.payoutExchangeRate)
+            : DEFAULT_BCV_USD_RATE,
         status: b.status,
         payoutMethod: b.payoutMethod ?? null,
         payoutReferenceNumber: b.payoutReferenceNumber ?? null,
@@ -407,7 +475,7 @@ export async function getSettlementsAction(filters?: {
     const progressPct =
       totalBatches > 0
         ? Math.round((disbursedCount / totalBatches) * 100 * 10) / 10
-        : 68.5;
+        : 0;
 
     const kpis: SettlementsKpis = {
       gmv: totalGmv,
@@ -422,7 +490,7 @@ export async function getSettlementsAction(filters?: {
         completedCount: disbursedCount,
         totalCount: totalBatches,
         percentage: progressPct,
-        deadline: "18 de Octubre",
+        deadline: getCurrentCycleDeadline(data?.cycleDeadline),
       },
     };
 
@@ -441,7 +509,7 @@ export async function getSettlementDetailAction(
   id: string,
 ): Promise<ActionResult<SettlementBatchItem>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/settlements/${id}`, {
@@ -473,16 +541,21 @@ export async function getSettlementDetailAction(
       venue: b.venue ? { id: b.venue.id, name: b.venue.name } : null,
       periodStartDate: b.periodStartDate ? String(b.periodStartDate).slice(0, 10) : "",
       periodEndDate: b.periodEndDate ? String(b.periodEndDate).slice(0, 10) : "",
-      periodDisplay: `${b.periodStartDate ? String(b.periodStartDate).slice(8, 10) : "01"} - ${
-        b.periodEndDate ? String(b.periodEndDate).slice(8, 10) : "15"
-      } Oct 2026`,
+      periodDisplay: formatSettlementPeriod(
+        b.periodStartDate,
+        b.periodEndDate,
+        b.periodDisplay,
+      ),
       totalReservations: Number(b.totalReservations ?? 0),
       currencyCode: b.currencyCode ?? "USD",
       grossAmount: Number(b.grossAmount ?? 0),
       platformFeeAmount: Number(b.platformFeeAmount ?? 0),
       netPayoutAmount: Number(b.netPayoutAmount ?? 0),
       payoutCurrencyCode: b.payoutCurrencyCode ?? "VES",
-      payoutExchangeRate: b.payoutExchangeRate !== null ? Number(b.payoutExchangeRate) : null,
+      payoutExchangeRate:
+        b.payoutExchangeRate !== null && b.payoutExchangeRate !== undefined
+          ? Number(b.payoutExchangeRate)
+          : DEFAULT_BCV_USD_RATE,
       status: b.status,
       payoutMethod: b.payoutMethod ?? null,
       payoutReferenceNumber: b.payoutReferenceNumber ?? null,
@@ -569,7 +642,7 @@ export async function disburseSettlementAction(
   dto: DisburseSettlementInput,
 ): Promise<ActionResult<void>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/settlements/${id}/disburse`, {
@@ -601,7 +674,7 @@ export async function syncBcvExchangeRatesAction(): Promise<
   ActionResult<{ message: string; usdRate?: number; eurRate?: number }>
 > {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/treasury/exchange-rates/sync", {
@@ -621,6 +694,8 @@ export async function syncBcvExchangeRatesAction(): Promise<
   }
 }
 
+export const syncBcvRatesAction = syncBcvExchangeRatesAction;
+
 export async function generateSettlementBatchAction(input: {
   organizationId: string;
   periodStartDate: string;
@@ -628,7 +703,7 @@ export async function generateSettlementBatchAction(input: {
   venueId?: string;
 }): Promise<ActionResult<any>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/settlements/generate", {
@@ -655,7 +730,7 @@ export async function exportSettlementBankingFileAction(
   format: "BDV" | "BANESCO" | "PAGO_MOVIL" | "CSV" = "CSV",
 ): Promise<ActionResult<{ filename: string; mimeType: string; content: string }>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/settlements/${id}/export?format=${format}`, {
@@ -672,5 +747,3 @@ export async function exportSettlementBankingFileAction(
     return fail("SERVICE_UNAVAILABLE");
   }
 }
-
-

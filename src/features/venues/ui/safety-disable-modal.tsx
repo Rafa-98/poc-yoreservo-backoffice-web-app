@@ -21,7 +21,9 @@ export function SafetyDisableModal({
   onConfirm,
 }: SafetyDisableModalProps) {
   const t = useTranslations("venues.safety");
-  const [selectedAction, setSelectedAction] = useState<"reassign" | "defer" | "cancel">("reassign");
+  const [selectedAction, setSelectedAction] = useState<
+    "reassign" | "defer" | "cancel"
+  >("reassign");
   const [loading, setLoading] = useState(false);
 
   if (!isOpen || !space) return null;
@@ -38,123 +40,47 @@ export function SafetyDisableModal({
 
   return (
     <div
-      className="modal-backdrop"
+      className="modal-backdrop z-[10000]"
       id="safety-modal-backdrop"
       onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        backgroundColor: "rgba(0,0,0,0.65)",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 10000,
-        padding: "16px",
-      }}
     >
       <div
-        className="modal-card"
+        className="modal-card w-full max-w-[520px] overflow-hidden rounded-2xl border border-border-medium bg-surface shadow-card"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border-medium)",
-          borderRadius: "16px",
-          width: "100%",
-          maxWidth: "520px",
-          boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
-          overflow: "hidden",
-        }}
       >
-        <div
-          style={{
-            padding: "20px 24px",
-            borderBottom: "1px solid var(--border-subtle)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "24px" }}>⚠️</span>
-            <h3
-              style={{
-                fontSize: "18px",
-                fontWeight: 700,
-                color: "var(--status-cancelled-text, #ef4444)",
-                margin: 0,
-              }}
-            >
+        <div className="flex items-center justify-between border-b border-border px-6 py-5">
+          <div className="flex items-center gap-2.5">
+            <span className="text-2xl">⚠️</span>
+            <h3 className="m-0 text-lg font-bold text-status-cancelled-fg">
               {t("title")}
             </h3>
           </div>
           <button
             type="button"
-            className="btn-icon"
+            className="btn-icon cursor-pointer border-none bg-transparent text-lg text-muted-foreground hover:text-foreground"
             onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: "18px",
-              cursor: "pointer",
-              color: "var(--text-muted)",
-            }}
           >
             ✕
           </button>
         </div>
 
-        <div style={{ padding: "24px" }}>
-          <div
-            style={{
-              background: "rgba(220, 38, 38, 0.1)",
-              border: "1px solid rgba(220, 38, 38, 0.25)",
-              borderRadius: "14px",
-              padding: "14px",
-              marginBottom: "18px",
-              fontSize: "13px",
-              lineHeight: "1.5",
-            }}
-          >
-            <strong>{space.spaceNumber}</strong> tiene{" "}
-            <strong>{activeBookingsCount} reservas confirmadas</strong> pendientes de jugar.
-            Deshabilitarla directamente dejaría a los jugadores sin cancha asignada.
+        <div className="p-6">
+          <div className="mb-4.5 rounded-xl border border-status-cancelled-border bg-status-cancelled-bg p-3.5 text-[13px] leading-relaxed text-foreground">
+            {t("conflictBanner", {
+              courtName: space.spaceNumber,
+              count: activeBookingsCount,
+            })}
           </div>
 
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: "13px",
-              marginBottom: "10px",
-              color: "var(--text-main)",
-            }}
-          >
+          <div className="mb-2.5 text-[13px] font-bold text-foreground">
             {t("optionsTitle")}
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "10px",
-              marginBottom: "20px",
-            }}
-          >
+          <div className="mb-5 flex flex-col gap-2.5">
             <label
-              style={{
-                display: "flex",
-                gap: "10px",
-                alignItems: "flex-start",
-                padding: "12px",
-                border: "1px solid var(--border-medium)",
-                borderRadius: "12px",
-                cursor: "pointer",
-                background:
-                  selectedAction === "reassign"
-                    ? "var(--bg-muted)"
-                    : "var(--bg-surface)",
-              }}
+              className={`flex cursor-pointer items-start gap-2.5 rounded-xl border border-border-medium p-3 ${
+                selectedAction === "reassign" ? "bg-muted" : "bg-surface"
+              }`}
             >
               <input
                 type="radio"
@@ -162,32 +88,22 @@ export function SafetyDisableModal({
                 value="reassign"
                 checked={selectedAction === "reassign"}
                 onChange={() => setSelectedAction("reassign")}
-                style={{ marginTop: "3px", accentColor: "var(--brand-lime)" }}
+                className="mt-1 accent-accent"
               />
               <div>
-                <div style={{ fontWeight: 700, fontSize: "13px" }}>
+                <div className="text-[13px] font-bold text-foreground">
                   {t("optReassignTitle")}
                 </div>
-                <div style={{ fontSize: "11.5px", color: "var(--text-muted)" }}>
+                <div className="text-[11.5px] text-muted-foreground">
                   {t("optReassignDesc")}
                 </div>
               </div>
             </label>
 
             <label
-              style={{
-                display: "flex",
-                gap: "10px",
-                alignItems: "flex-start",
-                padding: "12px",
-                border: "1px solid var(--border-medium)",
-                borderRadius: "12px",
-                cursor: "pointer",
-                background:
-                  selectedAction === "defer"
-                    ? "var(--bg-muted)"
-                    : "var(--bg-surface)",
-              }}
+              className={`flex cursor-pointer items-start gap-2.5 rounded-xl border border-border-medium p-3 ${
+                selectedAction === "defer" ? "bg-muted" : "bg-surface"
+              }`}
             >
               <input
                 type="radio"
@@ -195,32 +111,22 @@ export function SafetyDisableModal({
                 value="defer"
                 checked={selectedAction === "defer"}
                 onChange={() => setSelectedAction("defer")}
-                style={{ marginTop: "3px", accentColor: "var(--brand-lime)" }}
+                className="mt-1 accent-accent"
               />
               <div>
-                <div style={{ fontWeight: 700, fontSize: "13px" }}>
+                <div className="text-[13px] font-bold text-foreground">
                   {t("optDeferTitle")}
                 </div>
-                <div style={{ fontSize: "11.5px", color: "var(--text-muted)" }}>
+                <div className="text-[11.5px] text-muted-foreground">
                   {t("optDeferDesc")}
                 </div>
               </div>
             </label>
 
             <label
-              style={{
-                display: "flex",
-                gap: "10px",
-                alignItems: "flex-start",
-                padding: "12px",
-                border: "1px solid var(--border-medium)",
-                borderRadius: "12px",
-                cursor: "pointer",
-                background:
-                  selectedAction === "cancel"
-                    ? "var(--bg-muted)"
-                    : "var(--bg-surface)",
-              }}
+              className={`flex cursor-pointer items-start gap-2.5 rounded-xl border border-border-medium p-3 ${
+                selectedAction === "cancel" ? "bg-muted" : "bg-surface"
+              }`}
             >
               <input
                 type="radio"
@@ -228,26 +134,20 @@ export function SafetyDisableModal({
                 value="cancel"
                 checked={selectedAction === "cancel"}
                 onChange={() => setSelectedAction("cancel")}
-                style={{ marginTop: "3px", accentColor: "var(--brand-lime)" }}
+                className="mt-1 accent-accent"
               />
               <div>
-                <div
-                  style={{
-                    fontWeight: 700,
-                    fontSize: "13px",
-                    color: "var(--status-cancelled-text, #ef4444)",
-                  }}
-                >
+                <div className="text-[13px] font-bold text-status-cancelled-fg">
                   {t("optCancelTitle")}
                 </div>
-                <div style={{ fontSize: "11.5px", color: "var(--text-muted)" }}>
+                <div className="text-[11.5px] text-muted-foreground">
                   {t("optCancelDesc")}
                 </div>
               </div>
             </label>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "24px" }}>
+          <div className="mt-6 flex justify-end gap-3">
             <Button
               type="button"
               variant="secondary"

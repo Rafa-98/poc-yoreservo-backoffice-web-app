@@ -130,7 +130,7 @@ export function TaxonomyTree({
                           >
                             <span>🏆 {catName.es}</span>
                             <span className="text-[11px] text-muted-foreground">
-                              • {cat.spacesCount || 0} canchas
+                              • {t("courtsCount", { count: cat.spacesCount || 0 })}
                             </span>
                           </div>
                         );

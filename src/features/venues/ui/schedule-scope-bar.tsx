@@ -35,48 +35,18 @@ export function ScheduleScopeBar({
   const currentVenue = venues.find((v) => v.id === selectedVenueId) || venues[0];
 
   return (
-    <div
-      style={{
-        background: "var(--bg-surface)",
-        border: "1px solid var(--border-subtle)",
-        borderRadius: "16px",
-        padding: "18px 24px",
-        margin: "0 20px 24px",
-        boxShadow: "var(--shadow-sm)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "16px",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "14px",
-        }}
-      >
+    <div className="mx-5 mb-6 flex flex-col gap-4 rounded-2xl border border-border bg-surface px-6 py-4.5 shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-3.5">
         {/* Scope selector */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+        <div className="flex flex-wrap items-center gap-3">
           <div>
-            <label
-              style={{
-                fontSize: "11px",
-                textTransform: "uppercase",
-                color: "var(--text-muted)",
-                fontWeight: 700,
-                display: "block",
-                marginBottom: "4px",
-              }}
-            >
-              Sede:
+            <label className="mb-1 block text-[11px] font-bold text-muted-foreground uppercase">
+              {t("venueLabel")}
             </label>
             <select
-              className="input-field"
+              className="input-field form-select px-3 py-2 text-[13px] font-semibold"
               value={selectedVenueId}
               onChange={(e) => onSelectVenueId(e.target.value)}
-              style={{ padding: "8px 12px", fontSize: "13px", fontWeight: 600 }}
             >
               {venues.map((v) => (
                 <option key={v.id} value={v.id}>
@@ -87,67 +57,41 @@ export function ScheduleScopeBar({
           </div>
 
           <div>
-            <label
-              style={{
-                fontSize: "11px",
-                textTransform: "uppercase",
-                color: "var(--text-muted)",
-                fontWeight: 700,
-                display: "block",
-                marginBottom: "4px",
-              }}
-            >
+            <label className="mb-1 block text-[11px] font-bold text-muted-foreground uppercase">
               {t("scopeTitle")}
             </label>
-            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  fontSize: "13px",
-                  cursor: "pointer",
-                }}
-              >
+            <div className="flex flex-wrap items-center gap-3.5">
+              <label className="flex cursor-pointer items-center gap-1.5 text-[13px] text-foreground">
                 <input
                   type="radio"
                   name="schedule_scope"
                   checked={applyToAllVenueSpaces}
                   onChange={() => onToggleApplyToAll(true)}
-                  style={{ accentColor: "var(--brand-lime)" }}
+                  className="accent-accent"
                 />
                 <span>
                   {t("scopeVenueAll", {
-                    venueName: currentVenue?.name || "Sede",
+                    venueName: currentVenue?.name || t("defaultVenue"),
                   })}
                 </span>
               </label>
 
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  fontSize: "13px",
-                  cursor: "pointer",
-                }}
-              >
+              <label className="flex cursor-pointer items-center gap-1.5 text-[13px] text-foreground">
                 <input
                   type="radio"
                   name="schedule_scope"
                   checked={!applyToAllVenueSpaces}
                   onChange={() => onToggleApplyToAll(false)}
-                  style={{ accentColor: "var(--brand-lime)" }}
+                  className="accent-accent"
                 />
-                <span>Cancha Específica:</span>
+                <span>{t("specificCourtLabel")}</span>
               </label>
 
               {!applyToAllVenueSpaces && (
                 <select
-                  className="input-field"
+                  className="input-field form-select px-2.5 py-1.5 text-[12.5px]"
                   value={selectedSpaceId}
                   onChange={(e) => onSelectSpaceId(e.target.value)}
-                  style={{ padding: "6px 10px", fontSize: "12.5px" }}
                 >
                   {spaces.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -161,23 +105,21 @@ export function ScheduleScopeBar({
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
-            className="btn btn-outline"
+            className="btn btn-outline text-[12.5px]"
             onClick={onCopyMondayToWeek}
             id="btn-copy-monday"
-            style={{ fontSize: "12.5px" }}
           >
             📋 <span>{t("btnCopyMonday")}</span>
           </button>
           <button
             type="button"
-            className="btn btn-primary"
+            className="btn btn-primary text-[13px]"
             onClick={onSaveSchedules}
             disabled={isSaving}
             id="btn-save-schedules"
-            style={{ fontSize: "13px" }}
           >
             {isSaving ? "..." : t("btnSave")}
           </button>
@@ -185,54 +127,23 @@ export function ScheduleScopeBar({
       </div>
 
       {/* Visual Timeline Legend */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "16px",
-          borderTop: "1px solid var(--border-subtle)",
-          paddingTop: "12px",
-          fontSize: "12px",
-          color: "var(--text-muted)",
-        }}
-      >
-        <span style={{ fontWeight: 600 }}>{t("timelineLegend")}</span>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span
-            style={{
-              width: "12px",
-              height: "12px",
-              borderRadius: "3px",
-              background: "var(--brand-lime)",
-              display: "inline-block",
-            }}
-          />
-          <span>{t("legendShift1")} (Mañana)</span>
+      <div className="flex flex-wrap items-center gap-4 border-t border-border pt-3 text-xs text-muted-foreground">
+        <span className="font-semibold text-foreground">{t("timelineLegend")}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-[3px] bg-accent" />
+          <span>
+            {t("legendShift1")} {t("morningSuffix")}
+          </span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span
-            style={{
-              width: "12px",
-              height: "12px",
-              borderRadius: "3px",
-              background:
-                "repeating-linear-gradient(-45deg, rgba(0,0,0,0.1), rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.2) 2px, rgba(0,0,0,0.2) 4px)",
-              display: "inline-block",
-            }}
-          />
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-[3px] border border-dashed border-border-strong bg-muted" />
           <span>{t("legendRecess")}</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span
-            style={{
-              width: "12px",
-              height: "12px",
-              borderRadius: "3px",
-              background: "var(--brand-forest, #1F3316)",
-              display: "inline-block",
-            }}
-          />
-          <span>{t("legendShift2")} (Tarde/Noche)</span>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-[3px] bg-primary" />
+          <span>
+            {t("legendShift2")} {t("eveningSuffix")}
+          </span>
         </div>
       </div>
     </div>

@@ -29,7 +29,6 @@ export interface AppHeaderProps {
 export function AppHeader({
   user,
   onToggleSidebar,
-  activeVenueName = "Club San Agustín • Sede Principal",
 }: AppHeaderProps) {
   const t = useTranslations("shell");
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -76,7 +75,7 @@ export function AppHeader({
           type="button"
           onClick={onToggleSidebar}
           className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-surface text-foreground hover:bg-muted lg:hidden"
-          aria-label="Abrir menú"
+          aria-label={t("openMenu")}
         >
           <Menu className="size-5" />
         </button>

@@ -60,7 +60,7 @@ export function AgendaMatrix({
               const categoryName =
                 typeof space.category === "object"
                   ? space.category?.es || space.category?.en
-                  : space.category || "Deporte";
+                  : space.category || t("defaultSport");
 
               return (
                 <div key={space.id} className="p-3.5 text-left">
@@ -111,14 +111,14 @@ export function AgendaMatrix({
                           key={`${space.id}-${hour}`}
                           onClick={() => onBlockClick(block, space)}
                           className="flex h-full flex-col justify-between rounded-xl border border-status-blocked-border bg-status-blocked-bg p-2 text-status-blocked-fg cursor-pointer transition-all hover:brightness-95"
-                          title="Haz clic para ver o desbloquear este turno"
+                          title={t("blockClickTitle")}
                         >
                           <div className="flex items-center gap-1.5 text-xs font-bold">
                             <ShieldAlert className="size-3.5 shrink-0" />
                             <span className="truncate">{block.reason}</span>
                           </div>
                           <div className="text-[10px] text-status-blocked-fg/80 truncate">
-                            {block.notes || "Turno inhabilitado"}
+                            {block.notes || t("blockDisabledTitle")}
                           </div>
                         </div>
                       );
@@ -156,7 +156,7 @@ export function AgendaMatrix({
                                 target="_blank"
                                 rel="noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                title="Contactar por WhatsApp"
+                                title={t("whatsappContactTitle")}
                                 className="flex size-5 shrink-0 items-center justify-center rounded bg-emerald-500/20 text-emerald-600 hover:scale-110 transition-transform"
                               >
                                 <MessageSquare className="size-3" />
@@ -190,7 +190,11 @@ export function AgendaMatrix({
                         key={`${space.id}-${hour}`}
                         onClick={() => onSlotClick(space, hour)}
                         className="group flex h-full flex-col justify-between rounded-xl border border-dashed border-status-available-border bg-status-available-bg/60 p-2 text-status-available-fg cursor-pointer transition-all hover:bg-status-available-bg hover:shadow-xs active:scale-[0.99]"
-                        title={`Reservar en mostrador: ${space.spaceNumber} (${hour} - ${nextHour})`}
+                        title={t("slotBookTitle", {
+                          court: space.spaceNumber,
+                          start: hour,
+                          end: nextHour,
+                        })}
                       >
                         <div className="flex items-center gap-1 text-xs font-semibold">
                           <Plus className="size-3.5 transition-transform group-hover:rotate-90 duration-150" />

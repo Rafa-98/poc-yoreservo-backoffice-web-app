@@ -1,4 +1,9 @@
 {
+  "subnav": {
+    "payments": "Conciliación Pago Móvil",
+    "rate": "Tasa Oficial BCV",
+    "settlements": "Liquidaciones a Aliados"
+  },
   "inbox": {
     "title": "Bandeja de Conciliación Pago Móvil",
     "subtitle": "Módulo de Finanzas & Tesorería",
@@ -22,6 +27,10 @@
       "verified": "Conciliados",
       "rejected": "Rechazados",
       "allBanks": "Todos los Bancos",
+      "bankBanesco": "0134 — Banesco",
+      "bankMercantil": "0105 — Mercantil",
+      "bankBdv": "0102 — Banco de Venezuela",
+      "bankBancamiga": "0172 — Bancamiga",
       "searchPlaceholder": "Buscar por ref, cliente, teléfono, código..."
     },
     "table": {
@@ -33,8 +42,18 @@
       "status": "Estatus",
       "actions": "Acciones de Auditoría",
       "inspect": "Ver Recibo",
+      "inspectTitle": "Ver Comprobante",
+      "noRef": "S/N",
+      "bookingLabel": "Reserva:",
+      "otherBank": "Otro Banco",
+      "pendingRecent": "Pendiente",
+      "statusPending": "Pendiente",
+      "statusVerified": "Conciliado",
+      "statusRejected": "No Conciliado",
       "validate": "Validar",
+      "validateTitle": "Validar Pago",
       "reject": "Rechazar",
+      "rejectTitle": "Rechazar Pago",
       "audit": "Auditar",
       "viewReason": "Ver Causa",
       "empty": "No se encontraron pagos en la bandeja con los filtros seleccionados."
@@ -44,18 +63,24 @@
       "refTitle": "Comprobante Pago Móvil #{ref}",
       "directViewer": "Visor Directo en Pantalla:",
       "directViewerDesc": "No requiere descargar archivos al equipo. Coteja los datos del extracto bancario con la captura digital en tiempo real.",
+      "receiptImageLabel": "Captura Adjunta del Comprobante",
+      "zoomIn": "Clic para ampliar",
+      "zoomOut": "Clic para reducir",
       "transferredAmount": "MONTO TRANSFERIDO",
       "rateEquivalent": "Equivalente a: ${usd} USD @ {rate}",
       "refCode": "Nro. Referencia:",
       "payer": "Ordenante (Cliente):",
       "idDoc": "Cédula / RIF:",
+      "originBank": "Banco Origen:",
       "phone": "Teléfono Origen:",
       "destination": "Destino YoReservo:",
-      "dateTime": "Fecha / Hora:",
-      "suicheNotice": "TRANSACCIÓN APROBADA POR LA RED INTERBANCARIA SUICHE 7B",
+      "method": "Método de Pago:",
+      "dateTime": "Fecha de Pago:",
+      "suicheNotice": "TRANSACCIÓN REGISTRADA PARA VERIFICACIÓN BANCARIA",
       "linkedBooking": "Reserva Asociada",
       "reconcileConfirm": "Conciliar & Confirmar",
-      "reject": "Rechazar"
+      "reject": "Rechazar",
+      "closeAudit": "Cerrar Auditoría"
     },
     "rejectModal": {
       "title": "Rechazar Pago Móvil",
@@ -70,7 +95,13 @@
       "notesLabel": "Observación interna de auditoría",
       "notesPlaceholder": "ej. Revisado corte bancario a las 15:45, no figura ingreso.",
       "cancel": "Cancelar",
-      "confirm": "Confirmar Rechazo"
+      "confirm": "Confirmar Rechazo",
+      "rejecting": "Rechazando..."
+    },
+    "reasonModal": {
+      "title": "Causa de Rechazo de Pago #{ref}",
+      "defaultReason": "Referencia bancaria no localizada en el extracto de cuenta.",
+      "close": "Cerrar"
     }
   },
   "rate": {
@@ -82,7 +113,7 @@
     "usdDesc": "Referencia aplicada a los aliados que cobran en Dólares ($).",
     "eurDesc": "Referencia aplicada a los aliados que cobran en Euros (€).",
     "otherCurrencies": "Otras Divisas Publicadas por el BCV:",
-    "lastSync": "Última sync: Hoy a las 09:00 AM",
+    "lastSync": "Última sync: {time}",
     "syncNow": "Forzar Sincronización BCV",
     "syncSuccess": "Tasas sincronizadas con éxito desde el Banco Central de Venezuela",
     "syncing": "Consultando BCV...",
@@ -94,10 +125,13 @@
       "dollarBcv": "Dólar BCV ($ USD)",
       "euroBcv": "Euro BCV (€ EUR)",
       "newRate": "Nueva Tasa en Bolívares (Bs.) *",
+      "ratePlaceholder": "ej. 41.50",
       "operator": "Operador Responsable",
       "justification": "Justificación de Auditoría *",
+      "defaultJustification": "Ajuste preventivo por cierre bancario y fecha valor extendida del BCV.",
       "justificationPlaceholder": "ej. Ajuste preventivo por cierre bancario nacional (feriado bancario lunes).",
       "save": "Registrar Tasa Manual en el Ledger",
+      "saving": "Registrando...",
       "success": "Tasa manual registrada exitosamente en el ledger"
     },
     "ledger": {
@@ -111,8 +145,13 @@
       "thOrigin": "Origen / Generado Por",
       "thJustification": "Operador / Justificación",
       "thStatus": "Estado",
+      "originSystem": "🤖 SYSTEM (BCV API)",
+      "originManual": "👤 MANUAL",
+      "defaultNotes": "Sincronización matutina automática BCV",
+      "operatorLabel": "Operador:",
       "active": "ACTIVA",
-      "historical": "HISTÓRICA"
+      "historical": "HISTÓRICA",
+      "empty": "No hay registros históricos de tasas disponibles."
     }
   }
 }

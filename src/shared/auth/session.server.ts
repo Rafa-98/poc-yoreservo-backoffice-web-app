@@ -5,7 +5,13 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { backendRequest } from "@/shared/api/index.server";
 import { parseApiResponse } from "@/shared/api";
-import { ROUTES, SESSION_INVALID_QUERY, type BackofficeRole, BACKOFFICE_ROLES } from "@/shared/config";
+import {
+  ROUTES,
+  SESSION_INVALID_QUERY,
+  type BackofficeRole,
+  BACKOFFICE_ROLES,
+  getDefaultRouteForRole,
+} from "@/shared/config";
 import { AppError } from "@/shared/lib";
 import {
   ACCESS_COOKIE_NAME,
@@ -75,7 +81,7 @@ export const getSession = cache(async (): Promise<Session | null> => {
   }
 });
 
-/** Data Access Layer guard: use at the top of every protected Server Component / layout. */
+/** Data Access Layer guard: use at the top of every protected Server Component / layout / Server Action. */
 export async function requireSession(allowedRoles?: readonly BackofficeRole[]): Promise<Session> {
   const session = await getSession();
   if (!session) {
@@ -85,8 +91,8 @@ export async function requireSession(allowedRoles?: readonly BackofficeRole[]): 
   }
 
   if (allowedRoles && !allowedRoles.includes(session.user.role)) {
-    // User does not have permission for this route: redirect to dashboard
-    redirect(ROUTES.dashboard);
+    // User does not have permission for this route: redirect to their role's default home
+    redirect(getDefaultRouteForRole(session.user.role));
   }
 
   return session;

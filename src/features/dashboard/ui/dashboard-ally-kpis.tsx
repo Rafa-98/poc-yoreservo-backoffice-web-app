@@ -2,19 +2,22 @@
 
 import { useTranslations } from "next-intl";
 import { TrendingUp, Clock } from "lucide-react";
+import type { AllyKpisData } from "../model/types";
 
 interface DashboardAllyKpisProps {
   bcvRate: number;
   pendingCheckInCount: number;
+  allyKpis?: AllyKpisData;
 }
 
 export function DashboardAllyKpis({
   bcvRate,
   pendingCheckInCount,
+  allyKpis,
 }: DashboardAllyKpisProps) {
   const t = useTranslations("dashboard");
 
-  const todayNet = 665.0;
+  const todayNet = allyKpis?.todayNetRevenue ?? 665.0;
   const formatBs = (val: number) =>
     `≈ Bs. ${(val * bcvRate).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -32,10 +35,19 @@ export function DashboardAllyKpis({
           </span>
         </div>
         <div className="font-display text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
-          {t("kpis.allyOccupancyCount")}
+          {allyKpis?.occupiedSlots !== undefined && allyKpis?.totalSlots !== undefined
+            ? t("kpis.allyOccupancyDynamicCount", {
+                occupied: allyKpis.occupiedSlots,
+                total: allyKpis.totalSlots,
+              })
+            : t("kpis.allyOccupancyCount")}
         </div>
         <div className="mt-1 text-xs text-muted-foreground">
-          {t("kpis.allyOccupancySub")}
+          {allyKpis?.availableWalkInSlots !== undefined
+            ? t("kpis.allyOccupancyDynamicSub", {
+                count: allyKpis.availableWalkInSlots,
+              })
+            : t("kpis.allyOccupancySub")}
         </div>
       </div>
 
@@ -68,10 +80,18 @@ export function DashboardAllyKpis({
           </span>
         </div>
         <div className="font-display text-2xl sm:text-3xl font-extrabold text-foreground">
-          {t("kpis.allyCheckinCount")}
+          {allyKpis?.checkedInMatches !== undefined
+            ? t("kpis.allyCheckinDynamicCount", {
+                count: allyKpis.checkedInMatches,
+              })
+            : t("kpis.allyCheckinCount")}
         </div>
         <div className="mt-1 text-xs text-muted-foreground">
-          {t("kpis.allyCheckinSub")}
+          {allyKpis?.playersOnCourt !== undefined
+            ? t("kpis.allyCheckinDynamicSub", {
+                count: allyKpis.playersOnCourt,
+              })
+            : t("kpis.allyCheckinSub")}
         </div>
       </div>
 
@@ -83,14 +103,14 @@ export function DashboardAllyKpis({
           </span>
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400">
             <Clock className="size-3" />
-            <span>{t("kpis.court1Badge")}</span>
+            <span>{allyKpis?.nextMatchCourt || t("kpis.court1Badge")}</span>
           </span>
         </div>
         <div className="font-display text-2xl sm:text-3xl font-extrabold text-foreground">
-          {t("kpis.allyNextTime")}
+          {allyKpis?.nextMatchTime || t("kpis.allyNextTime")}
         </div>
         <div className="mt-1 text-xs text-muted-foreground">
-          {t("kpis.allyNextDesc")}
+          {allyKpis?.nextMatchDesc || t("kpis.allyNextDesc")}
         </div>
       </div>
     </div>

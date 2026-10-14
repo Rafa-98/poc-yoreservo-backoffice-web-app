@@ -5,6 +5,8 @@ import {
   getAgendaAction,
   getVenuesListAction,
 } from "@/features/agenda/actions/agenda-actions";
+import { requireSession } from "@/shared/auth/index.server";
+import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
+  await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
+
   const [agendaRes, venuesRes] = await Promise.all([
     getAgendaAction(),
     getVenuesListAction(),

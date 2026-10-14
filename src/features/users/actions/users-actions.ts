@@ -28,7 +28,7 @@ export async function getUsersAction(filter?: {
   status?: string;
 }): Promise<ActionResult<{ kpi: UsersKpi; users: UserItem[] }>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const query = new URLSearchParams();
@@ -57,7 +57,7 @@ export async function inviteUserAction(
   input: InviteUserInput
 ): Promise<ActionResult<any>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/users/invite", {
@@ -83,7 +83,7 @@ export async function updateUserPrivilegesAction(
   input: UpdateUserPrivilegesInput
 ): Promise<ActionResult<any>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/users/${id}`, {
@@ -109,7 +109,7 @@ export async function resetPasswordAction(
   newPassword?: string
 ): Promise<ActionResult<{ tempPassword?: string; message: string }>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/users/${id}/reset-password`, {
@@ -131,7 +131,7 @@ export async function resetPasswordAction(
 
 export async function getSessionsAction(): Promise<ActionResult<ActiveSessionItem[]>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/users/sessions", {
@@ -151,7 +151,7 @@ export async function getSessionsAction(): Promise<ActionResult<ActiveSessionIte
 
 export async function revokeSessionAction(sessionId: string): Promise<ActionResult<{ success: boolean }>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/users/sessions/${sessionId}`, {
@@ -172,7 +172,7 @@ export async function revokeSessionAction(sessionId: string): Promise<ActionResu
 
 export async function revokeAllSessionsAction(): Promise<ActionResult<{ success: boolean }>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/users/sessions", {

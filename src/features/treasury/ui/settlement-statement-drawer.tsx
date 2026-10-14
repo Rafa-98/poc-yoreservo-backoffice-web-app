@@ -52,122 +52,7 @@ export function SettlementStatementDrawer({
   const feeBs = current.platformFeeAmount * bcvRate;
   const netBs = current.netPayoutAmount * bcvRate;
 
-  // Fallback demo items if backend has no line items yet
-  const displayItems: SettlementItemDetail[] =
-    current.items && current.items.length > 0
-      ? current.items
-      : [
-          {
-            id: "item-1",
-            settlementBatchId: current.id,
-            reservationId: "res-1",
-            courtSubtotal: 40.0,
-            serviceFee: 2.0,
-            netAllyAmount: 38.0,
-            createdAt: "2026-10-02T18:00:00Z",
-            reservation: {
-              id: "res-1",
-              shortCode: "AB4553",
-              reservationDate: "2026-10-02",
-              startTime: "18:00",
-              endTime: "19:30",
-              client: { id: "c-1", name: "Ignacio", lastName: "Silva" },
-              space: {
-                id: "s-1",
-                spaceNumber: "Cancha 1",
-                activityCategory: { name: "Pádel Panorámica" },
-              },
-            },
-          },
-          {
-            id: "item-2",
-            settlementBatchId: current.id,
-            reservationId: "res-2",
-            courtSubtotal: 50.0,
-            serviceFee: 2.5,
-            netAllyAmount: 47.5,
-            createdAt: "2026-10-05T19:00:00Z",
-            reservation: {
-              id: "res-2",
-              shortCode: "MN7102",
-              reservationDate: "2026-10-05",
-              startTime: "19:00",
-              endTime: "20:30",
-              client: { id: "c-2", name: "Carlos", lastName: "Mendoza" },
-              space: {
-                id: "s-2",
-                spaceNumber: "Cancha 2",
-                activityCategory: { name: "Pádel Panorámica" },
-              },
-            },
-          },
-          {
-            id: "item-3",
-            settlementBatchId: current.id,
-            reservationId: "res-3",
-            courtSubtotal: 35.0,
-            serviceFee: 1.75,
-            netAllyAmount: 33.25,
-            createdAt: "2026-10-08T08:00:00Z",
-            reservation: {
-              id: "res-3",
-              shortCode: "FK3901",
-              reservationDate: "2026-10-08",
-              startTime: "08:00",
-              endTime: "09:30",
-              client: { id: "c-3", name: "Daniela", lastName: "Salazar" },
-              space: {
-                id: "s-3",
-                spaceNumber: "Cancha Tenis 1",
-                activityCategory: { name: "Tenis Arcilla" },
-              },
-            },
-          },
-          {
-            id: "item-4",
-            settlementBatchId: current.id,
-            reservationId: "res-4",
-            courtSubtotal: 60.0,
-            serviceFee: 3.0,
-            netAllyAmount: 57.0,
-            createdAt: "2026-10-11T20:00:00Z",
-            reservation: {
-              id: "res-4",
-              shortCode: "YT9021",
-              reservationDate: "2026-10-11",
-              startTime: "20:00",
-              endTime: "21:30",
-              client: { id: "c-4", name: "Gustavo", lastName: "Paiva" },
-              space: {
-                id: "s-4",
-                spaceNumber: "Cancha Fútbol 7",
-                activityCategory: { name: "Fútbol Sintético" },
-              },
-            },
-          },
-          {
-            id: "item-5",
-            settlementBatchId: current.id,
-            reservationId: "res-5",
-            courtSubtotal: 40.0,
-            serviceFee: 2.0,
-            netAllyAmount: 38.0,
-            createdAt: "2026-10-14T17:00:00Z",
-            reservation: {
-              id: "res-5",
-              shortCode: "QP1194",
-              reservationDate: "2026-10-14",
-              startTime: "17:00",
-              endTime: "18:30",
-              client: { id: "c-5", name: "Roberto", lastName: "Gómez" },
-              space: {
-                id: "s-1",
-                spaceNumber: "Cancha 1",
-                activityCategory: { name: "Pádel Panorámica" },
-              },
-            },
-          },
-        ];
+  const displayItems: SettlementItemDetail[] = current.items ?? [];
 
   function handlePrintPdf() {
     window.print();
@@ -192,17 +77,18 @@ export function SettlementStatementDrawer({
                 {t("drawerTitle")}
               </h3>
               {isDisbursed ? (
-                <span className="rounded-full bg-blue-500/15 border border-blue-500/30 px-2.5 py-0.5 text-xs font-bold text-blue-400">
+                <span className="rounded-full bg-status-confirmed-bg border border-status-confirmed-border px-2.5 py-0.5 text-xs font-bold text-status-confirmed-fg">
                   {t("statusDisbursed")}
                 </span>
               ) : (
-                <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-xs font-bold text-amber-500">
+                <span className="rounded-full bg-status-hold-bg border border-status-hold-border px-2.5 py-0.5 text-xs font-bold text-status-hold-fg">
                   {t("statusPending")}
                 </span>
               )}
             </div>
             <p className="text-xs text-muted-foreground mt-1" id="drawer-batch-code">
-              {t("modalPayoutSubtitle")} #{current.batchCode} • {current.periodDisplay || `${current.periodStartDate} - ${current.periodEndDate}`}
+              {t("modalPayoutSubtitle")} #{current.batchCode} •{" "}
+              {current.periodDisplay || `${current.periodStartDate} - ${current.periodEndDate}`}
             </p>
           </div>
 
@@ -242,9 +128,7 @@ export function SettlementStatementDrawer({
                         hour: "2-digit",
                         minute: "2-digit",
                       })
-                    : isDisbursed
-                    ? "16 Oct 2026, 10:45 AM"
-                    : "Pendiente de Ejecución"}
+                    : t("pendingExecution")}
                 </div>
               </div>
             </div>
@@ -254,15 +138,22 @@ export function SettlementStatementDrawer({
               <div>
                 <span className="text-muted-foreground">{t("lblBankRef")} </span>
                 <span className="font-mono font-bold text-foreground" id="drawer-bank-ref">
-                  {current.payoutReferenceNumber || "TRANSF-0134982103"}
+                  {current.payoutReferenceNumber || "—"}
                 </span>
               </div>
 
-              <div>
-                <span className="text-xs font-semibold text-emerald-500 underline cursor-pointer">
-                  {t("btnViewVoucher")}
-                </span>
-              </div>
+              {current.payoutReceiptUrl && (
+                <div>
+                  <a
+                    href={current.payoutReceiptUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-semibold text-status-available-fg underline cursor-pointer"
+                  >
+                    {t("btnViewVoucher")}
+                  </a>
+                </div>
+              )}
             </div>
           </div>
 
@@ -284,7 +175,7 @@ export function SettlementStatementDrawer({
               <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 {t("drawerFee")}
               </div>
-              <div className="font-display text-base font-extrabold text-rose-500 mt-1" id="drawer-fee">
+              <div className="font-display text-base font-extrabold text-status-cancelled-fg mt-1" id="drawer-fee">
                 -${current.platformFeeAmount.toFixed(2)}
               </div>
               <div className="text-[10px] text-muted-foreground mt-0.5" id="drawer-fee-bs">
@@ -292,11 +183,11 @@ export function SettlementStatementDrawer({
               </div>
             </div>
 
-            <div className="rounded-xl border border-emerald-500/50 bg-emerald-500/10 p-3.5 text-center">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">
+            <div className="rounded-xl border border-status-available-border bg-status-available-bg p-3.5 text-center">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-status-available-fg">
                 {t("drawerNet")}
               </div>
-              <div className="font-display text-base font-extrabold text-emerald-500 mt-1" id="drawer-net">
+              <div className="font-display text-base font-extrabold text-status-available-fg mt-1" id="drawer-net">
                 ${current.netPayoutAmount.toFixed(2)}
               </div>
               <div className="text-[10px] text-muted-foreground mt-0.5" id="drawer-net-bs">
@@ -329,45 +220,59 @@ export function SettlementStatementDrawer({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {displayItems.map((item) => (
-                    <tr key={item.id} className="hover:bg-muted/20">
-                      <td className="px-3 py-2.5">
-                        <div className="font-mono font-bold text-foreground">
-                          #{item.reservation?.shortCode || "RES"}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {item.reservation?.reservationDate || "Oct 2026"}
-                        </div>
-                      </td>
-
-                      <td className="px-3 py-2.5">
-                        <div className="font-medium text-foreground">
-                          {item.reservation?.space?.spaceNumber}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {item.reservation?.space?.activityCategory?.name || "Deporte"}
-                        </div>
-                      </td>
-
-                      <td className="px-3 py-2.5">
-                        <div className="font-medium text-foreground">
-                          {item.reservation?.client?.name} {item.reservation?.client?.lastName}
-                        </div>
-                      </td>
-
-                      <td className="px-3 py-2.5 text-right font-medium text-foreground">
-                        ${item.courtSubtotal.toFixed(2)}
-                      </td>
-
-                      <td className="px-3 py-2.5 text-right font-medium text-rose-500">
-                        -${item.serviceFee.toFixed(2)}
-                      </td>
-
-                      <td className="px-3 py-2.5 text-right font-bold text-emerald-500">
-                        ${item.netAllyAmount.toFixed(2)}
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-xs text-muted-foreground">
+                        {t("drawerLoading")}
                       </td>
                     </tr>
-                  ))}
+                  ) : displayItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-xs text-muted-foreground">
+                        {t("drawerEmptyItems")}
+                      </td>
+                    </tr>
+                  ) : (
+                    displayItems.map((item) => (
+                      <tr key={item.id} className="hover:bg-muted/20">
+                        <td className="px-3 py-2.5">
+                          <div className="font-mono font-bold text-foreground">
+                            #{item.reservation?.shortCode || "—"}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {item.reservation?.reservationDate || "—"}
+                          </div>
+                        </td>
+
+                        <td className="px-3 py-2.5">
+                          <div className="font-medium text-foreground">
+                            {item.reservation?.space?.spaceNumber}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {item.reservation?.space?.activityCategory?.name || t("defaultSport")}
+                          </div>
+                        </td>
+
+                        <td className="px-3 py-2.5">
+                          <div className="font-medium text-foreground">
+                            {item.reservation?.client?.name} {item.reservation?.client?.lastName}
+                          </div>
+                        </td>
+
+                        <td className="px-3 py-2.5 text-right font-medium text-foreground">
+                          ${item.courtSubtotal.toFixed(2)}
+                        </td>
+
+                        <td className="px-3 py-2.5 text-right font-medium text-status-cancelled-fg">
+                          -${item.serviceFee.toFixed(2)}
+                        </td>
+
+                        <td className="px-3 py-2.5 text-right font-bold text-status-available-fg">
+                          ${item.netAllyAmount.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -378,7 +283,7 @@ export function SettlementStatementDrawer({
         <div className="border-t border-border bg-muted/40 p-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-muted-foreground mr-1">
-              Exportar Pago Bancario:
+              {t("lblExportBankFile")}
             </span>
             <Button
               type="button"
@@ -398,10 +303,10 @@ export function SettlementStatementDrawer({
                   URL.revokeObjectURL(url);
                 }
               }}
-              title="Descargar archivo TXT para nómina / proveedores Banco de Venezuela"
+              title={t("exportBdvTitle")}
             >
               <span>🏛️</span>
-              <span>BDV (TXT)</span>
+              <span>{t("exportBdvBtn")}</span>
             </Button>
             <Button
               type="button"
@@ -421,10 +326,10 @@ export function SettlementStatementDrawer({
                   URL.revokeObjectURL(url);
                 }
               }}
-              title="Descargar CSV Multipagos Banesco"
+              title={t("exportBanescoTitle")}
             >
               <span>🟩</span>
-              <span>Banesco (CSV)</span>
+              <span>{t("exportBanescoBtn")}</span>
             </Button>
             <Button
               type="button"
@@ -444,10 +349,10 @@ export function SettlementStatementDrawer({
                   URL.revokeObjectURL(url);
                 }
               }}
-              title="Descargar CSV Pago Móvil Masivo"
+              title={t("exportPagoMovilTitle")}
             >
               <span>📱</span>
-              <span>Pago Móvil (CSV)</span>
+              <span>{t("exportPagoMovilBtn")}</span>
             </Button>
             <Button
               type="button"
@@ -467,10 +372,10 @@ export function SettlementStatementDrawer({
                   URL.revokeObjectURL(url);
                 }
               }}
-              title="Descargar planilla detallada de conciliación"
+              title={t("exportCsvTitle")}
             >
               <span>📊</span>
-              <span>Conciliación (CSV)</span>
+              <span>{t("exportCsvBtn")}</span>
             </Button>
           </div>
 

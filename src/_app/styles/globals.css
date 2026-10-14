@@ -88,16 +88,32 @@
     0 1px 2px rgb(20 26 19 / 0.05), 0 12px 32px -16px rgb(20 26 19 / 0.18);
 
   /* Compatibility aliases for features & modals */
+  --bg-app: var(--background);
   --bg-surface: var(--surface);
+  --bg-surface-hover: var(--surface-hover);
   --bg-surface-elevated: var(--surface-hover);
   --bg-muted: var(--muted);
   --text-main: var(--foreground);
   --text-primary: var(--foreground);
   --text-secondary: var(--muted-foreground);
   --text-muted: var(--faint-foreground);
+  --text-faint: var(--faint-foreground);
+  --text-link: var(--link);
   --border-subtle: var(--border);
   --brand-lime: var(--accent);
+  --brand-forest: var(--primary);
   --primary-dark: var(--primary);
+  --status-available-text: var(--status-available-fg);
+  --status-hold-text: var(--status-hold-fg);
+  --status-confirmed-text: var(--status-confirmed-fg);
+  --status-completed-text: var(--status-completed-fg);
+  --status-cancelled-text: var(--status-cancelled-fg);
+  --status-blocked-text: var(--status-blocked-fg);
+  --shadow-sm: 0 1px 2px rgb(20 26 19 / 0.06);
+  --shadow-lg: var(--card-shadow);
+  --forest-800: #1b2818;
+  --forest-900: #121811;
+  --forest-950: #080c07;
 }
 
 /* ---------- Dark theme: "Nocturnal Executive Cockpit" ---------- */
@@ -157,16 +173,32 @@
   --card-shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 16px 40px -16px rgb(0 0 0 / 0.7);
 
   /* Compatibility aliases for features & modals */
+  --bg-app: var(--background);
   --bg-surface: var(--surface);
+  --bg-surface-hover: var(--surface-hover);
   --bg-surface-elevated: var(--surface-hover);
   --bg-muted: var(--muted);
   --text-main: var(--foreground);
   --text-primary: var(--foreground);
   --text-secondary: var(--muted-foreground);
   --text-muted: var(--faint-foreground);
+  --text-faint: var(--faint-foreground);
+  --text-link: var(--link);
   --border-subtle: var(--border);
   --brand-lime: var(--accent);
+  --brand-forest: var(--primary);
   --primary-dark: var(--primary);
+  --status-available-text: var(--status-available-fg);
+  --status-hold-text: var(--status-hold-fg);
+  --status-confirmed-text: var(--status-confirmed-fg);
+  --status-completed-text: var(--status-completed-fg);
+  --status-cancelled-text: var(--status-cancelled-fg);
+  --status-blocked-text: var(--status-blocked-fg);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-lg: var(--card-shadow);
+  --forest-800: #1b2818;
+  --forest-900: #121811;
+  --forest-950: #080c07;
 }
 
 /* ---------- Layout metrics (see docs/design-system.md §5) ---------- */
@@ -186,7 +218,12 @@
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
+  --color-surface-muted: var(--muted);
   --color-muted: var(--muted);
+
+  --color-forest-800: var(--forest-800);
+  --color-forest-900: var(--forest-900);
+  --color-forest-950: var(--forest-950);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-hover: var(--sidebar-hover);

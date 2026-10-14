@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { ExchangeRatePage } from "@/_pages/treasury/exchange-rate-page";
 import { getExchangeRatesAction } from "@/features/treasury/actions/treasury-actions";
 import { requireSession } from "@/shared/auth/index.server";
+import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +16,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const [ratesRes, session] = await Promise.all([
+  const [session, ratesRes] = await Promise.all([
+    requireSession(ROUTE_ALLOWED_ROLES[ROUTES.exchangeRate]),
     getExchangeRatesAction(),
-    requireSession(),
   ]);
 
   const initialData = ratesRes.ok
@@ -26,7 +27,7 @@ export default async function Page() {
         activeUsd: null,
         activeEur: null,
         history: [],
-        lastSync: "Hoy a las 09:00 AM",
+        lastSync: new Date().toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" }),
         secondaryCurrencies: [
           { currency: "CNY", symbol: "¥", rate: "131,03 Bs." },
           { currency: "TRY", symbol: "₺", rate: "17,77 Bs." },

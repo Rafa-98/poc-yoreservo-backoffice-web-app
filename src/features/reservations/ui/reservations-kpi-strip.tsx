@@ -72,7 +72,7 @@ export function ReservationsKpiStrip({ kpis, bcvRate }: ReservationsKpiStripProp
           {formattedUsd}
         </div>
         <div className="mt-1 text-xs text-muted-foreground">
-          ≈ {formattedVes} Bs. (Ref: {bcvRate.toFixed(2)})
+          {t("volumeVesSub", { amount: formattedVes, rate: bcvRate.toFixed(2) })}
         </div>
       </div>
     </div>

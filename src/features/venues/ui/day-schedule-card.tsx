@@ -61,43 +61,16 @@ export function DayScheduleCard({
 
   return (
     <div
-      className={`day-row-card ${!day.isOpen ? "is-closed" : ""}`}
-      style={{
-        background: day.isOpen ? "var(--bg-surface)" : "var(--bg-muted)",
-        border: day.isOpen
-          ? "1px solid var(--border-subtle)"
-          : "1px dashed var(--border-medium)",
-        borderRadius: "16px",
-        padding: "20px 24px",
-        boxShadow: "var(--shadow-sm)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "16px",
-        opacity: day.isOpen ? 1 : 0.75,
-      }}
+      className={`day-row-card flex flex-col gap-4 rounded-2xl p-5 shadow-card ${
+        day.isOpen
+          ? "border border-border bg-surface opacity-100"
+          : "is-closed border border-dashed border-border-medium bg-muted opacity-75"
+      }`}
     >
       {/* Header with Day name and Open toggle */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "14px",
-          borderBottom: "1px solid var(--border-subtle)",
-          paddingBottom: "14px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <span
-            style={{
-              fontFamily: "'Outfit', sans-serif",
-              fontSize: "18px",
-              fontWeight: 700,
-              color: "var(--text-main)",
-              minWidth: "100px",
-            }}
-          >
+      <div className="flex flex-wrap items-center justify-between gap-3.5 border-b border-border pb-3.5">
+        <div className="flex items-center gap-3">
+          <span className="min-w-[100px] font-display text-lg font-bold text-foreground">
             {dayName}
           </span>
           <span
@@ -107,48 +80,28 @@ export function DayScheduleCard({
           </span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span style={{ fontSize: "12.5px", color: "var(--text-muted)" }}>
-            {day.isOpen ? "Operativo" : "Cerrado"}
+        <div className="flex items-center gap-2.5">
+          <span className="text-[12.5px] text-muted-foreground">
+            {day.isOpen ? t("statusOperational") : t("dayClosed")}
           </span>
-          <label
-            style={{
-              position: "relative",
-              display: "inline-block",
-              width: "44px",
-              height: "24px",
-              cursor: "pointer",
-            }}
-          >
+          <label className="relative inline-block h-6 w-11 cursor-pointer">
             <input
               type="checkbox"
               checked={day.isOpen}
               onChange={toggleOpen}
-              style={{ opacity: 0, width: 0, height: 0 }}
+              className="sr-only"
             />
             <span
-              style={{
-                position: "absolute",
-                inset: 0,
-                backgroundColor: day.isOpen
-                  ? "var(--brand-lime)"
-                  : "var(--border-strong, #4b5563)",
-                borderRadius: "24px",
-                transition: "0.2s",
-              }}
+              className={`absolute inset-0 rounded-full transition-colors duration-200 ${
+                day.isOpen ? "bg-accent" : "bg-border-strong"
+              }`}
             >
               <span
-                style={{
-                  position: "absolute",
-                  content: '""',
-                  height: "18px",
-                  width: "18px",
-                  left: day.isOpen ? "23px" : "3px",
-                  bottom: "3px",
-                  backgroundColor: day.isOpen ? "#121811" : "#ffffff",
-                  borderRadius: "50%",
-                  transition: "0.2s",
-                }}
+                className={`absolute bottom-[3px] h-4.5 w-4.5 rounded-full transition-all duration-200 ${
+                  day.isOpen
+                    ? "left-[23px] bg-accent-foreground"
+                    : "left-[3px] bg-surface"
+                }`}
               />
             </span>
           </label>
@@ -157,77 +110,36 @@ export function DayScheduleCard({
 
       {/* Shifts Inputs */}
       {day.isOpen && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: "16px",
-          }}
-        >
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4">
           {/* Shift 1 */}
-          <div
-            style={{
-              border: "1px solid var(--border-subtle)",
-              borderRadius: "12px",
-              padding: "14px 16px",
-              background: "var(--bg-surface-hover, var(--bg-muted))",
-              display: "flex",
-              flexDirection: "column",
-              gap: "10px",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                fontSize: "13px",
-                fontWeight: 700,
-                color: "var(--text-main)",
-              }}
-            >
+          <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-surface-hover px-4 py-3.5">
+            <div className="flex items-center justify-between text-[13px] font-bold text-foreground">
               <span>🌅 {t("shift1Title")}</span>
-              <span className="badge badge-available">Principal</span>
+              <span className="badge badge-available">{t("shiftPrimaryBadge")}</span>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                  }}
-                >
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase">
                   {t("openLabel")}
                 </label>
                 <input
                   type="time"
-                  className="input-field"
+                  className="input-field form-input px-2.5 py-2 text-[13px] font-semibold"
                   value={day.shift1?.openTime || "07:00"}
                   onChange={(e) => updateShift1("openTime", e.target.value)}
-                  style={{ padding: "8px 10px", fontSize: "13px", fontWeight: 600 }}
                 />
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                  }}
-                >
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase">
                   {t("closeLabel")}
                 </label>
                 <input
                   type="time"
-                  className="input-field"
+                  className="input-field form-input px-2.5 py-2 text-[13px] font-semibold"
                   value={day.shift1?.closeTime || "12:00"}
                   onChange={(e) => updateShift1("closeTime", e.target.value)}
-                  style={{ padding: "8px 10px", fontSize: "13px", fontWeight: 600 }}
                 />
               </div>
             </div>
@@ -235,88 +147,47 @@ export function DayScheduleCard({
 
           {/* Shift 2 (Split Shift) */}
           <div
-            style={{
-              border: "1px solid var(--border-subtle)",
-              borderRadius: "12px",
-              padding: "14px 16px",
-              background: "var(--bg-surface-hover, var(--bg-muted))",
-              display: "flex",
-              flexDirection: "column",
-              gap: "10px",
-              opacity: day.shift2?.isEnabled ? 1 : 0.7,
-            }}
+            className={`flex flex-col gap-2.5 rounded-xl border border-border bg-surface-hover px-4 py-3.5 ${
+              day.shift2?.isEnabled ? "opacity-100" : "opacity-70"
+            }`}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                fontSize: "13px",
-                fontWeight: 700,
-                color: "var(--text-main)",
-              }}
-            >
+            <div className="flex items-center justify-between text-[13px] font-bold text-foreground">
               <span>🌙 {t("shift2Title")}</span>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
+              <label className="flex cursor-pointer items-center gap-1.5 text-xs font-semibold">
                 <input
                   type="checkbox"
                   checked={Boolean(day.shift2?.isEnabled)}
                   onChange={toggleShift2}
-                  style={{ accentColor: "var(--brand-lime)" }}
+                  className="accent-accent"
                 />
                 <span>{t("enableShift2")}</span>
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                  }}
-                >
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase">
                   {t("openLabel")}
                 </label>
                 <input
                   type="time"
-                  className="input-field"
+                  className="input-field form-input px-2.5 py-2 text-[13px] font-semibold"
                   disabled={!day.shift2?.isEnabled}
                   value={day.shift2?.openTime || "16:00"}
                   onChange={(e) => updateShift2("openTime", e.target.value)}
-                  style={{ padding: "8px 10px", fontSize: "13px", fontWeight: 600 }}
                 />
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                  }}
-                >
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase">
                   {t("closeLabel")}
                 </label>
                 <input
                   type="time"
-                  className="input-field"
+                  className="input-field form-input px-2.5 py-2 text-[13px] font-semibold"
                   disabled={!day.shift2?.isEnabled}
                   value={day.shift2?.closeTime || "23:00"}
                   onChange={(e) => updateShift2("closeTime", e.target.value)}
-                  style={{ padding: "8px 10px", fontSize: "13px", fontWeight: 600 }}
                 />
               </div>
             </div>
@@ -325,7 +196,7 @@ export function DayScheduleCard({
       )}
 
       {/* Visual Timeline Ribbon */}
-      <div style={{ marginTop: "4px" }}>
+      <div className="mt-1">
         <ScheduleTimelineRibbon
           isOpen={day.isOpen}
           shift1={day.shift1}

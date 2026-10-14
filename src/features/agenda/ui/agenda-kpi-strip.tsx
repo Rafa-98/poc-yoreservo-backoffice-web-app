@@ -4,17 +4,21 @@ import { useTranslations } from "next-intl";
 import {
   CalendarDays,
   Clock,
-  CreditCard,
   DollarSign,
   TrendingUp,
 } from "lucide-react";
+import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import type { CourtSpace } from "../model/types";
 
 export interface AgendaKpiStripProps {
   spaces: CourtSpace[];
+  bcvRate?: number;
 }
 
-export function AgendaKpiStrip({ spaces }: AgendaKpiStripProps) {
+export function AgendaKpiStrip({
+  spaces,
+  bcvRate = DEFAULT_BCV_USD_RATE,
+}: AgendaKpiStripProps) {
   const t = useTranslations("agenda");
 
   // Calculate statistics
@@ -71,7 +75,6 @@ export function AgendaKpiStrip({ spaces }: AgendaKpiStripProps) {
 
   const occupancyRate =
     totalSlots > 0 ? Math.round((occupiedSlots / totalSlots) * 100) : 0;
-  const bcvRate = 36.52; // Active reference rate
   const revenueVes = Math.round(totalRevenue * bcvRate);
 
   return (
@@ -91,7 +94,8 @@ export function AgendaKpiStrip({ spaces }: AgendaKpiStripProps) {
             {occupancyRate}%
           </span>
           <span className="text-xs text-muted-foreground font-medium">
-            {occupiedSlots} / {Math.max(occupiedSlots, totalSlots || 24)} turnos
+            {occupiedSlots} / {Math.max(occupiedSlots, totalSlots || 24)}{" "}
+            {t("kpiSlotsUnit")}
           </span>
         </div>
       </div>
@@ -108,10 +112,10 @@ export function AgendaKpiStrip({ spaces }: AgendaKpiStripProps) {
         </div>
         <div className="flex items-baseline gap-2">
           <span className="font-display text-2xl font-bold text-foreground">
-            {totalBookings} Partidos
+            {t("kpiMatchesCount", { count: totalBookings })}
           </span>
           <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-bold text-blue-600">
-            {paidBookings} Pagadas
+            {t("kpiPaidCount", { count: paidBookings })}
           </span>
         </div>
       </div>
@@ -148,11 +152,13 @@ export function AgendaKpiStrip({ spaces }: AgendaKpiStripProps) {
         </div>
         <div className="flex items-baseline gap-2">
           <span className="font-display text-base sm:text-lg font-bold text-foreground truncate">
-            {nextMatchTime ? `${nextMatchTime} • ${nextMatchCourt}` : "Sin partidos"}
+            {nextMatchTime
+              ? `${nextMatchTime} • ${nextMatchCourt}`
+              : t("kpiNoMatches")}
           </span>
           {nextMatchTime && (
             <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
-              Próximo
+              {t("kpiUpcomingBadge")}
             </span>
           )}
         </div>

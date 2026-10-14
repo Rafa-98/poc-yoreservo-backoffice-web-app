@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail, ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ROUTES, REDIRECT_QUERY_KEY } from "@/shared/config";
+import { sanitizeRedirectPath } from "@/shared/lib";
 import { Button } from "@/shared/ui/button";
 import { Alert } from "@/shared/ui/alert";
 import { loginAction } from "../actions/login-action";
@@ -88,7 +89,10 @@ export function LoginForm() {
     }
 
     // Success! Redirect to target route
-    const nextRoute = searchParams.get(REDIRECT_QUERY_KEY) || ROUTES.dashboard;
+    const nextRoute = sanitizeRedirectPath(
+      searchParams.get(REDIRECT_QUERY_KEY),
+      result.data.redirectTo ?? ROUTES.dashboard,
+    );
     router.push(nextRoute);
     router.refresh();
   };
@@ -129,7 +133,7 @@ export function LoginForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="ejemplo@yoreservo.com"
+              placeholder={t("placeholderEmail")}
               className="w-full rounded-xl border border-border bg-background py-2.5 pl-10 pr-4 text-sm text-foreground transition-colors placeholder:text-muted-foreground/60 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
@@ -167,7 +171,7 @@ export function LoginForm() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+              aria-label={showPassword ? t("hidePassword") : t("showPassword")}
               className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
             >
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, CheckCircle2, QrCode, ScanLine, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
@@ -11,18 +11,20 @@ export interface ExpressCheckInModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  onValidate?: (code: string) => Promise<void> | void;
 }
 
 export function ExpressCheckInModal({
   isOpen,
   onClose,
   onSuccess,
+  onValidate,
 }: ExpressCheckInModalProps) {
   const t = useTranslations("agenda");
 
   const [code, setCode] = useState("");
-  const [isScanning, setIsScanning] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error" | "already";
     message: string;
@@ -31,25 +33,27 @@ export function ExpressCheckInModal({
 
   if (!isOpen) return null;
 
-  const handleSimulateScan = () => {
-    setIsScanning(true);
+  const handleFocusInput = () => {
     setFeedback(null);
-    setTimeout(() => {
-      setIsScanning(false);
-      setCode("AB4553");
-    }, 1200);
+    inputRef.current?.focus();
+    inputRef.current?.select();
   };
 
   const handleCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code.trim()) return;
+    const trimmedCode = code.trim();
+    if (!trimmedCode) return;
 
     setIsValidating(true);
     setFeedback(null);
 
+    if (onValidate) {
+      await onValidate(trimmedCode);
+    }
+
     const res = await checkInAction({
-      code: code.trim(),
-      method: isScanning ? "QR_SCAN" : "SHORT_CODE_MANUAL",
+      code: trimmedCode,
+      method: "SHORT_CODE_MANUAL",
     });
 
     setIsValidating(false);
@@ -63,7 +67,7 @@ export function ExpressCheckInModal({
       } else {
         setFeedback({
           type: "error",
-          message: "Error al validar la entrada.",
+          message: t("checkInError"),
         });
       }
       return;
@@ -122,7 +126,6 @@ export function ExpressCheckInModal({
           </div>
 
           {/* Feedback Banners */}
-          {/* Feedback Banners */}
           {feedback && (
             <div className="mt-4">
               {feedback.type === "success" ? (
@@ -132,10 +135,23 @@ export function ExpressCheckInModal({
                     <strong className="block text-sm font-bold">{feedback.message}</strong>
                     {feedback.details && (
                       <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs opacity-95">
-                        <span><strong>Cancha:</strong> {feedback.details.space?.spaceNumber || "Cancha"}</span>
-                        <span><strong>Titular:</strong> {feedback.details.client ? `${feedback.details.client.name} ${feedback.details.client.lastName}` : (feedback.details.customerName || "Jugador")}</span>
-                        <span><strong>Código:</strong> #{feedback.details.shortCode}</span>
-                        <span><strong>Estado:</strong> Entrada Validada (Completada)</span>
+                        <span>
+                          <strong>{t("labelCourt")}:</strong>{" "}
+                          {feedback.details.space?.spaceNumber || t("defaultCourt")}
+                        </span>
+                        <span>
+                          <strong>{t("checkInHolder")}:</strong>{" "}
+                          {feedback.details.client
+                            ? `${feedback.details.client.name} ${feedback.details.client.lastName}`
+                            : feedback.details.customerName || t("defaultPlayer")}
+                        </span>
+                        <span>
+                          <strong>{t("checkInCode")}:</strong> #{feedback.details.shortCode}
+                        </span>
+                        <span>
+                          <strong>{t("checkInStatusLabel")}:</strong>{" "}
+                          {t("checkInStatusValidated")}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -147,8 +163,18 @@ export function ExpressCheckInModal({
                     <strong className="block text-sm font-bold">{feedback.message}</strong>
                     {feedback.details && (
                       <div className="mt-1 text-xs">
-                        <span>Validada previamente el {feedback.details.validatedAt ? new Date(feedback.details.validatedAt).toLocaleTimeString() : "previamente"}.</span>
-                        {feedback.details.space && <span className="ml-2 font-semibold">Cancha: {feedback.details.space.spaceNumber}</span>}
+                        <span>
+                          {t("checkInValidatedAt", {
+                            time: feedback.details.validatedAt
+                              ? new Date(feedback.details.validatedAt).toLocaleTimeString()
+                              : t("checkInPreviously"),
+                          })}
+                        </span>
+                        {feedback.details.space && (
+                          <span className="ml-2 font-semibold">
+                            {t("labelCourt")}: {feedback.details.space.spaceNumber}
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -161,29 +187,21 @@ export function ExpressCheckInModal({
 
           {/* Body */}
           <form onSubmit={handleCheckIn} className="mt-5 space-y-4">
-            {/* Simulated Camera Scanner Box */}
+            {/* Optical Scanner / Input Focus Box */}
             <div className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-background p-6 text-center overflow-hidden">
-              {isScanning && (
-                <div className="absolute inset-x-0 h-1 bg-accent shadow-[0_0_12px_#c6f23b] animate-[bounce_1.5s_infinite]" />
-              )}
-              <ScanLine
-                className={`size-12 ${
-                  isScanning ? "text-accent animate-pulse" : "text-muted-foreground"
-                }`}
-              />
+              <ScanLine className="size-12 text-muted-foreground" />
               <span className="mt-2 text-xs font-semibold text-foreground">
-                {isScanning ? "Escaneando código QR con lector óptico..." : "Cámara de Recepción & Lector QR"}
+                {t("qrScannerTitle")}
               </span>
               <p className="mt-0.5 text-[11px] text-muted-foreground max-w-xs">
-                Apunta el ticket QR del cliente hacia el lector o ingresa el código de 6 caracteres.
+                {t("qrScannerHint")}
               </p>
               <button
                 type="button"
-                onClick={handleSimulateScan}
-                disabled={isScanning}
-                className="mt-3 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:border-accent hover:text-foreground transition-all"
+                onClick={handleFocusInput}
+                className="mt-3 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:border-accent hover:text-foreground transition-all cursor-pointer"
               >
-                {t("btnSimulateQr")}
+                {t("btnFocusCodeInput")}
               </button>
             </div>
 
@@ -191,7 +209,7 @@ export function ExpressCheckInModal({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Código Corto (#AB4553) o Hash QR
+                  {t("qrCodeLabel")}
                 </label>
                 <button
                   type="button"
@@ -201,9 +219,9 @@ export function ExpressCheckInModal({
                       if (text) setCode(text.trim());
                     } catch {}
                   }}
-                  className="text-[11px] font-semibold text-accent hover:underline"
+                  className="text-[11px] font-semibold text-accent hover:underline cursor-pointer"
                 >
-                  Pegar Portapapeles
+                  {t("btnPasteClipboard")}
                 </button>
               </div>
               <div className="relative">
@@ -211,11 +229,13 @@ export function ExpressCheckInModal({
                   #
                 </span>
                 <input
+                  ref={inputRef}
                   type="text"
                   maxLength={64}
+                  autoFocus
                   value={code}
                   onChange={(e) => setCode(e.target.value.trim())}
-                  placeholder="Ej. AB4553 o hash QR"
+                  placeholder={t("qrInputPlaceholder")}
                   className="w-full rounded-xl border border-border bg-background py-2.5 pl-8 pr-4 font-mono text-sm font-bold tracking-wider text-foreground focus:border-accent focus:outline-none"
                 />
               </div>
@@ -229,7 +249,7 @@ export function ExpressCheckInModal({
                 fullWidth
                 onClick={onClose}
               >
-                Cerrar
+                {t("btnClose")}
               </Button>
               <Button
                 type="submit"

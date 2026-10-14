@@ -5,8 +5,8 @@ import { revalidatePath } from "next/cache";
 import { backendRequest } from "@/shared/api/index.server";
 import { ACCESS_COOKIE_NAME } from "@/shared/auth";
 import { requireSession } from "@/shared/auth/index.server";
-import { fail, ok, type ActionResult } from "@/shared/lib";
-import { ROUTES } from "@/shared/config";
+import { DEFAULT_BCV_USD_RATE, fail, ok, type ActionResult } from "@/shared/lib";
+import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
 import type {
   CheckInMethod,
   CreateWalkInReservationInput,
@@ -45,7 +45,7 @@ function calculateDurationMinutes(start: string, end: string): string {
   return `${diff > 0 ? diff : 90} min`;
 }
 
-function mapReservationRow(row: any, fallbackBcvRate = 41.0): ReservationItem {
+function mapReservationRow(row: any, fallbackBcvRate = DEFAULT_BCV_USD_RATE): ReservationItem {
   const isWalkIn = !!row.isManual;
   const clientName =
     row.customerName ||
@@ -127,7 +127,7 @@ export async function getReservationsAction(filter?: {
   toDate?: string;
 }): Promise<ActionResult<{ items: ReservationItem[]; kpis: ReservationKpis; total: number }>> {
   try {
-    await requireSession();
+    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.reservations]);
     const accessToken = await getAuthToken();
 
     const query = new URLSearchParams();
@@ -171,7 +171,7 @@ export async function getReservationsAction(filter?: {
 
 export async function getReservationDetailAction(id: string): Promise<ActionResult<any>> {
   try {
-    await requireSession();
+    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.reservations]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/reservations/${id}`, {
@@ -194,7 +194,7 @@ export async function checkInReservationAction(
   method: CheckInMethod = "SHORT_CODE_MANUAL"
 ): Promise<ActionResult<any>> {
   try {
-    await requireSession();
+    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.reservations]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/reservations/${id}/check-in`, {
@@ -220,7 +220,7 @@ export async function cancelReservationAction(
   reason: string
 ): Promise<ActionResult<any>> {
   try {
-    await requireSession();
+    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.reservations]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/reservations/${id}/cancel`, {
@@ -245,7 +245,7 @@ export async function createWalkInReservationAction(
   input: CreateWalkInReservationInput
 ): Promise<ActionResult<any>> {
   try {
-    await requireSession();
+    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.reservations]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/agenda/walk-in", {

@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { ROUTES } from "@/shared/config";
 
 interface TreasurySubnavProps {
@@ -9,22 +10,24 @@ interface TreasurySubnavProps {
 }
 
 export function TreasurySubnav({ currentTab }: TreasurySubnavProps) {
+  const t = useTranslations("treasury.subnav");
+
   const tabs = [
     {
       id: "payments",
-      label: "Conciliación Pago Móvil",
+      label: t("payments"),
       href: ROUTES.paymentsInbox,
       icon: "💳",
     },
     {
       id: "rate",
-      label: "Tasa Oficial BCV",
+      label: t("rate"),
       href: ROUTES.exchangeRate,
       icon: "📈",
     },
     {
       id: "settlements",
-      label: "Liquidaciones a Aliados",
+      label: t("settlements"),
       href: ROUTES.settlements,
       icon: "🏛️",
     },

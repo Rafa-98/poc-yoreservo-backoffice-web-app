@@ -29,146 +29,81 @@ export function PaymentsFilterBar({
   const t = useTranslations("treasury.inbox.filters");
 
   return (
-    <section
-      style={{
-        padding: "0 20px 16px",
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 14,
-      }}
-    >
+    <section className="flex flex-wrap items-center justify-between gap-3.5 px-5 pb-4">
       {/* STATUS CHIPS */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          className={`filter-chip-btn ${statusFilter === "ALL" ? "active" : ""}`}
+          className={`filter-chip-btn cursor-pointer rounded-[10px] border border-border px-3.5 py-1.5 text-xs font-semibold transition-all ${
+            statusFilter === "ALL"
+              ? "active bg-foreground text-background"
+              : "bg-surface text-muted-foreground hover:bg-surface-hover"
+          }`}
           onClick={() => onStatusChange("ALL")}
-          style={{
-            padding: "6px 14px",
-            fontSize: 12.5,
-            fontWeight: 600,
-            borderRadius: 10,
-            border: "1px solid var(--border-subtle)",
-            backgroundColor: statusFilter === "ALL" ? "var(--text-main)" : "var(--bg-surface)",
-            color: statusFilter === "ALL" ? "var(--bg-app)" : "var(--text-muted)",
-            cursor: "pointer",
-            transition: "all 0.15s ease",
-          }}
         >
           {t("all")} ({counts.all})
         </button>
 
         <button
           type="button"
-          className={`filter-chip-btn ${statusFilter === "PENDING" ? "active" : ""}`}
+          className={`filter-chip-btn inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-1.5 text-xs font-semibold transition-all ${
+            statusFilter === "PENDING"
+              ? "active bg-foreground text-background"
+              : "bg-surface text-muted-foreground hover:bg-surface-hover"
+          }`}
           onClick={() => onStatusChange("PENDING")}
-          style={{
-            padding: "6px 14px",
-            fontSize: 12.5,
-            fontWeight: 600,
-            borderRadius: 10,
-            border: "1px solid var(--border-subtle)",
-            backgroundColor: statusFilter === "PENDING" ? "var(--text-main)" : "var(--bg-surface)",
-            color: statusFilter === "PENDING" ? "var(--bg-app)" : "var(--text-muted)",
-            cursor: "pointer",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            transition: "all 0.15s ease",
-          }}
         >
           <span>⏳</span> {t("pending")} ({counts.pending})
         </button>
 
         <button
           type="button"
-          className={`filter-chip-btn ${statusFilter === "VERIFIED" ? "active" : ""}`}
+          className={`filter-chip-btn inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-1.5 text-xs font-semibold transition-all ${
+            statusFilter === "VERIFIED"
+              ? "active bg-foreground text-background"
+              : "bg-surface text-muted-foreground hover:bg-surface-hover"
+          }`}
           onClick={() => onStatusChange("VERIFIED")}
-          style={{
-            padding: "6px 14px",
-            fontSize: 12.5,
-            fontWeight: 600,
-            borderRadius: 10,
-            border: "1px solid var(--border-subtle)",
-            backgroundColor: statusFilter === "VERIFIED" ? "var(--text-main)" : "var(--bg-surface)",
-            color: statusFilter === "VERIFIED" ? "var(--bg-app)" : "var(--text-muted)",
-            cursor: "pointer",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            transition: "all 0.15s ease",
-          }}
         >
           <span>✅</span> {t("verified")} ({counts.verified})
         </button>
 
         <button
           type="button"
-          className={`filter-chip-btn ${statusFilter === "REJECTED" ? "active" : ""}`}
+          className={`filter-chip-btn inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] border border-border px-3.5 py-1.5 text-xs font-semibold transition-all ${
+            statusFilter === "REJECTED"
+              ? "active bg-foreground text-background"
+              : "bg-surface text-muted-foreground hover:bg-surface-hover"
+          }`}
           onClick={() => onStatusChange("REJECTED")}
-          style={{
-            padding: "6px 14px",
-            fontSize: 12.5,
-            fontWeight: 600,
-            borderRadius: 10,
-            border: "1px solid var(--border-subtle)",
-            backgroundColor: statusFilter === "REJECTED" ? "var(--text-main)" : "var(--bg-surface)",
-            color: statusFilter === "REJECTED" ? "var(--bg-app)" : "var(--text-muted)",
-            cursor: "pointer",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            transition: "all 0.15s ease",
-          }}
         >
           <span>❌</span> {t("rejected")} ({counts.rejected})
         </button>
       </div>
 
       {/* SEARCH & BANK SELECTOR */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <div className="flex flex-wrap items-center gap-2.5">
         <select
           id="bank-filter-select"
-          className="input-field"
-          style={{
-            width: "auto",
-            padding: "8px 12px",
-            fontSize: 13,
-            borderRadius: 10,
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border-subtle)",
-            color: "var(--text-main)",
-            cursor: "pointer",
-          }}
+          className="input-field w-auto cursor-pointer rounded-[10px] border border-border bg-surface px-3 py-2 text-[13px] text-foreground"
           value={bankFilter}
           onChange={(e) => onBankChange(e.target.value)}
         >
           <option value="ALL">{t("allBanks")}</option>
-          <option value="0134">0134 — Banesco</option>
-          <option value="0105">0105 — Mercantil</option>
-          <option value="0102">0102 — Banco de Venezuela</option>
-          <option value="0172">0172 — Bancamiga</option>
+          <option value="0134">{t("bankBanesco")}</option>
+          <option value="0105">{t("bankMercantil")}</option>
+          <option value="0102">{t("bankBdv")}</option>
+          <option value="0172">{t("bankBancamiga")}</option>
         </select>
 
-        <div style={{ width: 260, position: "relative" }}>
+        <div className="relative w-[260px]">
           <input
             id="payments-search-input"
             type="text"
-            className="input-field"
+            className="input-field w-full rounded-[10px] border border-border bg-surface px-3.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground"
             placeholder={t("searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "8px 14px",
-              fontSize: 13,
-              borderRadius: 10,
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border-subtle)",
-              color: "var(--text-main)",
-            }}
           />
         </div>
       </div>

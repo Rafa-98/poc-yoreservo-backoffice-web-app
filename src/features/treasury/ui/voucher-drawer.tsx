@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import type { PaymentItem } from "../model/types";
 
 interface VoucherDrawerProps {
@@ -21,6 +23,7 @@ export function VoucherDrawer({
   isProcessing = false,
 }: VoucherDrawerProps) {
   const t = useTranslations("treasury.inbox.voucher");
+  const [isZoomed, setIsZoomed] = useState(false);
 
   if (!isOpen || !payment) return null;
 
@@ -46,255 +49,199 @@ export function VoucherDrawer({
       ? "#008852"
       : "var(--brand-lime)";
 
+  const effectiveRate = payment.exchangeRate || DEFAULT_BCV_USD_RATE;
+
   const amountBs = payment.amountVes
-    ? payment.amountVes.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    : (payment.amount * (payment.exchangeRate || 876.8)).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    ? payment.amountVes.toLocaleString("es-VE", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+    : (payment.amount * effectiveRate).toLocaleString("es-VE", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
 
   const amountUsd = payment.amountReference
     ? payment.amountReference.toFixed(2)
     : payment.amount.toFixed(2);
 
-  const rateValue = payment.exchangeRate ? payment.exchangeRate.toFixed(2) : "876.80";
+  const rateValue = effectiveRate.toFixed(2);
+
+  const formattedPaymentDate =
+    payment.paymentDate ||
+    (payment.createdAt ? payment.createdAt.slice(0, 10) : "—");
+
+  const payerDocumentDisplay = payment.payerIdDocument
+    ? payment.payerDocumentType
+      ? `${payment.payerDocumentType}-${payment.payerIdDocument}`
+      : payment.payerIdDocument
+    : "—";
 
   return (
     <>
       {/* BACKDROP */}
       <div
-        className="drawer-backdrop"
+        className="drawer-backdrop fixed inset-0 z-50 bg-black/50 backdrop-blur-xs"
         onClick={onClose}
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.5)",
-          backdropFilter: "blur(4px)",
-          zIndex: 9998,
-        }}
       />
 
       {/* DRAWER PANEL */}
       <aside
         id="voucher-drawer-panel"
-        className="drawer-panel"
-        style={{
-          position: "fixed",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: "100%",
-          maxWidth: 520,
-          background: "var(--bg-surface)",
-          borderLeft: "1px solid var(--border-subtle)",
-          boxShadow: "-8px 0 24px rgba(0,0,0,0.25)",
-          zIndex: 9999,
-          display: "flex",
-          flexDirection: "column",
-        }}
+        className="drawer-panel fixed top-0 right-0 bottom-0 z-50 flex w-full max-w-[520px] flex-col border-l border-border bg-surface shadow-2xl"
       >
         {/* HEADER */}
-        <div
-          style={{
-            padding: "20px 24px",
-            borderBottom: "1px solid var(--border-subtle)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
+        <div className="flex items-center justify-between border-b border-border px-6 py-5">
           <div>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: "var(--text-link)",
-              }}
-            >
+            <div className="text-[11px] font-bold uppercase tracking-wider text-link">
               {t("title")}
             </div>
-            <h3 style={{ fontSize: 18, fontWeight: 700, marginTop: 2, color: "var(--text-main)" }}>
+            <h3 className="mt-0.5 text-lg font-bold text-foreground">
               {t("refTitle", { ref: payment.referenceNumber ?? "S/N" })}
             </h3>
           </div>
           <button
             type="button"
-            className="btn-icon"
+            className="btn-icon cursor-pointer rounded-lg p-1.5 text-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: 18,
-              cursor: "pointer",
-              color: "var(--text-muted)",
-            }}
           >
             ✕
           </button>
         </div>
 
         {/* BODY */}
-        <div style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
+        <div className="flex-1 overflow-y-auto px-6 py-5">
           {/* COMPARISON BANNER */}
-          <div
-            style={{
-              background: "rgba(198, 242, 59, 0.12)",
-              border: "1px solid rgba(198, 242, 59, 0.25)",
-              borderRadius: 12,
-              padding: "12px 14px",
-              marginBottom: 20,
-            }}
-          >
-            <div style={{ fontSize: 12.5, color: "var(--text-main)", lineHeight: 1.4 }}>
+          <div className="mb-5 rounded-xl border border-accent/30 bg-accent/10 px-3.5 py-3">
+            <div className="text-xs leading-relaxed text-foreground">
               🔍 <strong>{t("directViewer")}</strong> {t("directViewerDesc")}
             </div>
           </div>
 
-          {/* SIMULATED DIGITAL RECEIPT */}
-          <div
-            style={{
-              background: "#080C07",
-              borderRadius: 16,
-              padding: 18,
-              border: "1px solid var(--border-subtle)",
-              marginBottom: 20,
-            }}
-          >
-            <div
-              style={{
-                background: "#FFFFFF",
-                color: "#121811",
-                borderRadius: 12,
-                padding: 20,
-                fontFamily: "'Courier New', Courier, monospace",
-                fontSize: 12,
-                lineHeight: 1.5,
-                boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
-                borderTop: `5px solid ${bankAccentColor}`,
-              }}
-            >
+          {/* ATTACHED RECEIPT IMAGE (IF PRESENT) */}
+          {payment.receiptUrl && (
+            <div className="mb-5 rounded-2xl border border-border bg-muted/40 p-3">
+              <div className="mb-2 flex items-center justify-between text-xs">
+                <span className="font-bold text-foreground">
+                  {t("receiptImageLabel")}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsZoomed((z) => !z)}
+                  className="cursor-pointer text-[11px] font-semibold text-link underline"
+                >
+                  {isZoomed ? t("zoomOut") : t("zoomIn")}
+                </button>
+              </div>
               <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  borderBottom: "1px dashed #CAD0C5",
-                  paddingBottom: 8,
-                  marginBottom: 12,
-                }}
+                className={`overflow-hidden rounded-xl border border-border bg-black/80 transition-all ${
+                  isZoomed ? "max-h-none" : "max-h-64"
+                }`}
               >
-                <strong style={{ color: bankAccentColor, fontSize: 13.5 }}>{bankName}</strong>
-                <span style={{ fontSize: 10, color: "#5C6659" }}>PAGO MÓVIL P2P</span>
+                <img
+                  src={payment.receiptUrl}
+                  alt={t("refTitle", { ref: payment.referenceNumber ?? "S/N" })}
+                  onClick={() => setIsZoomed((z) => !z)}
+                  className={`mx-auto block w-full cursor-zoom-in object-contain transition-transform ${
+                    isZoomed ? "scale-110 cursor-zoom-out" : "max-h-64"
+                  }`}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* TRANSACTION VERIFICATION DETAILS */}
+          <div className="mb-5 rounded-2xl border border-border bg-forest-950 p-4.5">
+            <div
+              className="rounded-xl bg-white p-5 font-mono text-xs leading-normal text-forest-900 shadow-lg"
+              style={{ borderTop: `5px solid ${bankAccentColor}` }}
+            >
+              <div className="mb-3 flex items-center justify-between border-b border-dashed border-border-medium pb-2">
+                <strong
+                  className="text-[13.5px]"
+                  style={{ color: bankAccentColor }}
+                >
+                  {bankName}
+                </strong>
+                <span className="text-[10px] text-muted-foreground">
+                  {payment.paymentMethod}
+                </span>
               </div>
 
-              <div style={{ textAlign: "center", margin: "14px 0" }}>
-                <div style={{ fontSize: 11, color: "#5C6659", textTransform: "uppercase" }}>
+              <div className="my-3.5 text-center">
+                <div className="text-[11px] uppercase text-muted-foreground">
                   {t("transferredAmount")}
                 </div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: "#141A13" }}>Bs. {amountBs}</div>
-                <div style={{ fontSize: 11, color: "#059669", fontWeight: 600 }}>
+                <div className="text-2xl font-bold text-forest-900">
+                  Bs. {amountBs}
+                </div>
+                <div className="text-[11px] font-semibold text-status-available-fg">
                   {t("rateEquivalent", { usd: amountUsd, rate: rateValue })}
                 </div>
               </div>
 
-              <div
-                style={{
-                  borderTop: "1px dashed #CAD0C5",
-                  paddingTop: 10,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 6,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#5C6659" }}>{t("refCode")}</span>
-                  <strong>{payment.referenceNumber ?? "---"}</strong>
+              <div className="flex flex-col gap-1.5 border-t border-dashed border-border-medium pt-2.5">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t("refCode")}</span>
+                  <strong>{payment.referenceNumber || "—"}</strong>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#5C6659" }}>{t("payer")}</span>
-                  <strong>{payment.reservation?.client?.name} {payment.reservation?.client?.lastName}</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#5C6659" }}>{t("idDoc")}</span>
-                  <strong>{payment.payerIdDocument ?? "V-24.889.123"}</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#5C6659" }}>{t("phone")}</span>
-                  <strong>{payment.phoneNumber ?? "+58 424 555 4433"}</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#5C6659" }}>{t("destination")}</span>
-                  <strong>0134 • 0414 123 4567</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#5C6659" }}>{t("dateTime")}</span>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t("payer")}</span>
                   <strong>
-                    {payment.paymentDate ? `${payment.paymentDate} 15:42:10` : "12/10/2026 15:42:10"}
+                    {payment.reservation?.client?.name}{" "}
+                    {payment.reservation?.client?.lastName}
                   </strong>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t("idDoc")}</span>
+                  <strong>{payerDocumentDisplay}</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    {t("originBank")}
+                  </span>
+                  <strong>{payment.originBank || "—"}</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t("phone")}</span>
+                  <strong>{payment.phoneNumber || "—"}</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t("dateTime")}</span>
+                  <strong>{formattedPaymentDate}</strong>
                 </div>
               </div>
 
-              <div
-                style={{
-                  textAlign: "center",
-                  marginTop: 14,
-                  fontSize: 9.5,
-                  color: "#5C6659",
-                  borderTop: "1px solid #E2E6DF",
-                  paddingTop: 8,
-                }}
-              >
+              <div className="mt-3.5 border-t border-border pt-2 text-center text-[9.5px] text-muted-foreground">
                 {t("suicheNotice")}
               </div>
             </div>
           </div>
 
           {/* ASSOCIATED BOOKING */}
-          <div
-            style={{
-              background: "var(--bg-muted)",
-              borderRadius: 14,
-              padding: "14px 16px",
-              border: "1px solid var(--border-subtle)",
-              marginBottom: 20,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                color: "var(--text-muted)",
-                marginBottom: 4,
-              }}
-            >
+          <div className="mb-5 rounded-[14px] border border-border bg-muted px-4 py-3.5">
+            <div className="mb-1 text-[11px] font-bold uppercase text-muted-foreground">
               {t("linkedBooking")}
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-main)" }}>
-              #{payment.reservation?.shortCode} — {payment.reservation?.space?.spaceNumber} ({payment.reservation?.startTime} - {payment.reservation?.endTime})
+            <div className="text-[15px] font-bold text-foreground">
+              #{payment.reservation?.shortCode} —{" "}
+              {payment.reservation?.space?.spaceNumber} (
+              {payment.reservation?.startTime} - {payment.reservation?.endTime})
             </div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+            <div className="mt-0.5 text-xs text-muted-foreground">
               {payment.reservation?.space?.venue?.name}
             </div>
           </div>
         </div>
 
         {/* FOOTER ACTIONS */}
-        <div
-          style={{
-            padding: "16px 24px",
-            borderTop: "1px solid var(--border-subtle)",
-            display: "flex",
-            gap: 12,
-            background: "var(--bg-surface)",
-          }}
-        >
+        <div className="flex gap-3 border-t border-border bg-surface px-6 py-4">
           {payment.status === "PENDING" && (
             <>
               <button
                 id="drawer-reject-btn"
                 type="button"
-                className="btn btn-destructive"
-                style={{ flex: 1, padding: "10px 16px", fontSize: 13, borderRadius: 10 }}
+                className="btn btn-destructive flex-1 rounded-[10px] px-4 py-2.5 text-[13px]"
                 onClick={() => onOpenReject(payment)}
                 disabled={isProcessing}
               >
@@ -303,8 +250,7 @@ export function VoucherDrawer({
               <button
                 id="drawer-approve-btn"
                 type="button"
-                className="btn btn-primary"
-                style={{ flex: 1.5, padding: "10px 16px", fontSize: 13, borderRadius: 10 }}
+                className="btn btn-primary flex-[1.5] rounded-[10px] px-4 py-2.5 text-[13px]"
                 onClick={() => onApprove(payment.id)}
                 disabled={isProcessing}
               >
@@ -316,11 +262,10 @@ export function VoucherDrawer({
           {payment.status !== "PENDING" && (
             <button
               type="button"
-              className="btn btn-outline"
-              style={{ width: "100%", padding: "10px 16px", fontSize: 13, borderRadius: 10 }}
+              className="btn btn-outline w-full rounded-[10px] px-4 py-2.5 text-[13px]"
               onClick={onClose}
             >
-              Cerrar Auditoría
+              {t("closeAudit")}
             </button>
           )}
         </div>

@@ -2,9 +2,54 @@
 
 import { useTranslations } from "next-intl";
 import { Clock } from "lucide-react";
+import type { SportDistributionItem, SportsDistributionData } from "../model/types";
 
-export function DashboardSportsDistribution() {
+interface DashboardSportsDistributionProps {
+  data?: SportsDistributionData;
+}
+
+const DEFAULT_ITEMS: SportDistributionItem[] = [
+  {
+    key: "padel",
+    labelKey: "sports.padel",
+    percentage: 48,
+    count: 1363,
+    barColorClass: "bg-accent",
+    textColorClass: "text-accent-foreground",
+  },
+  {
+    key: "futbol",
+    labelKey: "sports.futbol",
+    percentage: 34,
+    count: 965,
+    barColorClass: "bg-emerald-500",
+    textColorClass: "text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    key: "tennis",
+    labelKey: "sports.tennis",
+    percentage: 12,
+    count: 341,
+    barColorClass: "bg-blue-500",
+    textColorClass: "text-blue-600 dark:text-blue-400",
+  },
+  {
+    key: "other",
+    labelKey: "sports.other",
+    percentage: 6,
+    count: 171,
+    barColorClass: "bg-purple-500",
+    textColorClass: "text-purple-600 dark:text-purple-400",
+  },
+];
+
+export function DashboardSportsDistribution({
+  data,
+}: DashboardSportsDistributionProps) {
   const t = useTranslations("dashboard");
+
+  const items =
+    data?.items && data.items.length > 0 ? data.items : DEFAULT_ITEMS;
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-5 shadow-xs flex flex-col justify-between">
@@ -13,76 +58,29 @@ export function DashboardSportsDistribution() {
           {t("sports.title")}
         </h3>
 
-        {/* Sport 1: Pádel */}
-        <div className="mb-3.5">
-          <div className="flex justify-between text-xs mb-1.5">
-            <span className="font-semibold text-foreground">
-              {t("sports.padel")}
-            </span>
-            <strong className="text-accent-foreground font-bold">
-              {t("sports.padelCount")}
-            </strong>
-          </div>
-          <div className="w-full h-2 bg-surface-muted rounded-full overflow-hidden border border-border/40">
-            <div
-              style={{ width: "48%" }}
-              className="h-full bg-accent rounded-full"
-            />
-          </div>
-        </div>
+        <div className="space-y-3.5">
+          {items.map((item) => {
+            const label = item.label || (item.labelKey ? t(item.labelKey as any) : item.key);
+            const barClass = item.barColorClass || "bg-accent";
+            const textClass = item.textColorClass || "text-accent-foreground";
 
-        {/* Sport 2: Fútbol */}
-        <div className="mb-3.5">
-          <div className="flex justify-between text-xs mb-1.5">
-            <span className="font-semibold text-foreground">
-              {t("sports.futbol")}
-            </span>
-            <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
-              {t("sports.futbolCount")}
-            </strong>
-          </div>
-          <div className="w-full h-2 bg-surface-muted rounded-full overflow-hidden border border-border/40">
-            <div
-              style={{ width: "34%" }}
-              className="h-full bg-emerald-500 rounded-full"
-            />
-          </div>
-        </div>
-
-        {/* Sport 3: Tenis */}
-        <div className="mb-3.5">
-          <div className="flex justify-between text-xs mb-1.5">
-            <span className="font-semibold text-foreground">
-              {t("sports.tennis")}
-            </span>
-            <strong className="text-blue-600 dark:text-blue-400 font-bold">
-              {t("sports.tennisCount")}
-            </strong>
-          </div>
-          <div className="w-full h-2 bg-surface-muted rounded-full overflow-hidden border border-border/40">
-            <div
-              style={{ width: "12%" }}
-              className="h-full bg-blue-500 rounded-full"
-            />
-          </div>
-        </div>
-
-        {/* Sport 4: Baloncesto & Pickleball */}
-        <div>
-          <div className="flex justify-between text-xs mb-1.5">
-            <span className="font-semibold text-foreground">
-              {t("sports.other")}
-            </span>
-            <strong className="text-purple-600 dark:text-purple-400 font-bold">
-              {t("sports.otherCount")}
-            </strong>
-          </div>
-          <div className="w-full h-2 bg-surface-muted rounded-full overflow-hidden border border-border/40">
-            <div
-              style={{ width: "6%" }}
-              className="h-full bg-purple-500 rounded-full"
-            />
-          </div>
+            return (
+              <div key={item.key}>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="font-semibold text-foreground">{label}</span>
+                  <strong className={`${textClass} font-bold`}>
+                    {item.percentage}% ({item.count.toLocaleString("en-US")})
+                  </strong>
+                </div>
+                <div className="w-full h-2 bg-surface-muted rounded-full overflow-hidden border border-border/40">
+                  <div
+                    style={{ width: `${Math.min(100, Math.max(0, item.percentage))}%` }}
+                    className={`h-full ${barClass} rounded-full`}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -93,10 +91,10 @@ export function DashboardSportsDistribution() {
           <span>{t("sports.peakHoursTitle")}</span>
         </div>
         <div className="font-display text-base sm:text-lg font-extrabold text-foreground mt-1">
-          {t("sports.peakHoursTime")}
+          {data?.peakHoursTime || t("sports.peakHoursTime")}
         </div>
         <p className="text-xs text-muted-foreground mt-0.5">
-          {t("sports.peakHoursSub")}
+          {data?.peakHoursSub || t("sports.peakHoursSub")}
         </p>
       </div>
     </div>

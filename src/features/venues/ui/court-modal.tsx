@@ -51,7 +51,7 @@ export function CourtModal({
       setSpaceNumber("");
       setActivityCategoryId(categories[0]?.id || "");
       setPricePerHour(25);
-      setSurfaceType("Grama Sintética 50mm");
+      setSurfaceType("");
       setCapacity(10);
       setIsCovered(false);
     }
@@ -70,7 +70,7 @@ export function CourtModal({
     if (actName && catName) {
       return `${actName} — ${catName}`;
     }
-    return catName || "Deporte";
+    return catName || t("defaultSport");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -80,7 +80,7 @@ export function CourtModal({
 
     const catId = activityCategoryId || categories[0]?.id;
     if (!catId) {
-      setErrorMsg("Debe seleccionar una categoría deportiva válida");
+      setErrorMsg(t("errorCategoryRequired"));
       setLoading(false);
       return;
     }
@@ -101,7 +101,7 @@ export function CourtModal({
         onSuccess(res.data);
         onClose();
       } else if (!res.ok) {
-        setErrorMsg(res.error.code || "Error al actualizar la cancha");
+        setErrorMsg(res.error.code || t("errorUpdate"));
       }
     } else {
       const createDto: CreateSpaceInput = {
@@ -119,7 +119,7 @@ export function CourtModal({
         onSuccess(res.data);
         onClose();
       } else if (!res.ok) {
-        setErrorMsg(res.error.code || "Error al crear la cancha");
+        setErrorMsg(res.error.code || t("errorCreate"));
       }
     }
   }
@@ -129,109 +129,68 @@ export function CourtModal({
       className="modal-backdrop"
       id="space-modal-backdrop"
       onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        backgroundColor: "rgba(0,0,0,0.65)",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 9999,
-        padding: "16px",
-      }}
     >
       <div
-        className="modal-card"
+        className="modal-card flex max-h-[90vh] w-full max-w-[540px] flex-col overflow-hidden rounded-2xl border border-border-medium bg-surface shadow-card"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border-medium)",
-          borderRadius: "16px",
-          width: "100%",
-          maxWidth: "540px",
-          maxHeight: "90vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "var(--shadow-lg, 0 10px 25px rgba(0,0,0,0.3))",
-          overflow: "hidden",
-        }}
       >
-        <div
-          style={{
-            padding: "18px 24px",
-            borderBottom: "1px solid var(--border-subtle)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "20px" }}>⚽</span>
-            <h3 style={{ fontSize: "17px", fontWeight: 700, margin: 0 }} id="space-modal-title">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4.5">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">⚽</span>
+            <h3
+              className="m-0 text-[17px] font-bold text-foreground"
+              id="space-modal-title"
+            >
               {space ? t("modalTitleEdit") : t("modalTitleNew")}
             </h3>
           </div>
           <button
             type="button"
-            className="btn-icon"
+            className="btn-icon cursor-pointer border-none bg-transparent text-lg text-muted-foreground hover:text-foreground"
             onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: "18px",
-              cursor: "pointer",
-              color: "var(--text-muted)",
-            }}
           >
             ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5">
           {errorMsg && (
-            <div
-              style={{
-                background: "rgba(220, 38, 38, 0.1)",
-                border: "1px solid rgba(220, 38, 38, 0.3)",
-                color: "var(--status-cancelled-text, #ef4444)",
-                padding: "10px 14px",
-                borderRadius: "8px",
-                fontSize: "13px",
-                marginBottom: "16px",
-              }}
-            >
+            <div className="mb-4 rounded-lg border border-status-cancelled-border bg-status-cancelled-bg px-3.5 py-2.5 text-[13px] text-status-cancelled-fg">
               {errorMsg}
             </div>
           )}
 
-          <div className="form-group" style={{ marginBottom: "14px" }}>
-            <label className="form-label" htmlFor="court-name-input" style={{ fontSize: "12px", fontWeight: 600 }}>
+          <div className="form-group mb-3.5">
+            <label
+              className="form-label mb-1 block text-xs font-semibold text-foreground"
+              htmlFor="court-name-input"
+            >
               {t("name")}
             </label>
             <input
               type="text"
               id="court-name-input"
-              className="input-field"
-              placeholder="ej. Cancha 1 — Grama Sintética"
+              className="input-field form-input"
+              placeholder={t("namePlaceholder")}
               required
               value={spaceNumber}
               onChange={(e) => setSpaceNumber(e.target.value)}
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
+          <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
             <div className="form-group">
-              <label className="form-label" htmlFor="court-category-select" style={{ fontSize: "12px", fontWeight: 600 }}>
+              <label
+                className="form-label mb-1 block text-xs font-semibold text-foreground"
+                htmlFor="court-category-select"
+              >
                 {t("sport")}
               </label>
               <select
                 id="court-category-select"
-                className="input-field"
+                className="input-field form-select cursor-pointer"
                 value={activityCategoryId}
                 onChange={(e) => setActivityCategoryId(e.target.value)}
-                style={{ cursor: "pointer" }}
               >
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
@@ -242,7 +201,10 @@ export function CourtModal({
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="court-price-input" style={{ fontSize: "12px", fontWeight: 600 }}>
+              <label
+                className="form-label mb-1 block text-xs font-semibold text-foreground"
+                htmlFor="court-price-input"
+              >
                 {t("price")}
               </label>
               <input
@@ -250,7 +212,7 @@ export function CourtModal({
                 step="0.5"
                 min="0"
                 id="court-price-input"
-                className="input-field"
+                className="input-field form-input"
                 required
                 value={pricePerHour}
                 onChange={(e) => setPricePerHour(parseFloat(e.target.value) || 0)}
@@ -258,52 +220,61 @@ export function CourtModal({
             </div>
           </div>
 
-          <div className="form-group" style={{ marginBottom: "14px" }}>
-            <label className="form-label" htmlFor="court-surface-input" style={{ fontSize: "12px", fontWeight: 600 }}>
+          <div className="form-group mb-3.5">
+            <label
+              className="form-label mb-1 block text-xs font-semibold text-foreground"
+              htmlFor="court-surface-input"
+            >
               {t("surface")}
             </label>
             <input
               type="text"
               id="court-surface-input"
-              className="input-field"
-              placeholder="ej. Grama Sintética 50mm / Cristal 12mm"
+              className="input-field form-input"
+              placeholder={t("surfacePlaceholder")}
               required
               value={surfaceType}
               onChange={(e) => setSurfaceType(e.target.value)}
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
+          <div className="mb-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
             <div className="form-group">
-              <label className="form-label" style={{ fontSize: "12px", fontWeight: 600 }}>
-                Capacidad Máxima (Jugadores)
+              <label
+                className="form-label mb-1 block text-xs font-semibold text-foreground"
+                htmlFor="court-capacity-input"
+              >
+                {t("maxCapacityLabel")}
               </label>
               <input
                 type="number"
                 min="2"
                 max="30"
                 id="court-capacity-input"
-                className="input-field"
+                className="input-field form-input"
                 value={capacity}
                 onChange={(e) => setCapacity(parseInt(e.target.value, 10) || 10)}
               />
             </div>
 
-            <div className="form-group" style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "24px" }}>
+            <div className="form-group mt-6 flex items-center gap-2.5">
               <input
                 type="checkbox"
                 id="court-covered-checkbox"
                 checked={isCovered}
                 onChange={(e) => setIsCovered(e.target.checked)}
-                style={{ width: "18px", height: "18px", accentColor: "var(--brand-lime)" }}
+                className="h-4.5 w-4.5 accent-accent"
               />
-              <label htmlFor="court-covered-checkbox" style={{ fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+              <label
+                htmlFor="court-covered-checkbox"
+                className="cursor-pointer text-[13px] font-semibold text-foreground"
+              >
                 {t("isCovered")}
               </label>
             </div>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "24px" }}>
+          <div className="mt-6 flex justify-end gap-3">
             <Button
               type="button"
               variant="secondary"

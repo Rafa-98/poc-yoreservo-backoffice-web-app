@@ -24,6 +24,10 @@ export async function recoverPasswordAction(
       body: { email: parsed.data.email },
     });
 
+    if (res.status >= 500) {
+      return fail("SERVICE_UNAVAILABLE");
+    }
+
     if (!res.ok && res.status !== 404) {
       console.warn("[auth] forgot-password returned status:", res.status);
     }
@@ -31,6 +35,6 @@ export async function recoverPasswordAction(
     return ok({ sent: true });
   } catch (error) {
     console.error("[auth] Recover password error:", error);
-    return ok({ sent: true });
+    return fail("SERVICE_UNAVAILABLE");
   }
 }

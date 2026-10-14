@@ -20,12 +20,12 @@ export function SettlementsKpiStrip({ kpis, bcvRate }: SettlementsKpiStripProps)
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Metric 1: GMV */}
-      <div className="card p-5 border-l-4 border-l-emerald-500 flex flex-col justify-between">
+      <div className="card p-5 border-l-4 border-l-status-available-fg flex flex-col justify-between">
         <div className="flex items-start justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {t("kpiGmvTitle")}
           </span>
-          <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-bold text-emerald-400">
+          <span className="rounded-full bg-status-available-bg border border-status-available-border px-2 py-0.5 text-[11px] font-bold text-status-available-fg">
             ↑ +14.2%
           </span>
         </div>
@@ -52,7 +52,7 @@ export function SettlementsKpiStrip({ kpis, bcvRate }: SettlementsKpiStripProps)
           </span>
         </div>
         <div className="mt-3">
-          <div className="font-display text-2xl font-black text-accent-foreground dark:text-accent">
+          <div className="font-display text-2xl font-black text-link">
             ${kpis.fee.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -64,17 +64,17 @@ export function SettlementsKpiStrip({ kpis, bcvRate }: SettlementsKpiStripProps)
       </div>
 
       {/* Metric 3: Pending Payouts */}
-      <div className="card p-5 border-l-4 border-l-amber-500 flex flex-col justify-between">
+      <div className="card p-5 border-l-4 border-l-status-hold-fg flex flex-col justify-between">
         <div className="flex items-start justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {t("kpiPendingTitle")}
           </span>
-          <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[11px] font-bold text-amber-500">
+          <span className="rounded-full bg-status-hold-bg border border-status-hold-border px-2 py-0.5 text-[11px] font-bold text-status-hold-fg">
             {kpis.pendingCount} {t("kpiPendingBadge")}
           </span>
         </div>
         <div className="mt-3">
-          <div className="font-display text-2xl font-black text-amber-500">
+          <div className="font-display text-2xl font-black text-status-hold-fg">
             ${kpis.pendingAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -86,12 +86,12 @@ export function SettlementsKpiStrip({ kpis, bcvRate }: SettlementsKpiStripProps)
       </div>
 
       {/* Metric 4: Disbursed Payouts */}
-      <div className="card p-5 border-l-4 border-l-blue-500 flex flex-col justify-between">
+      <div className="card p-5 border-l-4 border-l-status-confirmed-fg flex flex-col justify-between">
         <div className="flex items-start justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {t("kpiPaidTitle")}
           </span>
-          <span className="rounded-full bg-blue-500/15 border border-blue-500/30 px-2 py-0.5 text-[11px] font-bold text-blue-400">
+          <span className="rounded-full bg-status-confirmed-bg border border-status-confirmed-border px-2 py-0.5 text-[11px] font-bold text-status-confirmed-fg">
             {kpis.disbursedCount} {t("batches")}
           </span>
         </div>

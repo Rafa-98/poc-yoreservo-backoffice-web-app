@@ -8,9 +8,15 @@ import { SettlementsKpiStrip } from "@/features/treasury/ui/settlements-kpi-stri
 import { SettlementsCycleCard } from "@/features/treasury/ui/settlements-cycle-card";
 import { SettlementsFilterBar } from "@/features/treasury/ui/settlements-filter-bar";
 import { SettlementsTable } from "@/features/treasury/ui/settlements-table";
-import { SettlementPayoutModal } from "@/features/treasury/ui/settlement-payout-modal";
+import {
+  SettlementPayoutModal,
+  type SettlementPayoutSubmitPayload,
+} from "@/features/treasury/ui/settlement-payout-modal";
 import { SettlementStatementDrawer } from "@/features/treasury/ui/settlement-statement-drawer";
-import { getSettlementsAction } from "@/features/treasury/actions/treasury-actions";
+import {
+  disburseSettlementAction,
+  getSettlementsAction,
+} from "@/features/treasury/actions/treasury-actions";
 import type {
   SettlementBatchItem,
   SettlementFilter,
@@ -100,6 +106,40 @@ export function SettlementsPage({
     }
   }
 
+  async function handleDisburse(
+    input: SettlementPayoutSubmitPayload,
+  ): Promise<{ ok: boolean; error?: string }> {
+    const res = await disburseSettlementAction(input.batchId, {
+      payoutMethod: input.payoutMethod,
+      payoutReferenceNumber: input.referenceNumber,
+      payoutDestinationBank: input.destinationBank,
+      originAccount: input.originAccount,
+      payoutDate: input.disbursementDate,
+      payoutReceiptUrl: input.receiptUrl,
+      notes: input.notes,
+    });
+
+    if (res.ok) {
+      setBatches((prev) =>
+        prev.map((b) =>
+          b.id === input.batchId
+            ? {
+                ...b,
+                status: "DISBURSED",
+                payoutReferenceNumber: input.referenceNumber,
+                disbursedAt: input.disbursementDate,
+              }
+            : b,
+        ),
+      );
+      await refreshSettlements();
+      setSelectedForPayout(null);
+      return { ok: true };
+    }
+
+    return { ok: false, error: res.error.code || t("payoutError") };
+  }
+
   function handleExportCsv() {
     const headers = [
       "Lote",
@@ -124,7 +164,7 @@ export function SettlementsPage({
       `#${b.batchCode}`,
       `"${b.organization?.tradeName || ""}"`,
       b.organization?.rif || "",
-      `"${b.venue?.name || "Todas las sedes"}"`,
+      `"${b.venue?.name || t("allVenues")}"`,
       b.periodStartDate,
       b.periodEndDate,
       b.totalReservations,
@@ -164,7 +204,7 @@ export function SettlementsPage({
             <h1 className="font-display text-2xl font-bold text-foreground">
               {t("title")}
             </h1>
-            <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-bold text-emerald-400">
+            <span className="rounded-full bg-status-available-bg border border-status-available-border px-2.5 py-0.5 text-xs font-bold text-status-available-fg">
               {t("badgeClosingPeriod")}
             </span>
           </div>
@@ -244,24 +284,7 @@ export function SettlementsPage({
         batch={selectedForPayout}
         bcvRate={bcvRate}
         onClose={() => setSelectedForPayout(null)}
-        onSuccess={() => {
-          if (selectedForPayout) {
-            setBatches((prev) =>
-              prev.map((b) =>
-                b.id === selectedForPayout.id
-                  ? {
-                      ...b,
-                      status: "DISBURSED",
-                      payoutReferenceNumber: "013498210398",
-                      disbursedAt: new Date().toISOString(),
-                    }
-                  : b,
-              ),
-            );
-          }
-          refreshSettlements();
-          setSelectedForPayout(null);
-        }}
+        onDisburse={handleDisburse}
       />
     </div>
   );

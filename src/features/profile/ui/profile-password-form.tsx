@@ -6,7 +6,7 @@ import { Key, ShieldCheck, Check, Circle, ShieldAlert } from "lucide-react";
 import type { ChangePasswordInput } from "../model/types";
 
 interface ProfilePasswordFormProps {
-  onSubmit: (input: ChangePasswordInput) => Promise<void>;
+  onSubmit: (input: ChangePasswordInput) => Promise<boolean | void>;
   isSubmitting?: boolean;
 }
 
@@ -35,14 +35,16 @@ export function ProfilePasswordForm({
     e.preventDefault();
     if (!allRulesValid || !passwordsMatch) return;
 
-    await onSubmit({
+    const res = await onSubmit({
       currentPassword,
       newPassword,
     });
 
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    if (res !== false) {
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    }
   };
 
   return (

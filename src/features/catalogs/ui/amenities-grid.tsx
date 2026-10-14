@@ -36,7 +36,7 @@ export function AmenitiesGrid({
           onClick={onAddAmenity}
           id="btn-add-amenity"
         >
-          + {t("btnEdit")}
+          + {t("btnAdd")}
         </Button>
       </div>
 

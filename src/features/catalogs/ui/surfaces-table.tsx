@@ -38,7 +38,7 @@ export function SurfacesTable({
           onClick={onAddSurface}
           id="btn-add-surface"
         >
-          + {t("thActions")}
+          + {t("btnAdd")}
         </Button>
       </div>
 

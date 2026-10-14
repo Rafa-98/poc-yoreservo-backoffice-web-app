@@ -144,7 +144,7 @@ export function AgendaPage({ initialAgenda, initialVenues }: AgendaPageProps) {
     const actName =
       typeof s.activity === "object"
         ? s.activity?.es || s.activity?.en
-        : s.activity || "Deporte";
+        : s.activity || t("defaultSport");
     const key = actName.toLowerCase().replace(/\s+/g, "-");
     const current = sportsMap.get(key) || { label: actName, count: 0 };
     current.count += 1;
@@ -173,7 +173,7 @@ export function AgendaPage({ initialAgenda, initialVenues }: AgendaPageProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full bg-accent/15 px-3 py-1 text-xs font-bold text-accent-foreground border border-accent/30 mb-1.5">
-            <span>{agenda?.venue?.name || "Sede Deportiva"}</span>
+            <span>{agenda?.venue?.name || t("defaultVenue")}</span>
           </div>
           <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground">
             {t("title")}
@@ -189,10 +189,10 @@ export function AgendaPage({ initialAgenda, initialVenues }: AgendaPageProps) {
             onClick={refreshAgenda}
             disabled={isPending}
             className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-2 text-xs font-semibold text-foreground shadow-xs hover:bg-muted transition-all active:scale-95"
-            title="Recargar agenda"
+            title={t("btnRefreshTitle")}
           >
             <RefreshCw className={`size-3.5 ${isPending ? "animate-spin" : ""}`} />
-            <span className="hidden sm:inline">Actualizar</span>
+            <span className="hidden sm:inline">{t("btnRefresh")}</span>
           </button>
 
           <button

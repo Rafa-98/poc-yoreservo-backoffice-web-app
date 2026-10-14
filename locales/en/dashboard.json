@@ -4,7 +4,9 @@
   "subtitle": "Global gross merchandise value (GMV), 5% YoReservo platform commission, operational alerts and volume",
   "subtitleAlly": "Consolidated venue occupancy, organization net earnings, and multi-venue operations",
   "live": "Live",
+  "defaultPlayer": "Player",
   "roles": {
+    "switcherAriaLabel": "Role Perspective Switcher",
     "admin": "Global SuperAdmin",
     "ally": "Ally Organization • Avila Group",
     "btnAdmin": "Admin (Global)",
@@ -45,6 +47,7 @@
   },
   "kpis": {
     "adminGmv": "Gross Volume (GMV)",
+    "adminGmvGrowth": "+18.4%",
     "adminGmvSub": "Total platform booked volume",
     "adminFee": "YoReservo Fee (5%)",
     "adminFeeSub": "Net app revenues",
@@ -54,18 +57,24 @@
     "adminBookingsBadge": "98.2% Fulfillment",
     "adminVenues": "Partner Venues",
     "adminVenuesSub": "88 active courts in Caracas and Miranda",
+    "adminVenuesDynamicSub": "{count} active courts in Caracas and Miranda",
     "adminVenuesBadge": "+3 in Onboarding",
     "adminVenuesCount": "24 Venues",
+    "adminVenuesDynamicCount": "{count} Venues",
     "allyOccupancy": "Today's Court Occupancy",
     "allyOccupancySub": "6 open slots available for Walk-in",
+    "allyOccupancyDynamicSub": "{count} open slots available for Walk-in",
     "allyOccupancyBadge": "78.5% Peak",
     "allyOccupancyCount": "22 / 28 Slots",
+    "allyOccupancyDynamicCount": "{occupied} / {total} Slots",
     "allyRev": "Net Club Revenue (Today)",
     "allyRevSub": "Fortnightly disbursement",
     "allyRevBadge": "Net 95%",
     "allyCheckin": "Front-Desk Check-in",
     "allyCheckinSub": "14 players currently on court",
+    "allyCheckinDynamicSub": "{count} players currently on court",
     "allyCheckinCount": "18 Matches",
+    "allyCheckinDynamicCount": "{count} Matches",
     "allyCheckinPending": "{count} Pending",
     "allyNext": "Next Match",
     "allyNextTime": "In 15 Minutes",
@@ -90,7 +99,8 @@
     "legendFee": "Fee (5%)",
     "peakVolume": "Highest volume recorded:",
     "operatingMargin": "Operating margin:",
-    "fixedMargin": "5.00% Fixed"
+    "fixedMargin": "5.00% Fixed",
+    "barTooltip": "{label} — GMV: ${gmv} | Fee 5%: ${fee}"
   },
   "sports": {
     "title": "Sport Discipline Breakdown",
@@ -114,7 +124,7 @@
   "systemStatus": {
     "title": "Services & Treasury Status",
     "bcvSync": "BCV Synchronization:",
-    "bcvValue": "🟢 40.00 Bs (09:00 AM)",
+    "bcvValue": "🟢 41.00 Bs (09:00 AM)",
     "gateway": "Pago Móvil Gateway:",
     "gatewayValue": "🟢 Operational",
     "conflicts": "Conflict Engine:",
@@ -125,6 +135,7 @@
   "toast": {
     "viewSwitched": "View switched to: {role}",
     "checkinSuccess": "Check-in confirmed for {name} (#{code})! Court access authorized.",
+    "checkinError": "Could not validate check-in at this moment.",
     "chartDetail": "{label} — GMV: ${gmv} USD • YoReservo Fee (5%): ${fee} USD"
   }
 }

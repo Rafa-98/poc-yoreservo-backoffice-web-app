@@ -1,21 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
-import { createSurfaceAction } from "../actions/catalogs-actions";
-import type { CreateSurfaceInput } from "../model/types";
+import {
+  createSurfaceAction,
+  updateSurfaceAction,
+} from "../actions/catalogs-actions";
+import type { CreateSurfaceInput, SurfaceItem } from "../model/types";
 
 interface SurfaceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (surface: any) => void;
+  onSuccess: (surface: SurfaceItem) => void;
+  initialData?: SurfaceItem | null;
 }
 
 export function SurfaceModal({
   isOpen,
   onClose,
   onSuccess,
+  initialData,
 }: SurfaceModalProps) {
   const t = useTranslations("catalogs.modalSurface");
 
@@ -23,9 +28,26 @@ export function SurfaceModal({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [maintenance, setMaintenance] = useState("");
-  const [suitedSports, setSuitedSports] = useState("Pádel Dobles, Tenis");
+  const [suitedSports, setSuitedSports] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialData) {
+      setCode(initialData.code);
+      setName(initialData.name);
+      setDescription(initialData.description);
+      setMaintenance(initialData.maintenanceProtocol);
+      setSuitedSports(initialData.suitedSports.join(", "));
+    } else {
+      setCode("");
+      setName("");
+      setDescription("");
+      setMaintenance("");
+      setSuitedSports("");
+    }
+    setErrorMsg(null);
+  }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
@@ -42,14 +64,16 @@ export function SurfaceModal({
       suitedSports: suitedSports.split(",").map((s) => s.trim()).filter(Boolean),
     };
 
-    const res = await createSurfaceAction(input);
+    const res = initialData
+      ? await updateSurfaceAction(initialData.id, input)
+      : await createSurfaceAction(input);
     setLoading(false);
 
-    if (res.ok) {
+    if (res.ok && res.data) {
       onSuccess(res.data);
       onClose();
-    } else {
-      setErrorMsg(res.error.code || "Error al crear la superficie");
+    } else if (!res.ok) {
+      setErrorMsg(res.error.code || t("errorSave"));
     }
   }
 
@@ -69,7 +93,7 @@ export function SurfaceModal({
             <span className="text-2xl">🌱</span>
             <div>
               <h3 className="font-display text-lg font-bold text-foreground">
-                {t("title")}
+                {initialData ? t("editTitle") : t("title")}
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {t("desc")}
@@ -115,7 +139,7 @@ export function SurfaceModal({
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Césped Monofilamento Pádel"
+              placeholder={t("placeholderName")}
               className="form-input"
             />
           </div>
@@ -129,7 +153,7 @@ export function SurfaceModal({
               required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Arena sílice 0.2-0.6mm"
+              placeholder={t("placeholderDesc")}
               className="form-input text-xs"
             />
           </div>
@@ -143,7 +167,7 @@ export function SurfaceModal({
               required
               value={maintenance}
               onChange={(e) => setMaintenance(e.target.value)}
-              placeholder="Cepillado quincenal"
+              placeholder={t("placeholderMaintenance")}
               className="form-input text-xs"
             />
           </div>
@@ -157,7 +181,7 @@ export function SurfaceModal({
               required
               value={suitedSports}
               onChange={(e) => setSuitedSports(e.target.value)}
-              placeholder="Pádel Dobles, Pádel Singles"
+              placeholder={t("placeholderSports")}
               className="form-input text-xs"
             />
           </div>

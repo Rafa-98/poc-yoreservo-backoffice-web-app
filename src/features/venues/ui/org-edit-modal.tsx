@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import type { OrganizationData, UpdateOrganizationInput } from "../model/types";
@@ -32,7 +32,9 @@ export function OrgEditModal({
   const [referenceCurrencyCode, setReferenceCurrencyCode] = useState(
     organization.referenceCurrencyCode || "USD"
   );
-  const [payoutBank, setPayoutBank] = useState(organization.payoutBank || "0102 - Banco de Venezuela");
+  const [payoutBank, setPayoutBank] = useState(
+    organization.payoutBank || "0102 - Banco de Venezuela"
+  );
   const [payoutAccountNumber, setPayoutAccountNumber] = useState(
     organization.payoutAccountNumber || ""
   );
@@ -42,6 +44,20 @@ export function OrgEditModal({
   const [payoutAccountHolder, setPayoutAccountHolder] = useState(
     organization.payoutAccountHolder || ""
   );
+
+  useEffect(() => {
+    setTradeName(organization.tradeName || "");
+    setLegalName(organization.legalName || "");
+    setRif(organization.rif || "");
+    setContactEmail(organization.contactEmail || "");
+    setContactPhone(organization.contactPhone || "");
+    setFiscalAddress(organization.fiscalAddress || "");
+    setReferenceCurrencyCode(organization.referenceCurrencyCode || "USD");
+    setPayoutBank(organization.payoutBank || "0102 - Banco de Venezuela");
+    setPayoutAccountNumber(organization.payoutAccountNumber || "");
+    setPayoutAccountType(organization.payoutAccountType || "Corriente");
+    setPayoutAccountHolder(organization.payoutAccountHolder || "");
+  }, [organization, isOpen]);
 
   if (!isOpen) return null;
 
@@ -71,7 +87,7 @@ export function OrgEditModal({
       onSuccess(res.data);
       onClose();
     } else if (!res.ok) {
-      setErrorMsg(res.error.code || "Error al actualizar la organización");
+      setErrorMsg(res.error.code || t("errorUpdate"));
     }
   }
 
@@ -80,105 +96,56 @@ export function OrgEditModal({
       className="modal-backdrop"
       id="org-modal-backdrop"
       onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        backgroundColor: "rgba(0,0,0,0.65)",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 9999,
-        padding: "16px",
-      }}
     >
       <div
-        className="modal-card"
+        className="modal-card flex max-h-[90vh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl border border-border-medium bg-surface shadow-card"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border-medium)",
-          borderRadius: "16px",
-          width: "100%",
-          maxWidth: "640px",
-          maxHeight: "90vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "var(--shadow-lg, 0 10px 25px rgba(0,0,0,0.3))",
-          overflow: "hidden",
-        }}
       >
-        <div
-          style={{
-            padding: "18px 24px",
-            borderBottom: "1px solid var(--border-subtle)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "20px" }}>🏢</span>
-            <h3 style={{ fontSize: "17px", fontWeight: 700, margin: 0 }}>
+        <div className="flex items-center justify-between border-b border-border px-6 py-4.5">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">🏢</span>
+            <h3 className="m-0 text-[17px] font-bold text-foreground">
               {t("modalTitle")}
             </h3>
           </div>
           <button
             type="button"
-            className="btn-icon"
+            className="btn-icon cursor-pointer border-none bg-transparent text-lg text-muted-foreground hover:text-foreground"
             onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: "18px",
-              cursor: "pointer",
-              color: "var(--text-muted)",
-            }}
           >
             ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5">
           {errorMsg && (
-            <div
-              style={{
-                background: "rgba(220, 38, 38, 0.1)",
-                border: "1px solid rgba(220, 38, 38, 0.3)",
-                color: "var(--status-cancelled-text, #ef4444)",
-                padding: "10px 14px",
-                borderRadius: "8px",
-                fontSize: "13px",
-                marginBottom: "16px",
-              }}
-            >
+            <div className="mb-4 rounded-lg border border-status-cancelled-border bg-status-cancelled-bg px-3.5 py-2.5 text-[13px] text-status-cancelled-fg">
               {errorMsg}
             </div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
+          <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
             <div className="form-group">
-              <label className="form-label" style={{ fontSize: "12px", fontWeight: 600 }}>
+              <label className="form-label mb-1 block text-xs font-semibold text-foreground">
                 {t("tradeName")}
               </label>
               <input
                 type="text"
                 id="org-trade-name-input"
-                className="input-field"
+                className="input-field form-input"
                 required
                 value={tradeName}
                 onChange={(e) => setTradeName(e.target.value)}
               />
             </div>
             <div className="form-group">
-              <label className="form-label" style={{ fontSize: "12px", fontWeight: 600 }}>
+              <label className="form-label mb-1 block text-xs font-semibold text-foreground">
                 {t("legalName")}
               </label>
               <input
                 type="text"
                 id="org-legal-name-input"
-                className="input-field"
+                className="input-field form-input"
                 required
                 value={legalName}
                 onChange={(e) => setLegalName(e.target.value)}
@@ -186,58 +153,58 @@ export function OrgEditModal({
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
+          <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
             <div className="form-group">
-              <label className="form-label" style={{ fontSize: "12px", fontWeight: 600 }}>
+              <label className="form-label mb-1 block text-xs font-semibold text-foreground">
                 {t("rif")}
               </label>
               <input
                 type="text"
                 id="org-rif-input"
-                className="input-field"
+                className="input-field form-input"
                 required
                 value={rif}
                 onChange={(e) => setRif(e.target.value)}
               />
             </div>
             <div className="form-group">
-              <label className="form-label" style={{ fontSize: "12px", fontWeight: 600 }}>
+              <label className="form-label mb-1 block text-xs font-semibold text-foreground">
                 {t("referenceCurrency")}
               </label>
               <select
                 id="org-currency-select"
-                className="input-field"
+                className="input-field form-select"
                 value={referenceCurrencyCode}
                 onChange={(e) => setReferenceCurrencyCode(e.target.value)}
               >
-                <option value="USD">Dólar BCV ($ USD)</option>
-                <option value="EUR">Euro BCV (€ EUR)</option>
+                <option value="USD">{t("currencyUsd")}</option>
+                <option value="EUR">{t("currencyEur")}</option>
               </select>
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
+          <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
             <div className="form-group">
-              <label className="form-label" style={{ fontSize: "12px", fontWeight: 600 }}>
+              <label className="form-label mb-1 block text-xs font-semibold text-foreground">
                 {t("contactEmail")}
               </label>
               <input
                 type="email"
                 id="org-email-input"
-                className="input-field"
+                className="input-field form-input"
                 required
                 value={contactEmail}
                 onChange={(e) => setContactEmail(e.target.value)}
               />
             </div>
             <div className="form-group">
-              <label className="form-label" style={{ fontSize: "12px", fontWeight: 600 }}>
+              <label className="form-label mb-1 block text-xs font-semibold text-foreground">
                 {t("contactPhone")}
               </label>
               <input
                 type="tel"
                 id="org-phone-input"
-                className="input-field"
+                className="input-field form-input"
                 required
                 value={contactPhone}
                 onChange={(e) => setContactPhone(e.target.value)}
@@ -245,14 +212,14 @@ export function OrgEditModal({
             </div>
           </div>
 
-          <div className="form-group" style={{ marginBottom: "16px" }}>
-            <label className="form-label" style={{ fontSize: "12px", fontWeight: 600 }}>
+          <div className="form-group mb-4">
+            <label className="form-label mb-1 block text-xs font-semibold text-foreground">
               {t("fiscalAddress")}
             </label>
             <input
               type="text"
               id="org-address-input"
-              className="input-field"
+              className="input-field form-input"
               required
               value={fiscalAddress}
               onChange={(e) => setFiscalAddress(e.target.value)}
@@ -260,35 +227,19 @@ export function OrgEditModal({
           </div>
 
           {/* Payout Banking Details */}
-          <div
-            style={{
-              background: "var(--bg-muted)",
-              borderRadius: "12px",
-              padding: "14px",
-              border: "1px solid var(--border-subtle)",
-              marginBottom: "16px",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "12px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                color: "var(--text-link)",
-                marginBottom: "10px",
-              }}
-            >
+          <div className="mb-4 rounded-xl border border-border bg-muted p-3.5">
+            <div className="mb-2.5 text-xs font-bold text-link uppercase">
               🏦 {t("payoutBank")}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "10px" }}>
+            <div className="mb-2.5 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="form-group">
-                <label className="form-label" style={{ fontSize: "11px" }}>
+                <label className="form-label mb-1 block text-[11px] font-medium text-muted-foreground">
                   {t("bankName")}
                 </label>
                 <select
                   id="org-bank-select"
-                  className="input-field"
+                  className="input-field form-select"
                   value={payoutBank}
                   onChange={(e) => setPayoutBank(e.target.value)}
                 >
@@ -302,30 +253,30 @@ export function OrgEditModal({
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label" style={{ fontSize: "11px" }}>
+                <label className="form-label mb-1 block text-[11px] font-medium text-muted-foreground">
                   {t("accountType")}
                 </label>
                 <select
                   id="org-account-type-select"
-                  className="input-field"
+                  className="input-field form-select"
                   value={payoutAccountType}
                   onChange={(e) => setPayoutAccountType(e.target.value)}
                 >
-                  <option value="Corriente">Corriente</option>
-                  <option value="Ahorro">Ahorro</option>
+                  <option value="Corriente">{t("accountTypeChecking")}</option>
+                  <option value="Ahorro">{t("accountTypeSavings")}</option>
                 </select>
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.2fr_1fr]">
               <div className="form-group">
-                <label className="form-label" style={{ fontSize: "11px" }}>
+                <label className="form-label mb-1 block text-[11px] font-medium text-muted-foreground">
                   {t("accountNumber")}
                 </label>
                 <input
                   type="text"
                   id="org-account-number-input"
-                  className="input-field"
+                  className="input-field form-input"
                   maxLength={20}
                   placeholder="01020000000000000001"
                   required
@@ -334,14 +285,14 @@ export function OrgEditModal({
                 />
               </div>
               <div className="form-group">
-                <label className="form-label" style={{ fontSize: "11px" }}>
+                <label className="form-label mb-1 block text-[11px] font-medium text-muted-foreground">
                   {t("accountHolder")}
                 </label>
                 <input
                   type="text"
                   id="org-account-holder-input"
-                  className="input-field"
-                  placeholder="Nombre de la Empresa"
+                  className="input-field form-input"
+                  placeholder={t("accountHolderPlaceholder")}
                   required
                   value={payoutAccountHolder}
                   onChange={(e) => setPayoutAccountHolder(e.target.value)}
@@ -350,7 +301,7 @@ export function OrgEditModal({
             </div>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "20px" }}>
+          <div className="mt-5 flex justify-end gap-3">
             <Button
               type="button"
               variant="secondary"

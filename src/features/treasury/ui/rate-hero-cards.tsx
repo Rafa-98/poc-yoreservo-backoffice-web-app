@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import type { ExchangeRateItem } from "../model/types";
 
 interface RateHeroCardsProps {
@@ -11,185 +12,95 @@ interface RateHeroCardsProps {
 export function RateHeroCards({ activeUsd, activeEur }: RateHeroCardsProps) {
   const t = useTranslations("treasury.rate");
 
-  const usdRate = activeUsd ? activeUsd.rate : 876.7976;
-  const eurRate = activeEur ? activeEur.rate : 982.004544;
+  const usdRate = activeUsd ? activeUsd.rate : DEFAULT_BCV_USD_RATE;
+  const eurRate = activeEur ? activeEur.rate : DEFAULT_BCV_EUR_RATE;
 
-  const usdValueDate = activeUsd?.valueDate || "13/10/2026";
-  const eurValueDate = activeEur?.valueDate || "13/10/2026";
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const usdValueDate = activeUsd?.valueDate || todayIso;
+  const eurValueDate = activeEur?.valueDate || todayIso;
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-        gap: 16,
-        marginBottom: 16,
-      }}
-    >
+    <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* 1. BCV USD CARD */}
-      <div
-        className="rate-hero-card"
-        style={{
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border-subtle)",
-          borderLeft: "5px solid var(--brand-lime)",
-          borderRadius: 24,
-          padding: 24,
-          boxShadow: "var(--shadow-sm)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                backgroundColor: "#059669",
-                boxShadow: "0 0 10px #059669",
-                display: "inline-block",
-              }}
-            />
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: "#059669",
-              }}
-            >
+      <div className="rate-hero-card flex flex-col gap-3 rounded-3xl border border-border border-l-[5px] border-l-accent bg-surface p-6 shadow-xs">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-status-available-fg shadow-[0_0_10px_var(--status-available-fg)]" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-status-available-fg">
               {t("usdActive")}
             </span>
           </div>
-          <span
-            className="badge badge-available"
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              padding: "3px 8px",
-              borderRadius: 6,
-              background: "rgba(16, 185, 129, 0.12)",
-              color: "#059669",
-            }}
-          >
+          <span className="badge badge-available rounded-md bg-status-available-bg px-2 py-0.5 text-[11px] font-bold text-status-available-fg">
             USD / VES
           </span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "baseline", gap: 10, margin: "6px 0" }}>
+        <div className="my-1.5 flex items-baseline gap-2.5">
           <span
             id="current-bcv-usd"
-            style={{
-              fontFamily: "Outfit, sans-serif",
-              fontSize: 42,
-              fontWeight: 800,
-              color: "var(--text-main)",
-              lineHeight: 1,
-            }}
+            className="font-display text-[42px] font-extrabold leading-none text-foreground"
           >
             {usdRate.toFixed(2)}
           </span>
-          <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text-muted)" }}>
+          <span className="text-base font-bold text-muted-foreground">
             Bs. / USD
           </span>
         </div>
 
-        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-          <strong style={{ color: "var(--text-main)" }}>
-            {usdRate.toLocaleString("es-VE", { minimumFractionDigits: 6, maximumFractionDigits: 6 })} Bs.
+        <div className="text-xs text-muted-foreground">
+          <strong className="text-foreground">
+            {usdRate.toLocaleString("es-VE", {
+              minimumFractionDigits: 6,
+              maximumFractionDigits: 6,
+            })}{" "}
+            Bs.
           </strong>{" "}
           • <span>{t("valDate")}</span> {usdValueDate}
         </div>
 
-        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
+        <div className="mt-1 text-xs text-muted-foreground">
           {t("usdDesc")}
         </div>
       </div>
 
       {/* 2. BCV EUR CARD */}
-      <div
-        className="rate-hero-card"
-        style={{
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border-subtle)",
-          borderLeft: "5px solid #2563EB",
-          borderRadius: 24,
-          padding: 24,
-          boxShadow: "var(--shadow-sm)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                backgroundColor: "#2563EB",
-                boxShadow: "0 0 10px #2563EB",
-                display: "inline-block",
-              }}
-            />
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: "#2563EB",
-              }}
-            >
+      <div className="rate-hero-card flex flex-col gap-3 rounded-3xl border border-border border-l-[5px] border-l-status-confirmed-fg bg-surface p-6 shadow-xs">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-status-confirmed-fg shadow-[0_0_10px_var(--status-confirmed-fg)]" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-status-confirmed-fg">
               {t("eurActive")}
             </span>
           </div>
-          <span
-            className="badge badge-confirmed"
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              padding: "3px 8px",
-              borderRadius: 6,
-              background: "rgba(37, 99, 235, 0.12)",
-              color: "#2563EB",
-            }}
-          >
+          <span className="badge badge-confirmed rounded-md bg-status-confirmed-bg px-2 py-0.5 text-[11px] font-bold text-status-confirmed-fg">
             EUR / VES
           </span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "baseline", gap: 10, margin: "6px 0" }}>
+        <div className="my-1.5 flex items-baseline gap-2.5">
           <span
             id="current-bcv-eur"
-            style={{
-              fontFamily: "Outfit, sans-serif",
-              fontSize: 42,
-              fontWeight: 800,
-              color: "var(--text-main)",
-              lineHeight: 1,
-            }}
+            className="font-display text-[42px] font-extrabold leading-none text-foreground"
           >
             {eurRate.toFixed(2)}
           </span>
-          <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text-muted)" }}>
+          <span className="text-base font-bold text-muted-foreground">
             Bs. / EUR
           </span>
         </div>
 
-        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-          <strong style={{ color: "var(--text-main)" }}>
-            {eurRate.toLocaleString("es-VE", { minimumFractionDigits: 6, maximumFractionDigits: 6 })} Bs.
+        <div className="text-xs text-muted-foreground">
+          <strong className="text-foreground">
+            {eurRate.toLocaleString("es-VE", {
+              minimumFractionDigits: 6,
+              maximumFractionDigits: 6,
+            })}{" "}
+            Bs.
           </strong>{" "}
           • <span>{t("valDate")}</span> {eurValueDate}
         </div>
 
-        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
+        <div className="mt-1 text-xs text-muted-foreground">
           {t("eurDesc")}
         </div>
       </div>

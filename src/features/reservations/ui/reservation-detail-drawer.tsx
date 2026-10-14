@@ -38,7 +38,7 @@ export function ReservationDetailDrawer({
 
   const cleanPhone = reservation.phone.replace(/[^0-9]/g, "");
   const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-    `Hola ${reservation.clientName}, te escribimos de YoReservo sobre tu reserva #${reservation.code}`
+    t("waGreeting", { name: reservation.clientName, code: reservation.code })
   )}`;
 
   return (
@@ -68,7 +68,10 @@ export function ReservationDetailDrawer({
               <div className="text-xs text-muted-foreground mt-0.5">
                 {t("issuedAt", {
                   date: reservation.dateDisplay,
-                  origin: reservation.origin === "walk-in" ? "Taquilla Mostrador" : "YoReservo App",
+                  origin:
+                    reservation.origin === "walk-in"
+                      ? t("originWalkIn")
+                      : t("originApp"),
                 })}
               </div>
             </div>
@@ -93,8 +96,10 @@ export function ReservationDetailDrawer({
               <div className="text-xs text-muted-foreground mt-1">
                 {reservation.checkedIn
                   ? t("checkInDescDone", {
-                      validator: reservation.checkedInBy || "Personal de Recepción",
-                      date: reservation.validatedAt ? new Date(reservation.validatedAt).toLocaleTimeString() : "Hoy",
+                      validator: reservation.checkedInBy || t("defaultValidator"),
+                      date: reservation.validatedAt
+                        ? new Date(reservation.validatedAt).toLocaleTimeString()
+                        : t("today"),
                     })
                   : t("checkInDesc")}
               </div>
@@ -113,7 +118,7 @@ export function ReservationDetailDrawer({
                 disabled={checkingIn || reservation.status === "CANCELLED"}
                 id="drawer-checkin-btn"
               >
-                {checkingIn ? "Validando..." : t("btnCheckIn")}
+                {checkingIn ? t("btnCheckingIn") : t("btnCheckIn")}
               </Button>
             )}
           </div>
@@ -129,7 +134,7 @@ export function ReservationDetailDrawer({
                   {reservation.clientName}
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  C.I: {reservation.dni} • Jugador Frecuente
+                  {t("playerDniMeta", { dni: reservation.dni })}
                 </div>
               </div>
               <a
@@ -139,7 +144,7 @@ export function ReservationDetailDrawer({
                 className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-500/20 transition-all inline-flex items-center gap-1.5 cursor-pointer"
                 id="drawer-wa-btn"
               >
-                <span>💬</span> WhatsApp
+                <span>💬</span> {t("whatsappLabel")}
               </a>
             </div>
           </div>

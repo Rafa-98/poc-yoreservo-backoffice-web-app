@@ -55,7 +55,11 @@ export function DashboardRevenueChart({
               key={lbl}
               className="flex-1 flex flex-col items-center justify-end h-full relative group cursor-pointer"
               onClick={() => onBarClick?.(lbl, gmv, fee)}
-              title={`${lbl} — GMV: $${gmv.toFixed(2)} | Fee 5%: $${fee.toFixed(2)}`}
+              title={t("chart.barTooltip", {
+                label: lbl,
+                gmv: gmv.toFixed(2),
+                fee: fee.toFixed(2),
+              })}
             >
               {/* Tooltip on hover */}
               <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-foreground text-background text-[10px] font-bold py-1 px-2 rounded pointer-events-none shadow-md whitespace-nowrap z-20">

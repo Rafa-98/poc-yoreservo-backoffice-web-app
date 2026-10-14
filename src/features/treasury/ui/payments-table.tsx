@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import type { PaymentItem } from "../model/types";
 
 interface PaymentsTableProps {
@@ -24,18 +25,8 @@ export function PaymentsTable({
 
   if (payments.length === 0) {
     return (
-      <div
-        style={{
-          padding: "48px 24px",
-          textAlign: "center",
-          background: "var(--bg-surface)",
-          borderRadius: 20,
-          border: "1px solid var(--border-subtle)",
-          color: "var(--text-muted)",
-          fontSize: 14,
-        }}
-      >
-        <span style={{ fontSize: 32, display: "block", marginBottom: 8 }}>📭</span>
+      <div className="rounded-[20px] border border-border bg-surface px-6 py-12 text-center text-sm text-muted-foreground">
+        <span className="mb-2 block text-[32px]">📭</span>
         {t("empty")}
       </div>
     );
@@ -52,44 +43,34 @@ export function PaymentsTable({
       case "0172":
         return "0172 — Bancamiga";
       default:
-        return bankCode ?? "Bancaribe / Otro";
+        return bankCode ?? t("otherBank");
     }
   };
 
   return (
-    <div
-      className="table-responsive"
-      style={{
-        width: "100%",
-        overflowX: "auto",
-        backgroundColor: "var(--bg-surface)",
-        border: "1px solid var(--border-subtle)",
-        borderRadius: 20,
-        boxShadow: "var(--shadow-sm)",
-      }}
-    >
-      <table className="data-table" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13.5 }}>
+    <div className="table-responsive w-full overflow-x-auto rounded-[20px] border border-border bg-surface shadow-xs">
+      <table className="data-table w-full border-collapse text-left text-[13.5px]">
         <thead>
-          <tr style={{ background: "var(--bg-app)", borderBottom: "1px solid var(--border-subtle)" }}>
-            <th style={{ padding: "14px 18px", color: "var(--text-muted)", fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
+          <tr className="border-b border-border bg-background">
+            <th className="whitespace-nowrap px-4.5 py-3.5 text-[11.5px] font-bold uppercase tracking-wider text-muted-foreground">
               {t("ref")}
             </th>
-            <th style={{ padding: "14px 18px", color: "var(--text-muted)", fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <th className="px-4.5 py-3.5 text-[11.5px] font-bold uppercase tracking-wider text-muted-foreground">
               {t("client")}
             </th>
-            <th style={{ padding: "14px 18px", color: "var(--text-muted)", fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <th className="px-4.5 py-3.5 text-[11.5px] font-bold uppercase tracking-wider text-muted-foreground">
               {t("bank")}
             </th>
-            <th style={{ padding: "14px 18px", color: "var(--text-muted)", fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <th className="px-4.5 py-3.5 text-[11.5px] font-bold uppercase tracking-wider text-muted-foreground">
               {t("amount")}
             </th>
-            <th style={{ padding: "14px 18px", color: "var(--text-muted)", fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <th className="px-4.5 py-3.5 text-[11.5px] font-bold uppercase tracking-wider text-muted-foreground">
               {t("age")}
             </th>
-            <th style={{ padding: "14px 18px", color: "var(--text-muted)", fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <th className="px-4.5 py-3.5 text-[11.5px] font-bold uppercase tracking-wider text-muted-foreground">
               {t("status")}
             </th>
-            <th style={{ padding: "14px 18px", color: "var(--text-muted)", fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "right" }}>
+            <th className="px-4.5 py-3.5 text-right text-[11.5px] font-bold uppercase tracking-wider text-muted-foreground">
               {t("actions")}
             </th>
           </tr>
@@ -100,9 +81,16 @@ export function PaymentsTable({
             const isVerified = p.status === "VERIFIED";
             const isRejected = p.status === "REJECTED" || p.status === "FAILED";
 
+            const effectiveRate = p.exchangeRate || DEFAULT_BCV_USD_RATE;
             const amountBs = p.amountVes
-              ? p.amountVes.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-              : (p.amount * (p.exchangeRate || 876.8)).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              ? p.amountVes.toLocaleString("es-VE", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })
+              : (p.amount * effectiveRate).toLocaleString("es-VE", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                });
 
             const amountUsd = p.amountReference
               ? p.amountReference.toFixed(2)
@@ -114,55 +102,30 @@ export function PaymentsTable({
               <tr
                 key={p.id}
                 id={`row-pm-${p.referenceNumber ?? p.id}`}
-                className={isVerified || isRejected ? "row-verified" : ""}
-                style={{
-                  borderBottom: "1px solid var(--border-subtle)",
-                  transition: "background-color 0.15s ease",
-                  opacity: isVerified ? 0.85 : 1,
-                }}
+                className={`border-b border-border transition-colors hover:bg-surface-hover ${
+                  isVerified || isRejected ? "row-verified" : ""
+                } ${isVerified ? "opacity-85" : ""}`}
               >
                 {/* 1. REF & THUMBNAIL */}
-                <td style={{ padding: "14px 18px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <td className="px-4.5 py-3.5">
+                  <div className="flex items-center gap-3">
                     <div
-                      className="receipt-thumb"
+                      className="receipt-thumb flex h-11 w-11 cursor-pointer items-center justify-center rounded-[10px] border border-border bg-muted text-xl transition-transform hover:scale-105"
                       onClick={() => onOpenVoucher(p)}
-                      title="Ver Comprobante"
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 10,
-                        backgroundColor: "var(--bg-muted)",
-                        border: "1px solid var(--border-subtle)",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 20,
-                        transition: "transform 0.15s ease",
-                      }}
+                      title={t("inspectTitle")}
                     >
                       🧾
                     </div>
                     <div>
                       <div
-                        style={{
-                          fontFamily: "Outfit, sans-serif",
-                          fontWeight: 700,
-                          fontSize: 14,
-                          color: isRejected ? "var(--status-cancelled-text)" : "var(--text-link)",
-                        }}
+                        className={`font-display text-sm font-bold ${
+                          isRejected ? "text-status-cancelled-fg" : "text-link"
+                        }`}
                       >
-                        #{p.referenceNumber ?? "S/N"}
+                        #{p.referenceNumber ?? t("noRef")}
                       </div>
                       <span
-                        className="text-link"
-                        style={{
-                          fontSize: 11,
-                          cursor: "pointer",
-                          color: "var(--text-link)",
-                          textDecoration: "underline",
-                        }}
+                        className="cursor-pointer text-[11px] text-link underline"
                         onClick={() => onOpenVoucher(p)}
                       >
                         👁️ {t("inspect")}
@@ -172,130 +135,89 @@ export function PaymentsTable({
                 </td>
 
                 {/* 2. CLIENT & BOOKING */}
-                <td style={{ padding: "14px 18px" }}>
-                  <div style={{ fontWeight: 700, color: "var(--text-main)" }}>
+                <td className="px-4.5 py-3.5">
+                  <div className="font-bold text-foreground">
                     {p.reservation?.client?.name} {p.reservation?.client?.lastName}
                   </div>
-                  <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
-                    Reserva: <strong>#{p.reservation?.shortCode}</strong> • {p.reservation?.space?.spaceNumber}
+                  <div className="text-[11.5px] text-muted-foreground">
+                    {t("bookingLabel")} <strong>#{p.reservation?.shortCode}</strong> •{" "}
+                    {p.reservation?.space?.spaceNumber}
                   </div>
                 </td>
 
                 {/* 3. ORIGIN BANK & PHONE */}
-                <td style={{ padding: "14px 18px" }}>
-                  <div style={{ fontWeight: 600, color: "var(--text-main)" }}>
+                <td className="px-4.5 py-3.5">
+                  <div className="font-semibold text-foreground">
                     {getBankLabel(p.originBank)}
                   </div>
-                  <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
-                    {p.phoneNumber ?? "+58 424 000 0000"}
+                  <div className="text-[11.5px] text-muted-foreground">
+                    {p.phoneNumber || "—"}
                   </div>
                 </td>
 
                 {/* 4. AMOUNT IN BS & USD */}
-                <td style={{ padding: "14px 18px" }}>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text-main)" }}>
+                <td className="px-4.5 py-3.5">
+                  <div className="text-[15px] font-bold text-foreground">
                     Bs. {amountBs}
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                    ${amountUsd} USD @ {(p.exchangeRate || 876.8).toFixed(2)}
+                  <div className="text-[11px] text-muted-foreground">
+                    ${amountUsd} USD @ {effectiveRate.toFixed(2)}
                   </div>
                 </td>
 
                 {/* 5. AGE / TIMESTAMP */}
-                <td style={{ padding: "14px 18px" }}>
+                <td className="px-4.5 py-3.5">
                   {isPending ? (
-                    <span
-                      className="badge badge-hold"
-                      style={{
-                        fontSize: 11,
-                        background: "rgba(234, 118, 0, 0.12)",
-                        color: "var(--status-hold-text)",
-                        padding: "3px 8px",
-                        borderRadius: 6,
-                        fontWeight: 600,
-                      }}
-                    >
-                      Hace 8 min
+                    <span className="badge badge-hold rounded-md bg-status-hold-bg px-2 py-0.5 text-[11px] font-semibold text-status-hold-fg">
+                      {p.paymentDate || t("pendingRecent")}
                     </span>
                   ) : (
-                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                      {p.paymentDate || "Hoy 08:00 AM"}
+                    <span className="text-xs text-muted-foreground">
+                      {p.paymentDate || "—"}
                     </span>
                   )}
                 </td>
 
                 {/* 6. STATUS BADGE */}
-                <td style={{ padding: "14px 18px" }}>
+                <td className="px-4.5 py-3.5">
                   {isPending && (
-                    <span
-                      className="badge badge-hold"
-                      style={{
-                        background: "rgba(234, 118, 0, 0.12)",
-                        color: "var(--status-hold-text)",
-                        padding: "4px 8px",
-                        borderRadius: 6,
-                        fontWeight: 700,
-                        fontSize: 11.5,
-                      }}
-                    >
-                      ⏳ Pendiente
+                    <span className="badge badge-hold rounded-md bg-status-hold-bg px-2 py-1 text-[11.5px] font-bold text-status-hold-fg">
+                      ⏳ {t("statusPending")}
                     </span>
                   )}
                   {isVerified && (
-                    <span
-                      className="badge badge-available"
-                      style={{
-                        background: "rgba(16, 185, 129, 0.12)",
-                        color: "#059669",
-                        padding: "4px 8px",
-                        borderRadius: 6,
-                        fontWeight: 700,
-                        fontSize: 11.5,
-                      }}
-                    >
-                      ✅ Conciliado
+                    <span className="badge badge-available rounded-md bg-status-available-bg px-2 py-1 text-[11.5px] font-bold text-status-available-fg">
+                      ✅ {t("statusVerified")}
                     </span>
                   )}
                   {isRejected && (
-                    <span
-                      className="badge badge-cancelled"
-                      style={{
-                        background: "rgba(239, 68, 68, 0.12)",
-                        color: "var(--status-cancelled-text)",
-                        padding: "4px 8px",
-                        borderRadius: 6,
-                        fontWeight: 700,
-                        fontSize: 11.5,
-                      }}
-                    >
-                      ❌ No Conciliado
+                    <span className="badge badge-cancelled rounded-md bg-status-cancelled-bg px-2 py-1 text-[11.5px] font-bold text-status-cancelled-fg">
+                      ❌ {t("statusRejected")}
                     </span>
                   )}
                 </td>
 
                 {/* 7. AUDIT ACTIONS */}
-                <td style={{ padding: "14px 18px", textAlign: "right" }}>
+                <td className="px-4.5 py-3.5 text-right">
                   {isPending && (
-                    <div style={{ display: "inline-flex", gap: 8 }}>
+                    <div className="inline-flex gap-2">
                       <button
                         id={`btn-validate-${p.referenceNumber ?? p.id}`}
                         type="button"
-                        className="btn btn-primary"
-                        style={{ padding: "6px 12px", fontSize: 12, borderRadius: 8 }}
+                        className="btn btn-primary rounded-lg px-3 py-1.5 text-xs"
                         onClick={() => onApprove(p.id)}
                         disabled={isCurrentProcessing}
-                        title="Validar Pago"
+                        title={t("validateTitle")}
                       >
                         ✓ {t("validate")}
                       </button>
                       <button
                         id={`btn-reject-${p.referenceNumber ?? p.id}`}
                         type="button"
-                        className="btn btn-destructive"
-                        style={{ padding: "6px 12px", fontSize: 12, borderRadius: 8 }}
+                        className="btn btn-destructive rounded-lg px-3 py-1.5 text-xs"
                         onClick={() => onOpenReject(p)}
                         disabled={isCurrentProcessing}
-                        title="Rechazar Pago"
+                        title={t("rejectTitle")}
                       >
                         ✕ {t("reject")}
                       </button>
@@ -305,8 +227,7 @@ export function PaymentsTable({
                   {isVerified && (
                     <button
                       type="button"
-                      className="btn btn-outline"
-                      style={{ padding: "6px 12px", fontSize: 12, borderRadius: 8 }}
+                      className="btn btn-outline rounded-lg px-3 py-1.5 text-xs"
                       onClick={() => onOpenVoucher(p)}
                     >
                       👁️ {t("audit")}
@@ -316,8 +237,7 @@ export function PaymentsTable({
                   {isRejected && (
                     <button
                       type="button"
-                      className="btn btn-outline"
-                      style={{ padding: "6px 12px", fontSize: 12, borderRadius: 8 }}
+                      className="btn btn-outline rounded-lg px-3 py-1.5 text-xs"
                       onClick={() => onViewReason(p)}
                     >
                       ⚠️ {t("viewReason")}

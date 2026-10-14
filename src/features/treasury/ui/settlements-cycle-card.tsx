@@ -25,7 +25,7 @@ export function SettlementsCycleCard({
             <h2 className="font-display text-sm font-bold text-foreground">
               {t("cycleTitle")}
             </h2>
-            <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-bold text-emerald-400">
+            <span className="rounded-full bg-status-available-bg border border-status-available-border px-2 py-0.5 text-[11px] font-bold text-status-available-fg">
               {t("badgeOnSchedule")}
             </span>
           </div>
@@ -61,7 +61,7 @@ export function SettlementsCycleCard({
       {/* Progress Bar */}
       <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted border border-border/50">
         <div
-          className="h-full bg-gradient-to-r from-emerald-500 to-accent rounded-full transition-all duration-500"
+          className="h-full bg-gradient-to-r from-status-available-fg to-accent rounded-full transition-all duration-500"
           style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
         />
       </div>

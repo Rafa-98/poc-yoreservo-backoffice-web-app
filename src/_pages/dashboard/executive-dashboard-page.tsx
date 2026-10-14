@@ -9,6 +9,8 @@ import type {
   RolePerspective,
   TimeframeKey,
 } from "@/features/dashboard/model/types";
+import { checkInReservationAction } from "@/features/reservations/actions/reservations-actions";
+import { checkInAction } from "@/features/agenda/actions/agenda-actions";
 import { DashboardTopbarControls } from "@/features/dashboard/ui/dashboard-topbar-controls";
 import { DashboardTimeframeBar } from "@/features/dashboard/ui/dashboard-timeframe-bar";
 import { DashboardAdminBanner } from "@/features/dashboard/ui/dashboard-admin-banner";
@@ -33,7 +35,9 @@ export function ExecutiveDashboardPage({
   );
   const [timeframe, setTimeframe] = useState<TimeframeKey>("MES");
   const [checkedInIds, setCheckedInIds] = useState<Set<string>>(new Set());
-  const [pendingCheckIns, setPendingCheckIns] = useState<number>(4);
+  const [pendingCheckIns, setPendingCheckIns] = useState<number>(
+    initialData.allyKpis?.pendingCheckInCount ?? 4
+  );
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "info";
@@ -59,16 +63,29 @@ export function ExecutiveDashboardPage({
     );
   };
 
-  const handleCheckIn = (court: CourtRibbonItem) => {
-    setCheckedInIds((prev) => new Set(prev).add(court.id));
-    setPendingCheckIns((prev) => Math.max(0, prev - 1));
-    showToast(
-      t("toast.checkinSuccess", {
-        name: court.customerName || "Jugador",
-        code: court.bookingCode || court.id,
-      }),
-      "success"
-    );
+  const handleCheckIn = async (court: CourtRibbonItem) => {
+    const res = court.reservationId
+      ? await checkInReservationAction(court.reservationId, "SHORT_CODE_MANUAL")
+      : court.bookingCode
+      ? await checkInAction({
+          code: court.bookingCode,
+          method: "SHORT_CODE_MANUAL",
+        })
+      : await checkInReservationAction(court.id, "SHORT_CODE_MANUAL");
+
+    if (res.ok) {
+      setCheckedInIds((prev) => new Set(prev).add(court.id));
+      setPendingCheckIns((prev) => Math.max(0, prev - 1));
+      showToast(
+        t("toast.checkinSuccess", {
+          name: court.customerName || t("defaultPlayer"),
+          code: court.bookingCode || court.id,
+        }),
+        "success"
+      );
+    } else {
+      showToast(t("toast.checkinError"), "info");
+    }
   };
 
   const handleBarClick = (label: string, gmv: number, fee: number) => {
@@ -125,11 +142,14 @@ export function ExecutiveDashboardPage({
           timeframe={timeframe}
           chartData={currentChartData}
           bcvRate={initialData.bcvRate}
+          metrics={initialData.metrics}
+          adminKpis={initialData.adminKpis}
         />
       ) : (
         <DashboardAllyKpis
           bcvRate={initialData.bcvRate}
           pendingCheckInCount={pendingCheckIns}
+          allyKpis={initialData.allyKpis}
         />
       )}
 
@@ -151,7 +171,7 @@ export function ExecutiveDashboardPage({
           />
         </div>
         <div>
-          <DashboardSportsDistribution />
+          <DashboardSportsDistribution data={initialData.sportsDistribution} />
         </div>
       </div>
 

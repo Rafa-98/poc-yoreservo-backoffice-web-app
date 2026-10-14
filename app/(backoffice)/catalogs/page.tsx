@@ -1,6 +1,7 @@
 import React from "react";
 import { Metadata } from "next";
 import { requireSession } from "@/shared/auth/index.server";
+import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
 import {
   getAmenitiesAction,
   getSurfacesAction,
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  await requireSession();
+  await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.catalogs]);
 
   const [taxonomyRes, surfacesRes, amenitiesRes] = await Promise.all([
     getTaxonomyAction(),

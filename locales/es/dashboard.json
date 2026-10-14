@@ -4,7 +4,9 @@
   "subtitle": "Métricas globales de facturación (GMV), comisiones YoReservo 5%, alertas operativas y volumen",
   "subtitleAlly": "Ocupación consolidada por sedes, recaudación neta de la organización y gestión multi-recinto",
   "live": "En Vivo",
+  "defaultPlayer": "Jugador",
   "roles": {
+    "switcherAriaLabel": "Selector de perspectiva de rol",
     "admin": "SuperAdmin Global",
     "ally": "Organización Aliada • Grupo Ávila",
     "btnAdmin": "Admin (Global)",
@@ -45,6 +47,7 @@
   },
   "kpis": {
     "adminGmv": "Volumen Bruto (GMV)",
+    "adminGmvGrowth": "+18.4%",
     "adminGmvSub": "Facturación total plataformas",
     "adminFee": "Comisión YoReservo (5%)",
     "adminFeeSub": "Ingresos netos app",
@@ -54,18 +57,24 @@
     "adminBookingsBadge": "98.2% Cumplimiento",
     "adminVenues": "Recintos Afiliados",
     "adminVenuesSub": "88 canchas activas en Caracas y Miranda",
+    "adminVenuesDynamicSub": "{count} canchas activas en Caracas y Miranda",
     "adminVenuesBadge": "+3 en Onboarding",
     "adminVenuesCount": "24 Sedes",
+    "adminVenuesDynamicCount": "{count} Sedes",
     "allyOccupancy": "Ocupación Canchas Hoy",
     "allyOccupancySub": "6 turnos disponibles para Walk-in",
+    "allyOccupancyDynamicSub": "{count} turnos disponibles para Walk-in",
     "allyOccupancyBadge": "78.5% Pico",
     "allyOccupancyCount": "22 / 28 Turnos",
+    "allyOccupancyDynamicCount": "{occupied} / {total} Turnos",
     "allyRev": "Ingreso Neto Club (Hoy)",
     "allyRevSub": "Acreditado quincenal",
     "allyRevBadge": "Neto 95%",
     "allyCheckin": "Check-in Mostrador",
     "allyCheckinSub": "14 jugadores ya en cancha",
+    "allyCheckinDynamicSub": "{count} jugadores ya en cancha",
     "allyCheckinCount": "18 Partidos",
+    "allyCheckinDynamicCount": "{count} Partidos",
     "allyCheckinPending": "{count} Por Validar",
     "allyNext": "Próximo Partido",
     "allyNextTime": "En 15 Minutos",
@@ -90,7 +99,8 @@
     "legendFee": "Comisión 5%",
     "peakVolume": "Mayor volumen registrado:",
     "operatingMargin": "Margen operativo:",
-    "fixedMargin": "5.00% Fijo"
+    "fixedMargin": "5.00% Fijo",
+    "barTooltip": "{label} — GMV: ${gmv} | Comisión 5%: ${fee}"
   },
   "sports": {
     "title": "Distribución por Disciplina",
@@ -114,7 +124,7 @@
   "systemStatus": {
     "title": "Estado de Servicios & Tesorería",
     "bcvSync": "Sincronización BCV:",
-    "bcvValue": "🟢 40.00 Bs (09:00 AM)",
+    "bcvValue": "🟢 41.00 Bs (09:00 AM)",
     "gateway": "Gateway Pago Móvil:",
     "gatewayValue": "🟢 Operativo",
     "conflicts": "Motor de Conflictos:",
@@ -125,6 +135,7 @@
   "toast": {
     "viewSwitched": "Perspectiva cambiada a: {role}",
     "checkinSuccess": "¡Check-in confirmado para {name} (#{code})! Acceso autorizado a cancha.",
+    "checkinError": "No se pudo validar el check-in en este momento.",
     "chartDetail": "{label} — GMV: ${gmv} USD • Comisión YoReservo (5%): ${fee} USD"
   }
 }

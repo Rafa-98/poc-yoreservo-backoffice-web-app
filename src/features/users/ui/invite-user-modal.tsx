@@ -82,7 +82,7 @@ export function InviteUserModal({
       onSuccess(res.data);
       onClose();
     } else {
-      setErrorMsg(res.error.code || "Error al invitar al colaborador");
+      setErrorMsg(res.error.code || t("errorInvite"));
     }
   }
 
@@ -138,7 +138,7 @@ export function InviteUserModal({
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ej: Carlos"
+                placeholder={t("firstNamePlaceholder")}
                 className="form-input"
                 id="inv-first-name"
               />
@@ -152,7 +152,7 @@ export function InviteUserModal({
                 required
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                placeholder="Ej: Mendoza"
+                placeholder={t("lastNamePlaceholder")}
                 className="form-input"
                 id="inv-last-name"
               />
@@ -257,10 +257,10 @@ export function InviteUserModal({
                 className="form-select"
                 id="inv-role"
               >
-                <option value="ALLY">🏢 ALLY (Propietario Club)</option>
-                <option value="VALIDATOR">🎟️ VALIDATOR (Recepción / Mostrador)</option>
-                <option value="ACCOUNTING">💳 ACCOUNTING (Finanzas / Facturación)</option>
-                <option value="ADMIN">👑 ADMIN (Superusuario Global)</option>
+                <option value="ALLY">🏢 {t("roleAlly")}</option>
+                <option value="VALIDATOR">🎟️ {t("roleValidator")}</option>
+                <option value="ACCOUNTING">💳 {t("roleAccounting")}</option>
+                <option value="ADMIN">👑 {t("roleAdmin")}</option>
               </select>
             </div>
 
@@ -341,7 +341,7 @@ export function InviteUserModal({
                     onClick={handleCopy}
                     className="h-10 text-xs px-3"
                   >
-                    {copied ? "✓ Copiado" : t("btnCopy")}
+                    {copied ? t("copied") : t("btnCopy")}
                   </Button>
                 </div>
                 <div className="text-[11px] text-muted-foreground">

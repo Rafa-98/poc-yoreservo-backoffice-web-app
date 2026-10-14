@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
+import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import type {
   SpaceItem,
   SportCategoryItem,
@@ -30,7 +31,7 @@ export function SpacesPage({
   initialVenueId,
   initialSpaces,
   categories,
-  bcvRate = 41.0,
+  bcvRate = DEFAULT_BCV_USD_RATE,
   referenceCurrencyCode = "USD",
 }: SpacesPageProps) {
   const t = useTranslations("venues.top");
@@ -40,6 +41,7 @@ export function SpacesPage({
     initialVenueId || initialVenues[0]?.id || ""
   );
   const [spaces, setSpaces] = useState<SpaceItem[]>(initialSpaces);
+  const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
 
   // Modals state
   const [isCourtModalOpen, setIsCourtModalOpen] = useState(false);
@@ -52,11 +54,18 @@ export function SpacesPage({
 
   const currentVenue = venues.find((v) => v.id === selectedVenueId) || venues[0];
 
+  function showToast(message: string, isError = false) {
+    setToast({ message, isError });
+    setTimeout(() => setToast(null), 4000);
+  }
+
   async function handleSelectVenue(venueId: string) {
     setSelectedVenueId(venueId);
     const res = await getSpacesAction(venueId);
     if (res.ok && res.data) {
       setSpaces(res.data);
+    } else if (!res.ok) {
+      showToast(t("errorLoadSpaces", { code: res.error.code }), true);
     }
   }
 
@@ -80,6 +89,7 @@ export function SpacesPage({
       }
       return [...prev, saved];
     });
+    showToast(t("toastCourtSaved"), false);
   }
 
   async function handleToggleCourtStatus(court: SpaceItem) {
@@ -99,6 +109,9 @@ export function SpacesPage({
         setSpaces((prev) =>
           prev.map((s) => (s.id === court.id ? { ...s, status: "DISABLED" } : s))
         );
+        showToast(t("toastCourtStatusUpdated"), false);
+      } else if (!res.ok) {
+        showToast(t("errorUpdateSpaceStatus", { code: res.error.code }), true);
       }
     } else {
       // Enabling space
@@ -107,6 +120,9 @@ export function SpacesPage({
         setSpaces((prev) =>
           prev.map((s) => (s.id === court.id ? { ...s, status: "ENABLED" } : s))
         );
+        showToast(t("toastCourtStatusUpdated"), false);
+      } else {
+        showToast(t("errorUpdateSpaceStatus", { code: res.error.code }), true);
       }
     }
   }
@@ -121,44 +137,23 @@ export function SpacesPage({
       setSpaces((prev) =>
         prev.map((s) => (s.id === safetyCourt.id ? { ...s, status: "DISABLED" } : s))
       );
+      showToast(t("toastCourtStatusUpdated"), false);
+    } else {
+      showToast(t("errorUpdateSpaceStatus", { code: res.error.code }), true);
     }
   }
 
   return (
-    <div className="spaces-page" style={{ paddingBottom: "40px" }}>
+    <div className="spaces-page pb-10">
       {/* Top Header */}
-      <div
-        style={{
-          padding: "20px 20px 10px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "10px",
-        }}
-      >
+      <div className="flex flex-wrap items-center justify-between gap-2.5 px-5 pt-5 pb-2.5">
         <div>
-          <div
-            style={{
-              fontSize: "11px",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              color: "var(--text-link)",
-            }}
-          >
+          <div className="text-[11px] font-bold tracking-wider text-link uppercase">
             {t("spacesSubtitle", {
-              venueName: currentVenue?.name || "Sede Activa",
+              venueName: currentVenue?.name || t("defaultVenueName"),
             })}
           </div>
-          <h1
-            style={{
-              fontSize: "22px",
-              fontWeight: 800,
-              color: "var(--text-main)",
-              margin: "4px 0 0",
-            }}
-          >
+          <h1 className="mt-1 text-[22px] font-extrabold text-foreground">
             {t("spacesTitle")}
           </h1>
         </div>
@@ -169,6 +164,28 @@ export function SpacesPage({
         venuesCount={venues.length}
         spacesCount={spaces.length}
       />
+
+      {/* Toast feedback banner */}
+      {toast && (
+        <div className="mt-4 px-5">
+          <div
+            className={`flex items-center justify-between rounded-xl border px-4 py-3 text-[13.5px] font-semibold ${
+              toast.isError
+                ? "border-status-cancelled-border bg-status-cancelled-bg text-status-cancelled-fg"
+                : "border-status-available-border bg-status-available-bg text-status-available-fg"
+            }`}
+          >
+            <span>{toast.message}</span>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="cursor-pointer border-none bg-transparent font-bold text-current"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Court Cards Grid */}
       <CourtCardsGrid

@@ -83,7 +83,7 @@ export function ProfileUserCard({
           </span>
           <div className="font-semibold text-foreground mt-0.5 flex items-center gap-1.5">
             <Calendar className="size-3.5 text-blue-500 shrink-0" />
-            <span>15 de Enero 2026</span>
+            <span>{t("sidebar.memberSinceDate")}</span>
           </div>
         </div>
 

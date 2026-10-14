@@ -48,32 +48,36 @@ export function ReservationsTable({
               reservations.map((res) => {
                 // Payment Badge
                 let payBadgeClass = "bg-emerald-500/15 border-emerald-500/30 text-emerald-400";
-                let payBadgeLabel = "📱 Pago Móvil";
+                let payBadgeLabel = t("payPagoMovil");
                 if (res.paymentMethod === "cash") {
                   payBadgeClass = "bg-amber-500/15 border-amber-500/30 text-amber-400";
-                  payBadgeLabel = "💵 Efectivo";
+                  payBadgeLabel = t("payCash");
                 } else if (res.paymentMethod === "pos" || res.paymentMethod === "card") {
                   payBadgeClass = "bg-sky-500/15 border-sky-500/30 text-sky-400";
-                  payBadgeLabel = "💳 Tarjeta / POS";
+                  payBadgeLabel = t("payPos");
                 }
 
                 // Status Badge
                 let statusBadgeClass = "bg-emerald-500/15 border-emerald-500/30 text-emerald-400";
-                let statusBadgeLabel = "Confirmada";
+                let statusBadgeLabel = t("statusConfirmed");
                 if (res.status === "PENDING_PAYMENT") {
                   statusBadgeClass = "bg-amber-500/15 border-amber-500/30 text-amber-400";
-                  statusBadgeLabel = "Pendiente Pago";
+                  statusBadgeLabel = t("statusPendingPayment");
                 } else if (res.status === "COMPLETED") {
                   statusBadgeClass = "bg-blue-500/15 border-blue-500/30 text-blue-400";
-                  statusBadgeLabel = "Completada";
+                  statusBadgeLabel = t("statusCompleted");
                 } else if (res.status === "CANCELLED") {
                   statusBadgeClass = "bg-rose-500/15 border-rose-500/30 text-rose-400";
-                  statusBadgeLabel = "Cancelada";
+                  statusBadgeLabel = t("statusCancelled");
                 }
 
                 const cleanPhone = res.phone.replace(/[^0-9]/g, "");
                 const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                  `Hola ${res.clientName}, te escribimos de YoReservo sobre tu reserva #${res.code} en ${res.venue}`
+                  t("waGreeting", {
+                    name: res.clientName,
+                    code: res.code,
+                    venue: res.venue,
+                  })
                 )}`;
 
                 return (
@@ -84,13 +88,13 @@ export function ReservationsTable({
                     {/* 1. Code & Origin */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <span style={{ fontSize: "14px" }}>
+                        <span className="text-sm">
                           {res.origin === "walk-in" ? "🎟️" : "📱"}
                         </span>
                         <button
                           type="button"
                           onClick={() => copyCode(res.code)}
-                          title="Copiar Código"
+                          title={t("copyCodeTitle")}
                           className="font-mono text-xs font-bold px-2 py-0.5 rounded-lg border border-border bg-muted/60 text-foreground hover:border-accent transition-all cursor-pointer"
                         >
                           #{res.code}

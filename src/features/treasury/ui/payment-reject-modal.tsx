@@ -33,102 +33,50 @@ export function PaymentRejectModal({
 
   return (
     <div
-      className="modal-backdrop"
+      className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
       onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0, 0, 0, 0.6)",
-        backdropFilter: "blur(4px)",
-        zIndex: 10000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-      }}
     >
       <div
         id="reject-payment-modal-card"
-        className="modal-card"
+        className="modal-card w-full max-w-[480px] overflow-hidden rounded-[20px] border border-border bg-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border-subtle)",
-          borderRadius: 20,
-          width: "100%",
-          maxWidth: 480,
-          boxShadow: "var(--shadow-lg)",
-          overflow: "hidden",
-        }}
       >
         {/* HEADER */}
-        <div
-          style={{
-            padding: "20px 24px",
-            borderBottom: "1px solid var(--border-subtle)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 20 }}>⚠️</span>
-            <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: "var(--text-main)" }}>
+        <div className="flex items-center justify-between border-b border-border px-6 py-5">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">⚠️</span>
+            <h3 className="m-0 text-[17px] font-bold text-foreground">
               {t("title")}
             </h3>
           </div>
           <button
             type="button"
-            className="btn-icon"
+            className="btn-icon cursor-pointer rounded-lg p-1.5 text-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: 18,
-              cursor: "pointer",
-              color: "var(--text-muted)",
-            }}
           >
             ✕
           </button>
         </div>
 
         {/* BODY */}
-        <form onSubmit={handleSubmit} style={{ padding: 24 }}>
-          <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5, marginBottom: 18 }}>
+        <form onSubmit={handleSubmit} className="p-6">
+          <p className="mb-4.5 text-[13px] leading-relaxed text-muted-foreground">
             {t("desc")}
           </p>
 
-          <div className="form-group" style={{ marginBottom: 16 }}>
+          <div className="form-group mb-4">
             <label
-              className="form-label"
+              className="form-label mb-1.5 block text-xs font-bold text-foreground"
               htmlFor="reject-reason-select"
-              style={{
-                display: "block",
-                fontSize: 12,
-                fontWeight: 700,
-                color: "var(--text-main)",
-                marginBottom: 6,
-              }}
             >
               {t("reasonLabel")}
             </label>
             <select
               id="reject-reason-select"
-              className="input-field"
+              className="input-field w-full cursor-pointer rounded-[10px] border border-border bg-muted px-3 py-2 text-[13px] text-foreground"
               required
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "9px 12px",
-                fontSize: 13,
-                borderRadius: 10,
-                background: "var(--bg-muted)",
-                border: "1px solid var(--border-subtle)",
-                color: "var(--text-main)",
-                cursor: "pointer",
-              }}
             >
               <option value="NOT_FOUND">{t("reasons.notFound")}</option>
               <option value="INCORRECT_AMOUNT">{t("reasons.incorrectAmount")}</option>
@@ -137,46 +85,27 @@ export function PaymentRejectModal({
             </select>
           </div>
 
-          <div className="form-group" style={{ marginBottom: 22 }}>
+          <div className="form-group mb-5.5">
             <label
-              className="form-label"
+              className="form-label mb-1.5 block text-xs font-bold text-foreground"
               htmlFor="reject-notes-textarea"
-              style={{
-                display: "block",
-                fontSize: 12,
-                fontWeight: 700,
-                color: "var(--text-main)",
-                marginBottom: 6,
-              }}
             >
               {t("notesLabel")}
             </label>
             <textarea
               id="reject-notes-textarea"
-              className="input-field"
+              className="input-field w-full resize-y rounded-[10px] border border-border bg-muted px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground"
               rows={3}
               placeholder={t("notesPlaceholder")}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "9px 12px",
-                fontSize: 13,
-                borderRadius: 10,
-                background: "var(--bg-muted)",
-                border: "1px solid var(--border-subtle)",
-                color: "var(--text-main)",
-                fontFamily: "inherit",
-                resize: "vertical",
-              }}
             />
           </div>
 
-          <div style={{ display: "flex", gap: 10 }}>
+          <div className="flex gap-2.5">
             <button
               type="button"
-              className="btn btn-outline"
-              style={{ flex: 1, padding: "10px 16px", fontSize: 13, borderRadius: 10 }}
+              className="btn btn-outline flex-1 rounded-[10px] px-4 py-2.5 text-[13px]"
               onClick={onClose}
               disabled={isProcessing}
             >
@@ -185,11 +114,10 @@ export function PaymentRejectModal({
             <button
               id="confirm-reject-button"
               type="submit"
-              className="btn btn-destructive"
-              style={{ flex: 1.5, padding: "10px 16px", fontSize: 13, borderRadius: 10 }}
+              className="btn btn-destructive flex-[1.5] rounded-[10px] px-4 py-2.5 text-[13px]"
               disabled={isProcessing}
             >
-              {isProcessing ? "Rechazando..." : t("confirm")}
+              {isProcessing ? t("rejecting") : t("confirm")}
             </button>
           </div>
         </form>

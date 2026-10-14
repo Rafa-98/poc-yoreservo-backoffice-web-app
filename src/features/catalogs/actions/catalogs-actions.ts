@@ -16,6 +16,7 @@ import type {
   CreateCategoryInput,
   CreateSurfaceInput,
   SurfaceItem,
+  UpdateSurfaceInput,
 } from "../model/types";
 
 async function getAuthToken(): Promise<string> {
@@ -27,7 +28,7 @@ async function getAuthToken(): Promise<string> {
 
 export async function getTaxonomyAction(): Promise<ActionResult<ActivityTypeItem[]>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/catalogs/taxonomy", {
@@ -49,7 +50,7 @@ export async function createActivityAction(
   input: CreateActivityInput
 ): Promise<ActionResult<ActivityItem>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/catalogs/activities", {
@@ -73,7 +74,7 @@ export async function createCategoryAction(
   input: CreateCategoryInput
 ): Promise<ActionResult<ActivityCategoryItem>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/catalogs/categories", {
@@ -95,7 +96,7 @@ export async function createCategoryAction(
 
 export async function getSurfacesAction(): Promise<ActionResult<SurfaceItem[]>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/catalogs/surfaces", {
@@ -117,7 +118,7 @@ export async function createSurfaceAction(
   input: CreateSurfaceInput
 ): Promise<ActionResult<SurfaceItem>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/catalogs/surfaces", {
@@ -137,9 +138,34 @@ export async function createSurfaceAction(
   }
 }
 
+export async function updateSurfaceAction(
+  id: string,
+  input: UpdateSurfaceInput
+): Promise<ActionResult<SurfaceItem>> {
+  try {
+    await requireSession(["ADMIN", "ALLY"]);
+    const accessToken = await getAuthToken();
+
+    const res = await backendRequest(`/backoffice/catalogs/surfaces/${id}`, {
+      method: "PATCH",
+      accessToken,
+      body: input,
+    });
+
+    if (!res.ok) {
+      return fail("SURFACE_UPDATE_FAILED");
+    }
+
+    revalidatePath("/catalogs");
+    return ok(res.body as SurfaceItem);
+  } catch (err: any) {
+    return fail(err instanceof Error ? err.message : "SURFACE_UPDATE_FAILED");
+  }
+}
+
 export async function getAmenitiesAction(): Promise<ActionResult<AmenityItem[]>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/catalogs/amenities", {
@@ -161,7 +187,7 @@ export async function createAmenityAction(
   input: CreateAmenityInput
 ): Promise<ActionResult<AmenityItem>> {
   try {
-    await requireSession();
+    await requireSession(["ADMIN", "ALLY"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/catalogs/amenities", {

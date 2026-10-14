@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
-  getPaymentsInboxAction,
   rejectPaymentAction,
   verifyPaymentAction,
 } from "@/features/treasury/actions/treasury-actions";
@@ -70,7 +69,7 @@ export function PaymentsInboxPage({ initialData }: PaymentsInboxPageProps) {
 
   // Counts for filter chips
   const counts = useMemo(() => {
-    let all = items.length;
+    const all = items.length;
     let pending = 0;
     let verified = 0;
     let rejected = 0;
@@ -90,7 +89,6 @@ export function PaymentsInboxPage({ initialData }: PaymentsInboxPageProps) {
     try {
       const res = await verifyPaymentAction(paymentId);
       if (res.ok) {
-        // Optimistic update
         setItems((prev) =>
           prev.map((item) =>
             item.id === paymentId
@@ -140,7 +138,9 @@ export function PaymentsInboxPage({ initialData }: PaymentsInboxPageProps) {
         }));
         setRejectingPayment(null);
         if (selectedVoucherPayment?.id === paymentId) {
-          setSelectedVoucherPayment((prev) => (prev ? { ...prev, status: "REJECTED", rejectionReason: reason } : null));
+          setSelectedVoucherPayment((prev) =>
+            prev ? { ...prev, status: "REJECTED", rejectionReason: reason } : null,
+          );
         }
       }
     } finally {
@@ -153,7 +153,7 @@ export function PaymentsInboxPage({ initialData }: PaymentsInboxPageProps) {
   };
 
   return (
-    <div className="payments-inbox-container" style={{ paddingBottom: 40 }}>
+    <div className="payments-inbox-container pb-10">
       {/* KPI STRIP */}
       <PaymentsKpiStrip kpis={kpis} />
 
@@ -169,7 +169,7 @@ export function PaymentsInboxPage({ initialData }: PaymentsInboxPageProps) {
       />
 
       {/* TABLE */}
-      <section style={{ padding: "0 20px" }}>
+      <section className="px-5">
         <PaymentsTable
           payments={filteredItems}
           onOpenVoucher={setSelectedVoucherPayment}
@@ -202,61 +202,35 @@ export function PaymentsInboxPage({ initialData }: PaymentsInboxPageProps) {
       {/* VIEW REASON POPUP / MODAL */}
       {reasonModalPayment && (
         <div
-          className="modal-backdrop"
+          className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
           onClick={() => setReasonModalPayment(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.6)",
-            backdropFilter: "blur(4px)",
-            zIndex: 10000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 16,
-          }}
         >
           <div
-            className="modal-card"
+            className="modal-card w-full max-w-[440px] rounded-[20px] border border-border bg-surface p-6"
             onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border-subtle)",
-              borderRadius: 20,
-              width: "100%",
-              maxWidth: 440,
-              padding: 24,
-            }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-              <span style={{ fontSize: 24 }}>⚠️</span>
-              <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: "var(--text-main)" }}>
-                Causa de Rechazo de Pago #{reasonModalPayment.referenceNumber}
+            <div className="mb-3.5 flex items-center gap-2.5">
+              <span className="text-2xl">⚠️</span>
+              <h3 className="m-0 text-[17px] font-bold text-foreground">
+                {t("reasonModal.title", {
+                  ref: reasonModalPayment.referenceNumber ?? t("table.noRef"),
+                })}
               </h3>
             </div>
 
-            <div
-              style={{
-                background: "rgba(239, 68, 68, 0.08)",
-                border: "1px solid rgba(239, 68, 68, 0.2)",
-                borderRadius: 12,
-                padding: "14px 16px",
-                marginBottom: 20,
-              }}
-            >
-              <div style={{ fontSize: 13.5, color: "var(--status-cancelled-text)", fontWeight: 600 }}>
-                {reasonModalPayment.rejectionReason || "Referencia bancaria no localizada en el extracto de cuenta."}
+            <div className="mb-5 rounded-xl border border-status-cancelled-border bg-status-cancelled-bg px-4 py-3.5">
+              <div className="text-[13.5px] font-semibold text-status-cancelled-fg">
+                {reasonModalPayment.rejectionReason || t("reasonModal.defaultReason")}
               </div>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <div className="flex justify-end">
               <button
                 type="button"
-                className="btn btn-outline"
-                style={{ padding: "8px 16px", fontSize: 13, borderRadius: 10 }}
+                className="btn btn-outline rounded-[10px] px-4 py-2 text-[13px]"
                 onClick={() => setReasonModalPayment(null)}
               >
-                Cerrar
+                {t("reasonModal.close")}
               </button>
             </div>
           </div>

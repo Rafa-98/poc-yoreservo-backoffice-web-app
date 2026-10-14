@@ -3,15 +3,29 @@
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
-import type { SettlementBatchItem } from "../model/types";
+import type { SettlementBatchItem, SettlementPayoutMethod } from "../model/types";
 import { disburseSettlementAction } from "../actions/treasury-actions";
+
+export interface SettlementPayoutSubmitPayload {
+  batchId: string;
+  payoutMethod: SettlementPayoutMethod;
+  referenceNumber: string;
+  destinationBank: string;
+  originAccount?: string;
+  disbursementDate: string;
+  receiptUrl?: string;
+  notes?: string;
+}
 
 interface SettlementPayoutModalProps {
   isOpen: boolean;
   batch: SettlementBatchItem | null;
   bcvRate: number;
   onClose: () => void;
-  onSuccess: () => void;
+  onDisburse?: (
+    input: SettlementPayoutSubmitPayload,
+  ) => Promise<{ ok: boolean; error?: string }>;
+  onSuccess?: (input: { referenceNumber: string; disbursementDate: string }) => void;
 }
 
 export function SettlementPayoutModal({
@@ -19,6 +33,7 @@ export function SettlementPayoutModal({
   batch,
   bcvRate,
   onClose,
+  onDisburse,
   onSuccess,
 }: SettlementPayoutModalProps) {
   const t = useTranslations("settlements");
@@ -39,27 +54,56 @@ export function SettlementPayoutModal({
     e.preventDefault();
     if (!batch) return;
     if (!transferRef.trim()) {
-      setErrorMsg("Debe ingresar el número de referencia bancaria");
+      setErrorMsg(t("errMissingRef"));
       return;
     }
 
     setLoading(true);
     setErrorMsg(null);
 
-    const res = await disburseSettlementAction(batch.id, {
+    const payload: SettlementPayoutSubmitPayload = {
+      batchId: batch.id,
       payoutMethod: "BANK_TRANSFER",
-      payoutReferenceNumber: transferRef.trim(),
-      payoutDestinationBank: batch.organization?.payoutBank || "Banesco Banco Universal",
+      referenceNumber: transferRef.trim(),
+      destinationBank: batch.organization?.payoutBank || "Banesco Banco Universal",
       originAccount,
-      payoutDate,
-      payoutReceiptUrl: fileName ? `https://assets.yoreservo.com/receipts/${fileName}` : undefined,
+      disbursementDate: payoutDate,
+      receiptUrl: fileName ? `https://assets.yoreservo.com/receipts/${fileName}` : undefined,
       notes: notes.trim() || undefined,
+    };
+
+    if (onDisburse) {
+      const res = await onDisburse(payload);
+      setLoading(false);
+      if (res.ok) {
+        onSuccess?.({
+          referenceNumber: payload.referenceNumber,
+          disbursementDate: payload.disbursementDate,
+        });
+        onClose();
+      } else {
+        setErrorMsg(res.error || t("payoutError"));
+      }
+      return;
+    }
+
+    const res = await disburseSettlementAction(batch.id, {
+      payoutMethod: payload.payoutMethod,
+      payoutReferenceNumber: payload.referenceNumber,
+      payoutDestinationBank: payload.destinationBank,
+      originAccount: payload.originAccount,
+      payoutDate: payload.disbursementDate,
+      payoutReceiptUrl: payload.receiptUrl,
+      notes: payload.notes,
     });
 
     setLoading(false);
 
     if (res.ok) {
-      onSuccess();
+      onSuccess?.({
+        referenceNumber: payload.referenceNumber,
+        disbursementDate: payload.disbursementDate,
+      });
       onClose();
     } else {
       setErrorMsg(res.error.code || t("payoutError"));
@@ -108,7 +152,7 @@ export function SettlementPayoutModal({
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
             {errorMsg && (
-              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs font-semibold text-rose-400">
+              <div className="rounded-xl border border-status-cancelled-border bg-status-cancelled-bg p-3 text-xs font-semibold text-status-cancelled-fg">
                 {errorMsg}
               </div>
             )}
@@ -121,20 +165,21 @@ export function SettlementPayoutModal({
                     {batch.organization?.tradeName}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5" id="modal-ally-rif">
-                    {batch.organization?.rif} • {batch.periodDisplay || `${batch.periodStartDate} - ${batch.periodEndDate}`}
+                    {batch.organization?.rif} •{" "}
+                    {batch.periodDisplay || `${batch.periodStartDate} - ${batch.periodEndDate}`}
                   </div>
                 </div>
-                <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[11px] font-bold text-amber-500">
+                <span className="rounded-full bg-status-hold-bg border border-status-hold-border px-2.5 py-0.5 text-[11px] font-bold text-status-hold-fg">
                   {t("statusPending")}
                 </span>
               </div>
 
-              <div className="border-t border-dashed border-border/80 pt-3 flex items-end justify-between">
+              <div className="border-t border-dashed border-border pt-3 flex items-end justify-between">
                 <div>
                   <div className="text-[11px] font-bold uppercase text-muted-foreground">
                     {t("lblNetToTransfer")}
                   </div>
-                  <div className="font-display text-2xl font-black text-emerald-500 mt-0.5" id="modal-net-usd">
+                  <div className="font-display text-2xl font-black text-status-available-fg mt-0.5" id="modal-net-usd">
                     ${batch.netPayoutAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
                   </div>
                 </div>
@@ -157,13 +202,17 @@ export function SettlementPayoutModal({
               <div className="rounded-xl border border-border bg-surface p-3.5 text-xs text-foreground space-y-1" id="modal-dest-details">
                 <div className="font-bold flex items-center gap-1.5">
                   <span>🏦</span>
-                  <span>{batch.organization?.payoutBank || "Banesco Banco Universal"}</span>
-                  <span className="text-muted-foreground font-mono">
-                    ({batch.organization?.payoutAccountNumber || "0134-0982-1200-4401-2918"})
-                  </span>
+                  <span>{batch.organization?.payoutBank || "—"}</span>
+                  {batch.organization?.payoutAccountNumber && (
+                    <span className="text-muted-foreground font-mono">
+                      ({batch.organization.payoutAccountNumber})
+                    </span>
+                  )}
                 </div>
                 <div className="text-[11px] text-muted-foreground">
-                  {t("lblDestAccountHolder")} {batch.organization?.payoutAccountHolder || batch.organization?.legalName} • RIF: {batch.organization?.rif}
+                  {t("lblDestAccountHolder")}{" "}
+                  {batch.organization?.payoutAccountHolder || batch.organization?.legalName} • RIF:{" "}
+                  {batch.organization?.rif}
                 </div>
               </div>
             </div>
@@ -179,15 +228,9 @@ export function SettlementPayoutModal({
                 className="form-select text-xs"
                 id="modal-origin-account"
               >
-                <option value="BANESCO_0134">
-                  Banesco Jurídica — 0134-0001-92-0001298491 (Disponible: $42,900)
-                </option>
-                <option value="MERCANTIL_0105">
-                  Mercantil Jurídica — 0105-0024-81-0003918270 (Disponible: $28,450)
-                </option>
-                <option value="ZELLE_CORP">
-                  Zelle Corporativo — treasury@yoreservo.app
-                </option>
+                <option value="BANESCO_0134">{t("originAccBanesco")}</option>
+                <option value="MERCANTIL_0105">{t("originAccMercantil")}</option>
+                <option value="ZELLE_CORP">{t("originAccZelle")}</option>
               </select>
             </div>
 
@@ -202,7 +245,7 @@ export function SettlementPayoutModal({
                   required
                   value={transferRef}
                   onChange={(e) => setTransferRef(e.target.value)}
-                  placeholder="Ej: 013498210398"
+                  placeholder={t("placeholderTransferRef")}
                   className="form-input font-mono font-bold text-xs"
                   id="modal-transfer-ref"
                 />
@@ -231,7 +274,7 @@ export function SettlementPayoutModal({
               <label className="block border-2 border-dashed border-border hover:border-accent/60 rounded-xl p-4 text-center bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer">
                 <span className="text-2xl">📄</span>
                 <div className="text-xs font-bold text-foreground mt-1">
-                  {fileName ? `Archivo: ${fileName}` : t("uploadVoucherCta")}
+                  {fileName ? `${t("lblSelectedFile")} ${fileName}` : t("uploadVoucherCta")}
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
                   {t("uploadVoucherFormats")}
@@ -254,7 +297,7 @@ export function SettlementPayoutModal({
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Ej: Transferencia liquidada en horario de compensación bancaria..."
+                placeholder={t("placeholderNotes")}
                 rows={2}
                 className="form-textarea text-xs"
                 id="modal-notes"
@@ -282,7 +325,7 @@ export function SettlementPayoutModal({
               id="btn-confirm-payout"
             >
               <span>✓</span>
-              <span>{loading ? "Procesando..." : t("btnConfirmPayout")}</span>
+              <span>{loading ? t("btnProcessing") : t("btnConfirmPayout")}</span>
             </Button>
           </div>
         </form>

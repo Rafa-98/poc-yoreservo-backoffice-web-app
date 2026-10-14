@@ -13,8 +13,8 @@ interface VenuesSubnavProps {
 }
 
 export function VenuesSubnav({
-  venuesCount = 2,
-  spacesCount = 4,
+  venuesCount = 0,
+  spacesCount = 0,
   onOpenOrgModal,
 }: VenuesSubnavProps) {
   const pathname = usePathname();
@@ -26,27 +26,14 @@ export function VenuesSubnav({
 
   return (
     <nav
-      style={{
-        padding: "16px 20px 0",
-        display: "flex",
-        gap: "10px",
-        borderBottom: "1px solid var(--border-subtle)",
-        background: "var(--bg-surface)",
-        overflowX: "auto",
-      }}
-      aria-label="Venues sub-navigation"
+      className="flex gap-2.5 overflow-x-auto border-b border-border bg-surface px-5 pt-4"
+      aria-label={t("ariaLabel")}
     >
       {onOpenOrgModal && (
         <button
           type="button"
-          className="btn btn-outline"
+          className="btn btn-outline whitespace-nowrap border-none font-medium text-muted-foreground"
           onClick={onOpenOrgModal}
-          style={{
-            border: "none",
-            color: "var(--text-muted)",
-            fontWeight: 500,
-            whiteSpace: "nowrap",
-          }}
           id="btn-subnav-org"
         >
           🏢 <span>{t("org")}</span>
@@ -56,17 +43,12 @@ export function VenuesSubnav({
       <Link
         href={ROUTES.venues}
         prefetch={false}
-        className="btn btn-outline"
+        className={`btn btn-outline whitespace-nowrap rounded-t-lg rounded-b-none border-t-0 border-x-0 border-b-[3px] bg-transparent ${
+          isVenues
+            ? "border-b-accent font-bold text-foreground"
+            : "border-b-transparent font-medium text-muted-foreground"
+        }`}
         id="btn-subnav-venues"
-        style={{
-          border: isVenues ? "none" : "none",
-          borderBottom: isVenues ? "3px solid var(--brand-lime)" : "3px solid transparent",
-          borderRadius: "8px 8px 0 0",
-          background: "transparent",
-          fontWeight: isVenues ? 700 : 500,
-          color: isVenues ? "var(--text-main)" : "var(--text-muted)",
-          whiteSpace: "nowrap",
-        }}
       >
         🏟️ <span>{t("venues", { count: venuesCount })}</span>
       </Link>
@@ -74,17 +56,12 @@ export function VenuesSubnav({
       <Link
         href={ROUTES.spaces}
         prefetch={false}
-        className="btn btn-outline"
+        className={`btn btn-outline whitespace-nowrap rounded-t-lg rounded-b-none border-t-0 border-x-0 border-b-[3px] bg-transparent ${
+          isSpaces
+            ? "border-b-accent font-bold text-foreground"
+            : "border-b-transparent font-medium text-muted-foreground"
+        }`}
         id="btn-subnav-spaces"
-        style={{
-          border: isSpaces ? "none" : "none",
-          borderBottom: isSpaces ? "3px solid var(--brand-lime)" : "3px solid transparent",
-          borderRadius: "8px 8px 0 0",
-          background: "transparent",
-          fontWeight: isSpaces ? 700 : 500,
-          color: isSpaces ? "var(--text-main)" : "var(--text-muted)",
-          whiteSpace: "nowrap",
-        }}
       >
         ⚽ <span>{t("spaces", { count: spacesCount })}</span>
       </Link>
@@ -92,17 +69,12 @@ export function VenuesSubnav({
       <Link
         href={ROUTES.schedules}
         prefetch={false}
-        className="btn btn-outline"
+        className={`btn btn-outline whitespace-nowrap rounded-t-lg rounded-b-none border-t-0 border-x-0 border-b-[3px] bg-transparent ${
+          isSchedules
+            ? "border-b-accent font-bold text-foreground"
+            : "border-b-transparent font-medium text-muted-foreground"
+        }`}
         id="btn-subnav-schedules"
-        style={{
-          border: isSchedules ? "none" : "none",
-          borderBottom: isSchedules ? "3px solid var(--brand-lime)" : "3px solid transparent",
-          borderRadius: "8px 8px 0 0",
-          background: "transparent",
-          fontWeight: isSchedules ? 700 : 500,
-          color: isSchedules ? "var(--text-main)" : "var(--text-muted)",
-          whiteSpace: "nowrap",
-        }}
       >
         🕒 <span>{t("schedules")}</span>
       </Link>

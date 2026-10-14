@@ -70,6 +70,8 @@ export interface CreateSurfaceInput {
   suitedSports: string[];
 }
 
+export type UpdateSurfaceInput = CreateSurfaceInput;
+
 export interface CreateAmenityInput {
   code: string;
   name: string;

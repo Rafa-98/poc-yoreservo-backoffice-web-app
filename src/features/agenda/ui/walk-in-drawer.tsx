@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Check, DollarSign, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import { Button } from "@/shared/ui/button";
 import { Alert } from "@/shared/ui/alert";
 import type { CourtSpace } from "../model/types";
@@ -15,6 +16,7 @@ export interface WalkInDrawerProps {
   selectedDate: string;
   startTime: string;
   onSuccess: () => void;
+  bcvRate?: number;
 }
 
 export function WalkInDrawer({
@@ -24,6 +26,7 @@ export function WalkInDrawer({
   selectedDate,
   startTime,
   onSuccess,
+  bcvRate = DEFAULT_BCV_USD_RATE,
 }: WalkInDrawerProps) {
   const t = useTranslations("agenda");
 
@@ -40,7 +43,6 @@ export function WalkInDrawer({
   const [h] = startTime.split(":").map(Number);
   const endTime = `${String(h + 1).padStart(2, "0")}:00`;
   const price = court.pricePerHour;
-  const bcvRate = 36.52;
   const priceVes = Math.round(price * bcvRate);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,7 +65,7 @@ export function WalkInDrawer({
     setIsSubmitting(false);
 
     if (!res.ok) {
-      setErrorMessage("No se pudo registrar la reserva en mostrador.");
+      setErrorMessage(t("errorWalkIn"));
       return;
     }
 
@@ -85,7 +87,7 @@ export function WalkInDrawer({
         <div className="flex items-center justify-between border-b border-border pb-4">
           <div>
             <div className="inline-block rounded bg-accent/20 px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-wider text-accent-foreground border border-accent/30 mb-1">
-              Taquilla Directa
+              {t("drawerBadge")}
             </div>
             <h3 className="font-display text-lg font-bold text-foreground">
               {t("drawerTitle")}
@@ -138,7 +140,7 @@ export function WalkInDrawer({
               required
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Ej. Roberto Martínez"
+              placeholder={t("customerNamePlaceholder")}
               className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-accent focus:outline-none"
             />
           </div>
@@ -152,7 +154,7 @@ export function WalkInDrawer({
               type="tel"
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
-              placeholder="+58 412 123 4567"
+              placeholder={t("customerPhonePlaceholder")}
               className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-accent focus:outline-none"
             />
           </div>
@@ -184,7 +186,7 @@ export function WalkInDrawer({
                 type="text"
                 value={referenceNumber}
                 onChange={(e) => setReferenceNumber(e.target.value)}
-                placeholder="Últimos 6 dígitos del comprobante"
+                placeholder={t("refNumberPlaceholder")}
                 className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-accent focus:outline-none font-mono"
               />
             </div>
@@ -199,7 +201,7 @@ export function WalkInDrawer({
               rows={2}
               value={internalNotes}
               onChange={(e) => setInternalNotes(e.target.value)}
-              placeholder="Ej. Pagado en efectivo en taquilla"
+              placeholder={t("notesPlaceholder")}
               className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none"
             />
           </div>

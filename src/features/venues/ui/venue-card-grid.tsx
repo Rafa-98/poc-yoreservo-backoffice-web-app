@@ -21,101 +21,97 @@ export function VenueCardGrid({
 
   function getLocationString(venue: VenueItem): string {
     const loc = venue.location;
-    if (!loc) return "📍 Caracas, Venezuela";
+    if (!loc) return `📍 ${t("defaultLocation")}`;
 
-    const hood = typeof loc.name === "object" ? loc.name?.es || loc.name?.en : loc.name;
-    const city = loc.parent ? (typeof loc.parent.name === "object" ? loc.parent.name?.es : loc.parent.name) : "";
+    const hood =
+      typeof loc.name === "object" ? loc.name?.es || loc.name?.en : loc.name;
+    const city = loc.parent
+      ? typeof loc.parent.name === "object"
+        ? loc.parent.name?.es || loc.parent.name?.en
+        : loc.parent.name
+      : "";
     const state = loc.parent?.parent
       ? typeof loc.parent.parent.name === "object"
-        ? loc.parent.parent.name?.es
+        ? loc.parent.parent.name?.es || loc.parent.parent.name?.en
         : loc.parent.parent.name
       : "";
 
     if (state && city && hood) {
       return `📍 ${state}, ${city} • ${hood}`;
     }
-    return `📍 ${hood || "Caracas"}`;
+    return `📍 ${hood || t("defaultLocation")}`;
+  }
+
+  function getVenueMetadataChips(venue: VenueItem): string[] {
+    if (venue.amenities && venue.amenities.length > 0) {
+      return venue.amenities;
+    }
+
+    const chips: string[] = [];
+    if (venue.contactPhone) {
+      chips.push(`📞 ${venue.contactPhone}`);
+    }
+    if (venue.contactEmail) {
+      chips.push(`✉️ ${venue.contactEmail}`);
+    }
+    if (venue.rif) {
+      chips.push(`🪪 ${t("rifChip", { rif: venue.rif })}`);
+    }
+    if (venue.locationLat && venue.locationLng) {
+      chips.push(
+        `📍 ${t("coordsChip", {
+          coords: `${venue.locationLat.toFixed(4)}, ${venue.locationLng.toFixed(4)}`,
+        })}`
+      );
+    }
+    return chips;
   }
 
   return (
-    <section style={{ padding: "24px 0" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "0 20px 16px",
-        }}
-      >
-        <div style={{ fontSize: "14px", color: "var(--text-muted)", fontWeight: 500 }}>
-          {venues.length === 1 ? "1 Sede Registrada" : `${venues.length} Sedes Registradas`}
+    <section className="py-6">
+      <div className="flex items-center justify-between px-5 pb-4">
+        <div className="text-sm font-medium text-muted-foreground">
+          {venues.length === 1
+            ? t("registeredCountOne")
+            : t("registeredCountMany", { count: venues.length })}
         </div>
         <button
           type="button"
-          className="btn btn-primary"
+          className="btn btn-primary text-[13px]"
           onClick={onOpenCreateVenue}
           id="btn-add-venue"
-          style={{ fontSize: "13px" }}
         >
           <span>+</span>
           <span>{t("btnAdd")}</span>
         </button>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
-          gap: "24px",
-          padding: "0 20px 32px",
-        }}
-      >
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] gap-6 px-5 pb-8">
         {venues.map((venue) => {
           const isActive = venue.status === "ACTIVE";
-          const borderTopColor = isActive ? "var(--brand-lime)" : "var(--status-hold-text, #EAB308)";
           const sportsText =
             venue.sports && venue.sports.length > 0
               ? venue.sports.slice(0, 2).join(" / ")
-              : "Fútbol / Pádel";
+              : t("defaultSports");
+          const chips = getVenueMetadataChips(venue);
 
           return (
             <div
               key={venue.id}
-              className="venue-card"
-              style={{
-                background: "var(--bg-surface)",
-                border: "1px solid var(--border-subtle)",
-                borderRadius: "20px",
-                overflow: "hidden",
-                boxShadow: "var(--shadow-sm)",
-                display: "flex",
-                flexDirection: "column",
-                borderTop: `4px solid ${borderTopColor}`,
-              }}
+              className={`venue-card flex flex-col overflow-hidden rounded-[20px] border border-border border-t-4 bg-surface shadow-card ${
+                isActive ? "border-t-accent" : "border-t-status-hold-fg"
+              }`}
             >
               {/* Hero Image */}
-              <div
-                style={{
-                  height: "160px",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  backgroundImage: venue.imageUrl
-                    ? `url('${venue.imageUrl}')`
-                    : "linear-gradient(135deg, #1A2418 0%, #0F1710 100%)",
-                  position: "relative",
-                }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    background:
-                      "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(18,24,17,0.85) 100%)",
-                    display: "flex",
-                    alignItems: "flex-end",
-                    padding: "16px",
-                  }}
-                >
+              <div className="relative h-40 overflow-hidden bg-gradient-to-br from-forest-800 to-forest-950">
+                {venue.imageUrl && (
+                  <img
+                    src={venue.imageUrl}
+                    alt={venue.name}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                )}
+                <div className="absolute inset-0 flex items-end bg-gradient-to-b from-black/10 to-forest-900/85 p-4">
                   {isActive ? (
                     <span className="badge badge-available">
                       {t("activeInApp")}
@@ -129,172 +125,75 @@ export function VenueCardGrid({
               </div>
 
               {/* Body */}
-              <div
-                style={{
-                  padding: "20px",
-                  flex: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <div style={{ marginBottom: "8px" }}>
-                  <h3
-                    style={{
-                      fontSize: "18px",
-                      fontWeight: 700,
-                      marginBottom: "4px",
-                      color: "var(--text-main)",
-                    }}
-                  >
+              <div className="flex flex-1 flex-col p-5">
+                <div className="mb-2">
+                  <h3 className="mb-1 text-lg font-bold text-foreground">
                     {venue.name}
                   </h3>
-                  <div style={{ fontSize: "12.5px", color: "var(--text-muted)" }}>
+                  <div className="text-[12.5px] text-muted-foreground">
                     {getLocationString(venue)}
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--text-muted)",
-                    marginBottom: "16px",
-                    lineHeight: "1.5",
-                  }}
-                >
+                <div className="mb-4 text-xs leading-relaxed text-muted-foreground">
                   {venue.address}
                 </div>
 
-                {/* Amenities Chips */}
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: "6px",
-                    marginBottom: "20px",
-                  }}
-                >
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "5px",
-                      padding: "4px 9px",
-                      borderRadius: "8px",
-                      background: "var(--bg-muted)",
-                      fontSize: "11.5px",
-                      fontWeight: 600,
-                      color: "var(--text-muted)",
-                    }}
-                  >
-                    🚗 Estacionamiento Privado
-                  </span>
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "5px",
-                      padding: "4px 9px",
-                      borderRadius: "8px",
-                      background: "var(--bg-muted)",
-                      fontSize: "11.5px",
-                      fontWeight: 600,
-                      color: "var(--text-muted)",
-                    }}
-                  >
-                    💡 Iluminación LED
-                  </span>
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "5px",
-                      padding: "4px 9px",
-                      borderRadius: "8px",
-                      background: "var(--bg-muted)",
-                      fontSize: "11.5px",
-                      fontWeight: 600,
-                      color: "var(--text-muted)",
-                    }}
-                  >
-                    🚿 Vestuarios & Duchas
-                  </span>
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "5px",
-                      padding: "4px 9px",
-                      borderRadius: "8px",
-                      background: "var(--bg-muted)",
-                      fontSize: "11.5px",
-                      fontWeight: 600,
-                      color: "var(--text-muted)",
-                    }}
-                  >
-                    🍔 Cafetín
-                  </span>
-                </div>
+                {/* Amenities or Venue Contact/Coordinates Summary Chips */}
+                {chips.length > 0 && (
+                  <div className="mb-5 flex flex-wrap gap-1.5">
+                    {chips.map((chip) => (
+                      <span
+                        key={chip}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-muted px-2.5 py-1 text-[11.5px] font-semibold text-muted-foreground"
+                      >
+                        {chip}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {/* Stats Strip */}
-                <div
-                  style={{
-                    background: "var(--bg-muted)",
-                    borderRadius: "12px",
-                    padding: "12px",
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                    textAlign: "center",
-                    gap: "8px",
-                    marginBottom: "20px",
-                  }}
-                >
+                <div className="mb-5 grid grid-cols-3 gap-2 rounded-xl bg-muted p-3 text-center">
                   <div>
-                    <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                    <div className="text-[11px] text-muted-foreground">
                       {t("courts")}
                     </div>
-                    <div
-                      style={{
-                        fontSize: "16px",
-                        fontWeight: 700,
-                        color: "var(--text-link)",
-                      }}
-                    >
+                    <div className="text-base font-bold text-link">
                       {venue.spacesCount}
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                    <div className="text-[11px] text-muted-foreground">
                       {t("sports")}
                     </div>
-                    <div style={{ fontSize: "14px", fontWeight: 700 }}>
+                    <div className="text-sm font-bold text-foreground">
                       {sportsText}
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                    <div className="text-[11px] text-muted-foreground">
                       {t("staff")}
                     </div>
-                    <div style={{ fontSize: "14px", fontWeight: 700 }}>
-                      {venue.staffCount} pers.
+                    <div className="text-sm font-bold text-foreground">
+                      {t("staffCount", { count: venue.staffCount })}
                     </div>
                   </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div style={{ marginTop: "auto", display: "flex", gap: "10px" }}>
+                <div className="mt-auto flex gap-2.5">
                   <Link
                     href={`${ROUTES.spaces}?venueId=${venue.id}`}
                     prefetch={false}
-                    className="btn btn-primary"
-                    style={{ flex: 1, fontSize: "12.5px", textAlign: "center" }}
+                    className="btn btn-primary flex-1 text-center text-[12.5px]"
                   >
                     ⚙️ <span>{t("btnManageCourts")}</span>
                   </Link>
                   <button
                     type="button"
-                    className="btn btn-outline"
+                    className="btn btn-outline text-[12.5px]"
                     onClick={() => onOpenEditVenue(venue)}
-                    style={{ fontSize: "12.5px" }}
                   >
                     ✏️ <span>{t("btnEdit")}</span>
                   </button>

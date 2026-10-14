@@ -9,7 +9,7 @@ import {
   sessionUserSchema,
 } from "@/shared/auth";
 import { createSession } from "@/shared/auth/index.server";
-import { BACKOFFICE_ROLES } from "@/shared/config";
+import { getDefaultRouteForRole, isBackofficeRole } from "@/shared/config";
 import { fail, ok, type ActionResult } from "@/shared/lib";
 
 const loginInputSchema = z.object({
@@ -57,14 +57,14 @@ export async function loginAction(
     );
 
     // Reject CLIENT athletes attempting to sign in to Backoffice
-    if (!(BACKOFFICE_ROLES as readonly string[]).includes(payload.user.role)) {
+    if (!isBackofficeRole(payload.user.role)) {
       return fail("FORBIDDEN_ROLE");
     }
 
     const tokens = buildAuthTokens(payload, response.refreshCookie);
     await createSession(tokens);
 
-    return ok({});
+    return ok({ redirectTo: getDefaultRouteForRole(payload.user.role) });
   } catch (error) {
     console.error("[auth] Login error:", error);
     return fail("SERVICE_UNAVAILABLE");

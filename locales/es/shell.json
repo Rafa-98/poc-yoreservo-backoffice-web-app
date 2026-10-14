@@ -32,5 +32,7 @@
   "roleValidator": "Recepción (Check-in)",
   "roleAdmin": "Admin Global",
   "roleAccounting": "Contabilidad",
-  "activeRole": "Rol activo"
+  "activeRole": "Rol activo",
+  "openMenu": "Abrir menú",
+  "closeMenu": "Cerrar menú"
 }

@@ -32,37 +32,17 @@ export function RateTickerRibbon({
   };
 
   return (
-    <div
-      style={{
-        background: "var(--bg-surface)",
-        border: "1px solid var(--border-subtle)",
-        borderRadius: 16,
-        padding: "14px 18px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        flexWrap: "wrap",
-        gap: 14,
-        marginBottom: 24,
-      }}
-    >
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-3.5 rounded-2xl border border-border bg-surface px-4.5 py-3.5">
       {/* SECONDARY CURRENCIES */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontSize: 12.5 }}>
-        <span style={{ fontWeight: 700, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 6 }}>
+      <div className="flex flex-wrap items-center gap-3 text-xs">
+        <span className="flex items-center gap-1.5 font-bold text-foreground">
           <span>🏛️</span> {t("otherCurrencies")}
         </span>
 
         {secondaryCurrencies.map((c) => (
           <span
             key={c.currency}
-            style={{
-              background: "var(--bg-muted)",
-              padding: "4px 8px",
-              borderRadius: 6,
-              fontFamily: "monospace",
-              color: "var(--text-main)",
-              fontSize: 12,
-            }}
+            className="rounded-md bg-muted px-2 py-1 font-mono text-xs text-foreground"
           >
             {c.symbol} {c.currency}: {c.rate}
           </span>
@@ -70,24 +50,27 @@ export function RateTickerRibbon({
       </div>
 
       {/* SYNC ACTIONS */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div className="flex items-center gap-3">
         {syncMessage && (
-          <span style={{ fontSize: 11.5, color: "#059669", fontWeight: 600 }}>
+          <span className="text-[11.5px] font-semibold text-status-available-fg">
             ✓ {syncMessage}
           </span>
         )}
-        <div style={{ fontSize: 11.5, color: "var(--text-muted)", textAlign: "right" }}>
-          <span>{t("lastSync")}</span>
+        <div className="text-right text-[11.5px] text-muted-foreground">
+          <span>{t("lastSync", { time: lastSync })}</span>
         </div>
         <button
           id="btn-force-sync"
           type="button"
-          className="btn btn-primary"
+          className="btn btn-primary inline-flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-xs"
           onClick={handleSync}
           disabled={isSyncing}
-          style={{ fontSize: 12.5, padding: "8px 14px", borderRadius: 10, display: "inline-flex", alignItems: "center", gap: 6 }}
         >
-          <span style={{ display: "inline-block", transform: isSyncing ? "rotate(180deg)" : "none", transition: "transform 0.5s ease" }}>
+          <span
+            className={`inline-block transition-transform duration-500 ${
+              isSyncing ? "rotate-180" : ""
+            }`}
+          >
             🔄
           </span>
           <span>{isSyncing ? t("syncing") : t("syncNow")}</span>

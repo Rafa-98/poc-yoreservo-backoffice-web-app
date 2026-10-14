@@ -85,12 +85,12 @@ export function ProfileDetailsForm({
             onChange={(e) => setDocType(e.target.value)}
             className="w-28 shrink-0 px-3 py-2.5 rounded-xl border border-border bg-surface text-foreground text-xs sm:text-sm font-bold focus:outline-hidden focus:ring-2 focus:ring-accent/40 shadow-2xs"
           >
-            <option value="V">V - Venezolano</option>
-            <option value="E">E - Extranjero</option>
-            <option value="J">J - Jurídico</option>
-            <option value="G">G - Gubernamental</option>
-            <option value="P">P - Pasaporte</option>
-            <option value="C">C - Comunal</option>
+            <option value="V">{t("general.docV")}</option>
+            <option value="E">{t("general.docE")}</option>
+            <option value="J">{t("general.docJ")}</option>
+            <option value="G">{t("general.docG")}</option>
+            <option value="P">{t("general.docP")}</option>
+            <option value="C">{t("general.docC")}</option>
           </select>
           <input
             type="text"
@@ -135,8 +135,8 @@ export function ProfileDetailsForm({
             <option value="0424">0424 (Movistar)</option>
             <option value="0416">0416 (Movilnet)</option>
             <option value="0426">0426 (Movilnet)</option>
-            <option value="0212">0212 (Fijo CCS)</option>
-            <option value="OTRO">Otro / Int.</option>
+            <option value="0212">{t("general.opLandline")}</option>
+            <option value="OTRO">{t("general.opOther")}</option>
           </select>
 
           <input

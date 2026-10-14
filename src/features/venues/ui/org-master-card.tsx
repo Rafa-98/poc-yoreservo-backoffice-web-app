@@ -2,67 +2,47 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
+import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import type { OrganizationData } from "../model/types";
 
 interface OrgMasterCardProps {
   organization: OrganizationData;
   bcvRate?: number;
+  bcvEurRate?: number;
   onOpenEditModal: () => void;
 }
 
 export function OrgMasterCard({
   organization,
-  bcvRate = 41.0,
+  bcvRate = DEFAULT_BCV_USD_RATE,
+  bcvEurRate = DEFAULT_BCV_EUR_RATE,
   onOpenEditModal,
 }: OrgMasterCardProps) {
   const t = useTranslations("venues.org");
 
   const isEur = organization.referenceCurrencyCode === "EUR";
-  const currencyLabel = isEur ? "Euro BCV (€ EUR)" : "Dólar BCV ($ USD)";
+  const currencyLabel = isEur ? t("currencyEur") : t("currencyUsd");
   const currencyRateLabel = isEur
-    ? `Tasa: ${(bcvRate * 1.08).toFixed(2)} Bs./EUR`
-    : `Tasa: ${bcvRate.toFixed(2)} Bs./USD`;
+    ? t("rateEur", { rate: bcvEurRate.toFixed(2) })
+    : t("rateUsd", { rate: bcvRate.toFixed(2) });
+
+  const displayName =
+    organization.tradeName || organization.legalName || t("notConfigured");
+  const displayLegalName = organization.legalName || "—";
+  const displayRif = organization.rif || organization.taxId || "—";
+  const displayBank = organization.payoutBank || t("notConfigured");
+  const displayAccountType =
+    organization.payoutAccountType || t("accountTypeChecking");
+  const displayLast4 = organization.payoutAccountNumber?.slice(-4) || "0000";
 
   return (
-    <section style={{ padding: "20px 20px 0" }}>
-      <div
-        style={{
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border-medium)",
-          borderRadius: "16px",
-          padding: "18px 20px",
-          boxShadow: "var(--shadow-card)",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            flexWrap: "wrap",
-            gap: "14px",
-            marginBottom: "14px",
-          }}
-        >
+    <section className="px-5 pt-5">
+      <div className="rounded-2xl border border-border-medium bg-surface px-5 py-4.5 shadow-card">
+        <div className="mb-3.5 flex flex-wrap items-start justify-between gap-3.5">
           <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginBottom: "4px",
-              }}
-            >
-              <span style={{ fontSize: "18px" }}>🏢</span>
-              <span
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                  color: "var(--text-link)",
-                }}
-              >
+            <div className="mb-1 flex items-center gap-2">
+              <span className="text-lg">🏢</span>
+              <span className="text-[11px] font-bold tracking-wider text-link uppercase">
                 {t("badge")}
               </span>
               <span className="badge badge-available">
@@ -70,74 +50,45 @@ export function OrgMasterCard({
               </span>
             </div>
             <h3
-              style={{ fontSize: "20px", fontWeight: 700, margin: 0 }}
+              className="m-0 text-xl font-bold text-foreground"
               id="card-org-name"
             >
-              {organization.tradeName || organization.legalName}
+              {displayName}
             </h3>
-            <div
-              style={{
-                fontSize: "13px",
-                color: "var(--text-muted)",
-                marginTop: "2px",
-              }}
-            >
-              <strong style={{ color: "var(--text-main)" }}>
+            <div className="mt-0.5 text-[13px] text-muted-foreground">
+              <strong className="text-foreground">
                 {t("legalName").replace(" *", "")}:
               </strong>{" "}
-              {organization.legalName} •{" "}
-              <strong style={{ color: "var(--text-main)" }}>
+              {displayLegalName} •{" "}
+              <strong className="text-foreground">
                 {t("rif").replace(" *", "")}:
               </strong>{" "}
-              {organization.rif}
+              {displayRif}
             </div>
           </div>
           <button
             type="button"
-            className="btn btn-outline"
+            className="btn btn-outline text-[12.5px]"
             onClick={onOpenEditModal}
             id="btn-edit-org"
-            style={{ fontSize: "12.5px" }}
           >
             ✏️ <span>{t("btnEdit")}</span>
           </button>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: "12px",
-            background: "var(--bg-muted)",
-            borderRadius: "12px",
-            padding: "14px",
-            border: "1px solid var(--border-subtle)",
-          }}
-        >
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3 rounded-xl border border-border bg-muted p-3.5">
           <div>
-            <div
-              style={{
-                fontSize: "11.5px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                fontWeight: 600,
-              }}
-            >
+            <div className="text-[11.5px] font-semibold text-muted-foreground uppercase">
               {t("bcvRef")}
             </div>
             <div
-              style={{
-                fontSize: "13px",
-                fontWeight: 700,
-                color: "#2563EB",
-                marginTop: "3px",
-              }}
+              className="mt-1 text-[13px] font-bold text-status-confirmed-fg"
               id="card-org-currency"
             >
               {currencyLabel}
             </div>
             <div
-              style={{ fontSize: "12px", color: "var(--text-muted)" }}
+              className="text-xs text-muted-foreground"
               id="card-org-rate"
             >
               {currencyRateLabel}
@@ -145,75 +96,47 @@ export function OrgMasterCard({
           </div>
 
           <div>
-            <div
-              style={{
-                fontSize: "11.5px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                fontWeight: 600,
-              }}
-            >
+            <div className="text-[11.5px] font-semibold text-muted-foreground uppercase">
               {t("payoutBank")}
             </div>
             <div
-              style={{ fontSize: "13px", fontWeight: 700, marginTop: "3px" }}
+              className="mt-1 text-[13px] font-bold text-foreground"
               id="card-org-bank"
             >
-              {organization.payoutBank || "0102 - Banco de Venezuela"}
+              {displayBank}
             </div>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-              Cta. {organization.payoutAccountType || "Corriente"} ••••
-              {organization.payoutAccountNumber?.slice(-4) || "0000"} (
-              {organization.rif})
+            <div className="text-xs text-muted-foreground">
+              {t("accountSummary", {
+                type: displayAccountType,
+                last4: displayLast4,
+                rif: displayRif,
+              })}
             </div>
           </div>
 
           <div>
-            <div
-              style={{
-                fontSize: "11.5px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                fontWeight: 600,
-              }}
-            >
+            <div className="text-[11.5px] font-semibold text-muted-foreground uppercase">
               {t("commercialTerms")}
             </div>
-            <div
-              style={{
-                fontSize: "13px",
-                fontWeight: 700,
-                color: "var(--brand-lime-text, var(--text-link))",
-                marginTop: "3px",
-              }}
-            >
+            <div className="mt-1 text-[13px] font-bold text-link">
               {t("commission")}
             </div>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+            <div className="text-xs text-muted-foreground">
               {t("netPayout")}
             </div>
           </div>
 
           <div>
-            <div
-              style={{
-                fontSize: "11.5px",
-                color: "var(--text-muted)",
-                textTransform: "uppercase",
-                fontWeight: 600,
-              }}
-            >
+            <div className="text-[11.5px] font-semibold text-muted-foreground uppercase">
               {t("managedVenues")}
             </div>
-            <div
-              style={{ fontSize: "13px", fontWeight: 700, marginTop: "3px" }}
-            >
+            <div className="mt-1 text-[13px] font-bold text-foreground">
               {t("managedCount", {
                 count: organization.venuesCount,
               })}
             </div>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-              {organization.spacesCount} canchas totales
+            <div className="text-xs text-muted-foreground">
+              {t("totalCourts", { count: organization.spacesCount })}
             </div>
           </div>
         </div>

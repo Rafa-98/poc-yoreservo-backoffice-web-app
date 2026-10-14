@@ -2,7 +2,7 @@
 
 Operations panel for YoReservo staff (platform admins, venue allies, accounting and validators): agenda, bookings, treasury, venues, users and settlements.
 
-> **Status:** project foundation only (toolchain, design system, i18n, theme, skills, rules). No module is implemented yet; the home page is a placeholder. Module order and screen blueprints: `../poc-yoreservo-templates/backoffice-ui-designs/backoffice_modules.md`.
+> **Status:** All 9 operational modules are implemented (`auth`, `agenda`, `treasury`, `venues/spaces/schedules`, `catalogs/users`, `reservations`, `settlements`, `dashboard`, and `profile`), complete with BFF server actions, RBAC guards, dual light/dark themes, and `es`/`en` localization parity. Module order and screen blueprints: `../poc-yoreservo-templates/backoffice-ui-designs/backoffice_modules.md`.
 
 ## Stack
 

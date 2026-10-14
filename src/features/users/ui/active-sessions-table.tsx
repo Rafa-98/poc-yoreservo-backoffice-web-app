@@ -30,7 +30,7 @@ export function ActiveSessionsTable({
   }
 
   async function handleRevokeAll() {
-    if (confirm("¿Estás seguro de que deseas revocar todas las sesiones activas? Todos los usuarios deberán iniciar sesión nuevamente.")) {
+    if (confirm(t("confirmRevokeAll"))) {
       setRevokingAll(true);
       try {
         await onRevokeAllSessions();

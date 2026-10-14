@@ -19,6 +19,7 @@
     "btnEditSport": "Editar Deporte",
     "btnEditCategory": "Editar Categoría",
     "spacesCount": "{count} canchas en plataforma",
+    "courtsCount": "{count} canchas",
     "active": "Activo"
   },
   "surfaces": {
@@ -29,6 +30,7 @@
     "thMaintenance": "Mantenimiento Recomendado",
     "thStatus": "Estatus",
     "thActions": "Acciones",
+    "btnAdd": "Nueva Superficie",
     "btnEdit": "Editar",
     "active": "Activo"
   },
@@ -36,6 +38,7 @@
     "bannerTitle": "Catálogo Global de Amenidades & Servicios",
     "bannerDesc": "Características e infraestructura que los recintos deportivos pueden activar en su perfil público de YoReservo.",
     "activeInVenues": "✓ Activo en {count} Sedes",
+    "btnAdd": "Nueva Amenidad",
     "btnEdit": "Editar"
   },
   "modalSport": {
@@ -43,8 +46,11 @@
     "desc": "Registrar una nueva disciplina deportiva dentro de un tipo de actividad",
     "activityType": "Tipo de Actividad *",
     "nameEs": "Nombre en Español *",
+    "placeholderEs": "Ej: Pádel",
     "nameEn": "Nombre en Inglés *",
+    "placeholderEn": "Ej: Padel",
     "imageUrl": "URL de Imagen / Ícono *",
+    "errorCreate": "Error al registrar el deporte",
     "cancel": "Cancelar",
     "save": "Guardar Deporte ✓"
   },
@@ -53,19 +59,28 @@
     "desc": "Definir un formato de juego o categoría reglamentaria (ej: 5v5, Dobles)",
     "sportLabel": "Deporte Padre",
     "nameEs": "Nombre del Formato en Español *",
+    "placeholderEs": "Ej: Pádel Dobles (4 Jugadores)",
     "nameEn": "Nombre del Formato en Inglés *",
+    "placeholderEn": "Ej: Padel Doubles (4 Players)",
     "imageUrl": "URL de Imagen (Opcional)",
+    "errorCreate": "Error al registrar el formato de juego",
     "cancel": "Cancelar",
     "save": "Guardar Formato ✓"
   },
   "modalSurface": {
     "title": "Registrar Superficie de Cancha",
+    "editTitle": "Editar Superficie de Cancha",
     "desc": "Añadir una nueva especificación de base para canchas",
     "code": "Código Único (Ej: SURF_PADEL_MONO) *",
     "name": "Nombre de la Superficie *",
+    "placeholderName": "Césped Monofilamento Pádel",
     "description": "Detalle de Composición *",
+    "placeholderDesc": "Arena sílice 0.2-0.6mm",
     "maintenance": "Protocolo de Mantenimiento *",
+    "placeholderMaintenance": "Cepillado quincenal",
     "suitedSports": "Deportes Compatibles (separados por coma) *",
+    "placeholderSports": "Pádel Dobles, Pádel Singles",
+    "errorSave": "Error al guardar la superficie",
     "cancel": "Cancelar",
     "save": "Guardar Superficie ✓"
   },
@@ -74,8 +89,11 @@
     "desc": "Añadir un servicio de infraestructura para recintos deportivos",
     "code": "Código Único (Ej: AMN_SAUNA) *",
     "name": "Nombre del Servicio *",
+    "placeholderName": "Sauna & Spa Finlandés",
     "icon": "Emoji / Ícono *",
     "description": "Descripción Corta del Servicio *",
+    "placeholderDesc": "Servicio de relajación muscular y vapor para miembros",
+    "errorCreate": "Error al crear la amenidad",
     "cancel": "Cancelar",
     "save": "Guardar Amenidad ✓"
   }

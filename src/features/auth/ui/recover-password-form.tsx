@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle2, Mail, Send } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ROUTES } from "@/shared/config";
 import { Button } from "@/shared/ui/button";
+import { Alert } from "@/shared/ui/alert";
 import { recoverPasswordAction } from "../actions/recover-password-action";
 
 export function RecoverPasswordForm() {
@@ -15,6 +16,7 @@ export function RecoverPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [countdown, setCountdown] = useState(30);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -29,10 +31,16 @@ export function RecoverPasswordForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage(null);
 
-    await recoverPasswordAction({ email });
+    const res = await recoverPasswordAction({ email });
 
     setIsLoading(false);
+    if (!res.ok) {
+      setErrorMessage(t("errorServiceUnavailable"));
+      return;
+    }
+
     setIsSent(true);
     setCountdown(30);
   };
@@ -40,8 +48,13 @@ export function RecoverPasswordForm() {
   const handleResend = async () => {
     if (countdown > 0) return;
     setIsLoading(true);
-    await recoverPasswordAction({ email });
+    setErrorMessage(null);
+    const res = await recoverPasswordAction({ email });
     setIsLoading(false);
+    if (!res.ok) {
+      setErrorMessage(t("errorServiceUnavailable"));
+      return;
+    }
     setCountdown(30);
   };
 
@@ -64,6 +77,12 @@ export function RecoverPasswordForm() {
               {t("recoverSubtitle")}
             </p>
           </div>
+
+          {errorMessage && (
+            <div className="mb-5">
+              <Alert variant="error">{errorMessage}</Alert>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">

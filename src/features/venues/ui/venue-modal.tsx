@@ -11,7 +11,7 @@ interface VenueModalProps {
   onClose: () => void;
   venue: VenueItem | null;
   locationsTree: LocationNode[];
-  onSuccess: (savedVenue: any) => void;
+  onSuccess: (savedVenue: VenueItem) => void;
 }
 
 export function VenueModal({
@@ -33,7 +33,7 @@ export function VenueModal({
   // Phone components
   const [countryCode, setCountryCode] = useState("+58");
   const [operator, setOperator] = useState("0212");
-  const [phoneNum, setPhoneNum] = useState("9912044");
+  const [phoneNum, setPhoneNum] = useState("");
 
   // Cascading Location Tree
   const [selectedStateId, setSelectedStateId] = useState<string>("");
@@ -56,15 +56,17 @@ export function VenueModal({
         } else {
           setPhoneNum(venue.contactPhone);
         }
+      } else {
+        setPhoneNum("");
       }
     } else {
       setName("");
-      setRif("J-30492811-0");
+      setRif("");
       setAddress("");
       setStatus("ACTIVE");
       setCountryCode("+58");
       setOperator("0212");
-      setPhoneNum("9912044");
+      setPhoneNum("");
     }
   }, [venue, isOpen]);
 
@@ -125,11 +127,11 @@ export function VenueModal({
 
       const res = await updateVenueAction(venue.id, updateDto);
       setLoading(false);
-      if (res.ok) {
+      if (res.ok && res.data) {
         onSuccess(res.data);
         onClose();
-      } else {
-        setErrorMsg(res.error.code || "Error al actualizar la sede");
+      } else if (!res.ok) {
+        setErrorMsg(res.error.code || t("errorUpdate"));
       }
     } else {
       const createDto: CreateVenueInput = {
@@ -143,18 +145,18 @@ export function VenueModal({
 
       const res = await createVenueAction(createDto);
       setLoading(false);
-      if (res.ok) {
+      if (res.ok && res.data) {
         onSuccess(res.data);
         onClose();
-      } else {
-        setErrorMsg(res.error.code || "Error al crear la sede");
+      } else if (!res.ok) {
+        setErrorMsg(res.error.code || t("errorCreate"));
       }
     }
   }
 
   function getLocationName(node: LocationNode): string {
     if (typeof node.name === "string") return node.name;
-    return node.name?.es || node.name?.en || "Ubicación";
+    return node.name?.es || node.name?.en || t("defaultLocationName");
   }
 
   return (
@@ -162,159 +164,107 @@ export function VenueModal({
       className="modal-backdrop"
       id="venue-modal-backdrop"
       onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        backgroundColor: "rgba(0,0,0,0.65)",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 9999,
-        padding: "16px",
-      }}
     >
       <div
-        className="modal-card"
+        className="modal-card flex max-h-[90vh] w-full max-w-[600px] flex-col overflow-hidden rounded-2xl border border-border-medium bg-surface shadow-card"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border-medium)",
-          borderRadius: "16px",
-          width: "100%",
-          maxWidth: "600px",
-          maxHeight: "90vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "var(--shadow-lg, 0 10px 25px rgba(0,0,0,0.3))",
-          overflow: "hidden",
-        }}
       >
-        <div
-          style={{
-            padding: "18px 24px",
-            borderBottom: "1px solid var(--border-subtle)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "20px" }}>🏟️</span>
-            <h3 style={{ fontSize: "17px", fontWeight: 700, margin: 0 }} id="venue-modal-title">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4.5">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">🏟️</span>
+            <h3
+              className="m-0 text-[17px] font-bold text-foreground"
+              id="venue-modal-title"
+            >
               {venue ? t("modalTitleEdit") : t("modalTitleNew")}
             </h3>
           </div>
           <button
             type="button"
-            className="btn-icon"
+            className="btn-icon cursor-pointer border-none bg-transparent text-lg text-muted-foreground hover:text-foreground"
             onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: "18px",
-              cursor: "pointer",
-              color: "var(--text-muted)",
-            }}
           >
             ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5">
           {errorMsg && (
-            <div
-              style={{
-                background: "rgba(220, 38, 38, 0.1)",
-                border: "1px solid rgba(220, 38, 38, 0.3)",
-                color: "var(--status-cancelled-text, #ef4444)",
-                padding: "10px 14px",
-                borderRadius: "8px",
-                fontSize: "13px",
-                marginBottom: "16px",
-              }}
-            >
+            <div className="mb-4 rounded-lg border border-status-cancelled-border bg-status-cancelled-bg px-3.5 py-2.5 text-[13px] text-status-cancelled-fg">
               {errorMsg}
             </div>
           )}
 
-          <div className="form-group" style={{ marginBottom: "14px" }}>
-            <label className="form-label" htmlFor="venue-name-input" style={{ fontSize: "12px", fontWeight: 600 }}>
+          <div className="form-group mb-3.5">
+            <label
+              className="form-label mb-1 block text-xs font-semibold text-foreground"
+              htmlFor="venue-name-input"
+            >
               {t("name")}
             </label>
             <input
               type="text"
               id="venue-name-input"
-              className="input-field"
-              placeholder="ej. Complejo Deportivo Los Samanes"
+              className="input-field form-input"
+              placeholder={t("namePlaceholder")}
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
+          <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
             <div className="form-group">
-              <label className="form-label" style={{ fontSize: "12px", fontWeight: 600 }}>
-                RIF de la Sede *
+              <label
+                className="form-label mb-1 block text-xs font-semibold text-foreground"
+                htmlFor="venue-rif-input"
+              >
+                {t("rifLabel")}
               </label>
               <input
                 type="text"
                 id="venue-rif-input"
-                className="input-field"
+                className="input-field form-input"
                 required
                 value={rif}
                 onChange={(e) => setRif(e.target.value)}
               />
             </div>
             <div className="form-group">
-              <label className="form-label" style={{ fontSize: "12px", fontWeight: 600 }}>
-                Estatus Operativo *
+              <label
+                className="form-label mb-1 block text-xs font-semibold text-foreground"
+                htmlFor="venue-status-select"
+              >
+                {t("statusLabel")}
               </label>
               <select
                 id="venue-status-select"
-                className="input-field"
+                className="input-field form-select"
                 value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
+                onChange={(e) =>
+                  setStatus(e.target.value as "ACTIVE" | "PENDING_VERIFICATION")
+                }
               >
-                <option value="ACTIVE">● Activo en App</option>
-                <option value="PENDING_VERIFICATION">⏳ En Verificación / Auditoría</option>
+                <option value="ACTIVE">{t("statusOptionActive")}</option>
+                <option value="PENDING_VERIFICATION">{t("statusOptionReview")}</option>
               </select>
             </div>
           </div>
 
           {/* CASCADING GEOGRAPHY SELECTOR */}
-          <div
-            style={{
-              background: "var(--bg-muted)",
-              borderRadius: "14px",
-              padding: "16px",
-              marginBottom: "16px",
-              border: "1px solid var(--border-subtle)",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "11px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                color: "var(--text-link)",
-                marginBottom: "10px",
-              }}
-            >
+          <div className="mb-4 rounded-xl border border-border bg-muted p-4">
+            <div className="mb-2.5 text-[11px] font-bold text-link uppercase">
               🗺️ {t("geoTitle")}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "10px" }}>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2.5">
               <div>
-                <label className="form-label" style={{ fontSize: "11px" }}>
+                <label className="form-label mb-1 block text-[11px] font-medium text-muted-foreground">
                   {t("state")}
                 </label>
                 <select
                   id="geo-state"
-                  className="input-field"
-                  style={{ padding: "8px 10px", fontSize: "12.5px" }}
+                  className="input-field form-select px-2.5 py-2 text-[12.5px]"
                   value={selectedStateId}
                   onChange={(e) => setSelectedStateId(e.target.value)}
                 >
@@ -327,13 +277,12 @@ export function VenueModal({
               </div>
 
               <div>
-                <label className="form-label" style={{ fontSize: "11px" }}>
+                <label className="form-label mb-1 block text-[11px] font-medium text-muted-foreground">
                   {t("city")}
                 </label>
                 <select
                   id="geo-city"
-                  className="input-field"
-                  style={{ padding: "8px 10px", fontSize: "12.5px" }}
+                  className="input-field form-select px-2.5 py-2 text-[12.5px]"
                   value={selectedCityId}
                   onChange={(e) => setSelectedCityId(e.target.value)}
                   disabled={cities.length === 0}
@@ -347,13 +296,12 @@ export function VenueModal({
               </div>
 
               <div>
-                <label className="form-label" style={{ fontSize: "11px" }}>
+                <label className="form-label mb-1 block text-[11px] font-medium text-muted-foreground">
                   {t("neighborhood")}
                 </label>
                 <select
                   id="geo-hood"
-                  className="input-field"
-                  style={{ padding: "8px 10px", fontSize: "12.5px" }}
+                  className="input-field form-select px-2.5 py-2 text-[12.5px]"
                   value={selectedHoodId}
                   onChange={(e) => setSelectedHoodId(e.target.value)}
                   disabled={hoods.length === 0}
@@ -368,30 +316,32 @@ export function VenueModal({
             </div>
           </div>
 
-          <div className="form-group" style={{ marginBottom: "14px" }}>
-            <label className="form-label" htmlFor="venue-address-input" style={{ fontSize: "12px", fontWeight: 600 }}>
+          <div className="form-group mb-3.5">
+            <label
+              className="form-label mb-1 block text-xs font-semibold text-foreground"
+              htmlFor="venue-address-input"
+            >
               {t("address")}
             </label>
             <textarea
               id="venue-address-input"
-              className="input-field"
+              className="input-field form-textarea"
               rows={2}
-              placeholder="Av. Principal, sector..."
+              placeholder={t("addressPlaceholder")}
               required
               value={address}
               onChange={(e) => setAddress(e.target.value)}
             />
           </div>
 
-          <div className="form-group" style={{ marginBottom: "16px" }}>
-            <label className="form-label" style={{ fontSize: "12px", fontWeight: 600 }}>
+          <div className="form-group mb-4">
+            <label className="form-label mb-1 block text-xs font-semibold text-foreground">
               {t("phone")}
             </label>
-            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+            <div className="flex items-center gap-1.5">
               <select
                 id="venue-phone-country"
-                className="input-field"
-                style={{ width: "135px", flexShrink: 0, padding: "8px 10px", fontSize: "12.5px" }}
+                className="input-field form-select w-[135px] shrink-0 px-2.5 py-2 text-[12.5px]"
                 value={countryCode}
                 onChange={(e) => setCountryCode(e.target.value)}
               >
@@ -405,12 +355,11 @@ export function VenueModal({
 
               <select
                 id="venue-phone-operator"
-                className="input-field"
-                style={{ width: "110px", flexShrink: 0, padding: "8px 10px", fontSize: "12.5px" }}
+                className="input-field form-select w-[110px] shrink-0 px-2.5 py-2 text-[12.5px]"
                 value={operator}
                 onChange={(e) => setOperator(e.target.value)}
               >
-                <option value="0212">0212 (Fijo)</option>
+                <option value="0212">{t("operatorLandline")}</option>
                 <option value="0412">0412 (Digitel)</option>
                 <option value="0414">0414 (Movistar)</option>
                 <option value="0424">0424 (Movistar)</option>
@@ -422,18 +371,17 @@ export function VenueModal({
               <input
                 type="tel"
                 id="venue-phone-num"
-                className="input-field"
+                className="input-field form-input flex-1 text-[13px]"
                 placeholder="1234567"
                 maxLength={8}
                 required
                 value={phoneNum}
                 onChange={(e) => setPhoneNum(e.target.value)}
-                style={{ flex: 1, fontSize: "13px" }}
               />
             </div>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "24px" }}>
+          <div className="mt-6 flex justify-end gap-3">
             <Button
               type="button"
               variant="secondary"

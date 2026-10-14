@@ -8,6 +8,7 @@
     "assignedVenue": "Sede Asignada",
     "assignedOrg": "Organización / Club",
     "memberSince": "Miembro Desde",
+    "memberSinceDate": "15 de Enero 2026",
     "securityStatus": "Estado de Seguridad",
     "securityBcryptActive": "✓ Contraseña bcrypt activa",
     "changePhoto": "Cambiar Foto de Perfil"
@@ -21,7 +22,15 @@
     "firstName": "Nombre *",
     "lastName": "Apellido *",
     "document": "Cédula / Documento *",
+    "docV": "V - Venezolano",
+    "docE": "E - Extranjero",
+    "docJ": "J - Jurídico",
+    "docG": "G - Gubernamental",
+    "docP": "P - Pasaporte",
+    "docC": "C - Comunal",
     "phone": "Teléfono WhatsApp *",
+    "opLandline": "0212 (Fijo CCS)",
+    "opOther": "Otro / Int.",
     "email": "Correo Electrónico",
     "emailVerified": "✓ Verificado",
     "emailDisclaimer": "Para cambiar tu correo de acceso contacta al Administrador de Sistema.",
@@ -62,6 +71,7 @@
     "revokeAll": "Cerrar todas las demás sesiones",
     "thisDevice": "Este Dispositivo",
     "activeNow": "Activo ahora",
+    "recent": "Reciente",
     "revoke": "Cerrar Sesión",
     "modalTitle": "¿Cerrar todas las demás sesiones?",
     "modalDesc": "Esta acción invalidará de inmediato los tokens de acceso en todos tus otros teléfonos, tablets o computadoras conectadas.",
@@ -71,8 +81,10 @@
   "toast": {
     "profileSaved": "Datos personales actualizados exitosamente.",
     "passwordUpdated": "¡Contraseña actualizada con éxito!",
+    "passwordError": "No se pudo actualizar la contraseña. Verifica tu contraseña actual.",
     "sessionRevoked": "Sesión cerrada correctamente.",
     "allSessionsRevoked": "Todas las demás sesiones remotas han sido revocadas.",
-    "langUpdated": "Preferencia de idioma guardada."
+    "langUpdated": "Preferencia de idioma guardada.",
+    "actionError": "No se pudo completar la acción. Intenta nuevamente."
   }
 }

@@ -136,9 +136,9 @@ export function UsersTable({
           >
             <option value="all">{t("filters.allRoles")}</option>
             <option value="ADMIN">ADMIN</option>
-            <option value="ALLY">ALLY (Propietario)</option>
-            <option value="ACCOUNTING">ACCOUNTING (Finanzas)</option>
-            <option value="VALIDATOR">VALIDATOR (Recepción)</option>
+            <option value="ALLY">{t("simulator.ally")}</option>
+            <option value="ACCOUNTING">{t("simulator.accounting")}</option>
+            <option value="VALIDATOR">{t("simulator.validator")}</option>
           </select>
 
           <select
@@ -270,7 +270,7 @@ export function UsersTable({
                         {u.venueName || t("filters.allOrg")}
                       </div>
                       <div className="text-[11px] text-muted-foreground">
-                        {u.scopeType === "VENUE" ? "Sede Específica" : "Toda la Organización"}
+                        {u.scopeType === "VENUE" ? t("table.specificVenue") : t("table.entireOrg")}
                       </div>
                     </td>
 

@@ -47,7 +47,7 @@ export function ActivityModal({
       onSuccess(res.data);
       onClose();
     } else {
-      setErrorMsg(res.error.code || "Error al registrar el deporte");
+      setErrorMsg(res.error.code || t("errorCreate"));
     }
   }
 
@@ -99,7 +99,7 @@ export function ActivityModal({
               required
               value={nameEs}
               onChange={(e) => setNameEs(e.target.value)}
-              placeholder="Ej: Pádel"
+              placeholder={t("placeholderEs")}
               className="form-input"
             />
           </div>
@@ -113,7 +113,7 @@ export function ActivityModal({
               required
               value={nameEn}
               onChange={(e) => setNameEn(e.target.value)}
-              placeholder="Ej: Padel"
+              placeholder={t("placeholderEn")}
               className="form-input"
             />
           </div>

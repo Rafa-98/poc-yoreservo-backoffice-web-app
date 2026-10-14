@@ -3,6 +3,7 @@ export interface OrganizationData {
   tradeName: string;
   legalName: string;
   rif: string;
+  taxId?: string;
   contactEmail: string;
   contactPhone: string;
   fiscalAddress: string;
@@ -49,6 +50,7 @@ export interface VenueItem {
   rif: string;
   address: string;
   contactPhone: string;
+  contactEmail?: string;
   status: "ACTIVE" | "INACTIVE" | "PENDING_VERIFICATION";
   imageUrl: string | null;
   locationLat: number;
@@ -57,6 +59,7 @@ export interface VenueItem {
   spacesCount: number;
   sports: string[];
   staffCount: number;
+  amenities?: string[];
 }
 
 export interface CreateVenueInput {
@@ -69,6 +72,7 @@ export interface CreateVenueInput {
   imageUrl?: string;
   locationLat?: number;
   locationLng?: number;
+  amenities?: string[];
 }
 
 export interface UpdateVenueInput {
@@ -79,6 +83,7 @@ export interface UpdateVenueInput {
   contactPhone?: string;
   status?: "ACTIVE" | "INACTIVE" | "PENDING_VERIFICATION";
   imageUrl?: string;
+  amenities?: string[];
 }
 
 export interface SportCategoryItem {

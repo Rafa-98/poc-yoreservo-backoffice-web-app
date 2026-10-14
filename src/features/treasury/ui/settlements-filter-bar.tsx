@@ -96,7 +96,7 @@ export function SettlementsFilterBar({
             onClick={() => onChangeFilter({ status: "PENDING" })}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               filter.status === "PENDING"
-                ? "bg-amber-500 text-white shadow-sm"
+                ? "bg-status-hold-bg border border-status-hold-border text-status-hold-fg shadow-sm"
                 : "bg-surface border border-border text-muted-foreground hover:bg-muted"
             }`}
             id="chip-status-pending"
@@ -109,7 +109,7 @@ export function SettlementsFilterBar({
             onClick={() => onChangeFilter({ status: "DISBURSED" })}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               filter.status === "DISBURSED"
-                ? "bg-blue-600 text-white shadow-sm"
+                ? "bg-status-confirmed-bg border border-status-confirmed-border text-status-confirmed-fg shadow-sm"
                 : "bg-surface border border-border text-muted-foreground hover:bg-muted"
             }`}
             id="chip-status-disbursed"

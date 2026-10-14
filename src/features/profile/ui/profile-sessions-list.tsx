@@ -97,7 +97,7 @@ export function ProfileSessionsList({
                     </strong>
                   ) : (
                     <span>
-                      {session.lastActiveText || "Reciente"}
+                      {session.lastActiveText || t("sessions.recent")}
                     </span>
                   )}
                 </div>
