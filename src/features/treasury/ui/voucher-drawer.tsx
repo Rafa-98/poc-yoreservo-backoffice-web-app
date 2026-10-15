@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import type { BackofficeRole } from "@/shared/config";
 import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import type { PaymentItem } from "../model/types";
+import { canUserReconcilePayment } from "./payments-table";
 
 interface VoucherDrawerProps {
   payment: PaymentItem | null;
+  userRole?: BackofficeRole;
   isOpen: boolean;
   onClose: () => void;
   onApprove: (paymentId: string) => Promise<void>;
@@ -16,6 +19,7 @@ interface VoucherDrawerProps {
 
 export function VoucherDrawer({
   payment,
+  userRole = "PLATFORM_ADMIN",
   isOpen,
   onClose,
   onApprove,
@@ -26,6 +30,9 @@ export function VoucherDrawer({
   const [isZoomed, setIsZoomed] = useState(false);
 
   if (!isOpen || !payment) return null;
+
+  const isDirectMode = payment.collectionMode === "ALLY_DIRECT";
+  const canReconcile = canUserReconcilePayment(payment, userRole);
 
   const bankName =
     payment.originBank === "0134"
@@ -93,8 +100,19 @@ export function VoucherDrawer({
         {/* HEADER */}
         <div className="flex items-center justify-between border-b border-border px-6 py-5">
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-link">
-              {t("title")}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-link">
+                {t("title")}
+              </span>
+              <span
+                className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                  isDirectMode
+                    ? "border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    : "border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                }`}
+              >
+                {isDirectMode ? t("modeDirectBadge") : t("modeCustodyBadge")}
+              </span>
             </div>
             <h3 className="mt-0.5 text-lg font-bold text-foreground">
               {t("refTitle", { ref: payment.referenceNumber ?? "S/N" })}
@@ -111,6 +129,14 @@ export function VoucherDrawer({
 
         {/* BODY */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
+          {/* DUPLICATE REFERENCE WARNING ALERT */}
+          {payment.isDuplicateReference && (
+            <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/15 px-4 py-3 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
+              <div className="font-bold">⚠️ {t("duplicateRefAlertTitle")}</div>
+              <div className="mt-0.5">{t("duplicateRefAlertDesc")}</div>
+            </div>
+          )}
+
           {/* COMPARISON BANNER */}
           <div className="mb-5 rounded-xl border border-accent/30 bg-accent/10 px-3.5 py-3">
             <div className="text-xs leading-relaxed text-foreground">
@@ -235,9 +261,9 @@ export function VoucherDrawer({
         </div>
 
         {/* FOOTER ACTIONS */}
-        <div className="flex gap-3 border-t border-border bg-surface px-6 py-4">
-          {payment.status === "PENDING" && (
-            <>
+        <div className="flex flex-col gap-2.5 border-t border-border bg-surface px-6 py-4">
+          {payment.status === "PENDING" && canReconcile && (
+            <div className="flex gap-3">
               <button
                 id="drawer-reject-btn"
                 type="button"
@@ -255,6 +281,23 @@ export function VoucherDrawer({
                 disabled={isProcessing}
               >
                 ✓ {t("reconcileConfirm")}
+              </button>
+            </div>
+          )}
+
+          {payment.status === "PENDING" && !canReconcile && (
+            <>
+              <div className="rounded-lg border border-border bg-muted/60 px-3 py-2 text-center text-xs text-muted-foreground">
+                {isDirectMode
+                  ? t("readOnlyDirectNotice")
+                  : t("readOnlyCustodyNotice")}
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline w-full rounded-[10px] px-4 py-2.5 text-[13px]"
+                onClick={onClose}
+              >
+                {t("closeAudit")}
               </button>
             </>
           )}

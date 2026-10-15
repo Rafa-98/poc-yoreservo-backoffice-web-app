@@ -56,11 +56,18 @@
       "rejectTitle": "Reject Payment",
       "audit": "Audit",
       "viewReason": "View Reason",
+      "duplicateRefBadge": "Duplicate Ref",
+      "modeDirectBadge": "Ally Direct Collection",
+      "modeCustodyBadge": "YoReservo Custody",
       "empty": "No payments found in queue matching the selected filters."
     },
     "voucher": {
       "title": "Voucher Audit",
       "refTitle": "Pago Móvil Voucher #{ref}",
+      "modeDirectBadge": "Ally Direct Collection",
+      "modeCustodyBadge": "YoReservo Custody",
+      "duplicateRefAlertTitle": "Possible Duplicate Reference",
+      "duplicateRefAlertDesc": "This bank reference number was already used in another recorded payment. Please verify the bank statement carefully before approving.",
       "directViewer": "In-line Live Screen Viewer:",
       "directViewerDesc": "Eliminates desktop file downloads. Matches bank statements against digital capture in real time.",
       "receiptImageLabel": "Attached Receipt Capture",
@@ -80,11 +87,13 @@
       "linkedBooking": "Linked Court Booking",
       "reconcileConfirm": "Reconcile & Confirm",
       "reject": "Reject",
+      "readOnlyDirectNotice": "Direct Collection Payment: only the ally administrator or finance staff can approve or reject this receipt.",
+      "readOnlyCustodyNotice": "YoReservo Custody Payment: verified by the platform finance team.",
       "closeAudit": "Close Audit"
     },
     "rejectModal": {
       "title": "Reject Pago Móvil Transaction",
-      "desc": "Rejecting this transaction transitions the booking to PENDING_PAYMENT status and notifies the client.",
+      "desc": "Choose whether to grant the customer a 15-minute window to submit a new receipt or cancel the booking immediately.",
       "reasonLabel": "Bank statement discrepancy reason *",
       "reasons": {
         "notFound": "Reference not found on online banking statement",
@@ -96,6 +105,8 @@
       "notesPlaceholder": "e.g. Verified bank statement at 15:45, no matching entry.",
       "cancel": "Cancel",
       "confirm": "Confirm Rejection",
+      "confirmRetry": "Reject and allow retry (15 min)",
+      "confirmCancelBooking": "Reject and cancel booking immediately",
       "rejecting": "Rejecting..."
     },
     "reasonModal": {

@@ -1,7 +1,14 @@
 import { z } from "zod";
-import { BACKOFFICE_ROLES, type BackofficeRole } from "@/shared/config/roles";
+import {
+  BACKOFFICE_ROLES,
+  normalizeBackofficeRole,
+  type BackofficeRole,
+} from "@/shared/config/roles";
 
-export const backofficeRoleSchema = z.enum(BACKOFFICE_ROLES);
+export const backofficeRoleSchema = z.preprocess(
+  (val) => normalizeBackofficeRole(String(val)) ?? val,
+  z.enum(BACKOFFICE_ROLES),
+);
 
 export const sessionUserSchema = z.object({
   id: z.string().uuid(),

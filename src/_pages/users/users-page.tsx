@@ -29,6 +29,7 @@ interface UsersPageProps {
   initialUsers: UserItem[];
   initialSessions: ActiveSessionItem[];
   venues: Array<{ id: string; name: string }>;
+  currentUserRole?: string;
 }
 
 export function UsersPage({
@@ -36,6 +37,7 @@ export function UsersPage({
   initialUsers,
   initialSessions,
   venues,
+  currentUserRole,
 }: UsersPageProps) {
   const t = useTranslations("users");
 
@@ -198,6 +200,7 @@ export function UsersPage({
         isOpen={isInviteOpen}
         onClose={() => setIsInviteOpen(false)}
         venues={venues}
+        currentUserRole={currentUserRole}
         onSuccess={async () => {
           await refreshUsers();
         }}
@@ -208,6 +211,7 @@ export function UsersPage({
         onClose={() => setEditingUser(null)}
         user={editingUser}
         venues={venues}
+        currentUserRole={currentUserRole}
         onSuccess={async () => {
           await refreshUsers();
         }}

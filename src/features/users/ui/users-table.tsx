@@ -50,28 +50,34 @@ export function UsersTable({
 
   function getRoleBadge(role: UserRole) {
     switch (role) {
-      case "ADMIN":
+      case "PLATFORM_ADMIN":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
-            👑 ADMIN
+            👑 PLATFORM_ADMIN
           </span>
         );
-      case "ALLY":
+      case "PLATFORM_ACCOUNTING":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">
+            💳 PLATFORM_ACCOUNTING
+          </span>
+        );
+      case "ALLY_ADMIN":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-accent/20 text-foreground border border-accent/40">
-            🏢 ALLY
+            🏢 ALLY_ADMIN
           </span>
         );
-      case "ACCOUNTING":
+      case "ALLY_ACCOUNTING":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-500 border border-amber-500/30">
-            💳 ACCOUNTING
+            📊 ALLY_ACCOUNTING
           </span>
         );
-      case "VALIDATOR":
+      case "ALLY_VALIDATOR":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
-            🎟️ VALIDATOR
+            🎟️ ALLY_VALIDATOR
           </span>
         );
       default:
@@ -135,10 +141,11 @@ export function UsersTable({
             className="form-select w-auto min-w-[160px]"
           >
             <option value="all">{t("filters.allRoles")}</option>
-            <option value="ADMIN">ADMIN</option>
-            <option value="ALLY">{t("simulator.ally")}</option>
-            <option value="ACCOUNTING">{t("simulator.accounting")}</option>
-            <option value="VALIDATOR">{t("simulator.validator")}</option>
+            <option value="PLATFORM_ADMIN">{t("simulator.admin")}</option>
+            <option value="PLATFORM_ACCOUNTING">{t("simulator.accounting")}</option>
+            <option value="ALLY_ADMIN">{t("simulator.ally")}</option>
+            <option value="ALLY_ACCOUNTING">{t("simulator.allyAccounting")}</option>
+            <option value="ALLY_VALIDATOR">{t("simulator.validator")}</option>
           </select>
 
           <select

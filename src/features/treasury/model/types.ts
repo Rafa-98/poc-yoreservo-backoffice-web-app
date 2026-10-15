@@ -55,9 +55,13 @@ export interface PaymentItem {
   verifiedBy: string | null;
   verifiedAt: string | null;
   createdAt: string;
+  collectionMode?: "PLATFORM_CUSTODY" | "ALLY_DIRECT";
+  isDuplicateReference?: boolean;
   reservation: ReservationRef;
   verifier?: VerifierRef | null;
 }
+
+export type PaymentTransaction = PaymentItem;
 
 export interface TreasuryKpis {
   pendingCount: number;
@@ -118,8 +122,12 @@ export type SettlementBatchStatus =
   | "DRAFT"
   | "PENDING_APPROVAL"
   | "APPROVED"
+  | "PAYMENT_UNDER_REVIEW"
   | "DISBURSED"
+  | "OVERDUE"
   | "CANCELLED";
+
+export type SettlementDirection = "PLATFORM_TO_ALLY" | "ALLY_TO_PLATFORM";
 
 export type SettlementPayoutMethod = "BANK_TRANSFER" | "PAGO_MOVIL";
 
@@ -195,6 +203,8 @@ export interface SettlementBatchItem {
   netPayoutAmount: number;
   payoutCurrencyCode: string;
   payoutExchangeRate?: number | null;
+  direction?: SettlementDirection;
+  dueDate?: string | null;
   status: SettlementBatchStatus;
   payoutMethod?: SettlementPayoutMethod | null;
   payoutReferenceNumber?: string | null;
@@ -211,6 +221,8 @@ export interface SettlementBatchItem {
   createdAt?: string;
   items?: SettlementItemDetail[];
 }
+
+export type SettlementBatch = SettlementBatchItem;
 
 export interface SettlementsKpis {
   gmv: number;

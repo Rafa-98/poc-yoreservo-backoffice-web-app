@@ -128,10 +128,11 @@ export function RbacMatrixTable() {
           <thead className="bg-muted text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border">
             <tr>
               <th className="px-5 py-3.5 min-w-[260px]">{t("thCapability")}</th>
-              <th className="px-4 py-3.5 text-center">👑 ADMIN</th>
-              <th className="px-4 py-3.5 text-center">🏢 ALLY</th>
-              <th className="px-4 py-3.5 text-center">💳 ACCOUNTING</th>
-              <th className="px-4 py-3.5 text-center">🎟️ VALIDATOR</th>
+              <th className="px-4 py-3.5 text-center">👑 PLATFORM_ADMIN</th>
+              <th className="px-4 py-3.5 text-center">💳 PLATFORM_ACCOUNTING</th>
+              <th className="px-4 py-3.5 text-center">🏢 ALLY_ADMIN</th>
+              <th className="px-4 py-3.5 text-center">📊 ALLY_ACCOUNTING</th>
+              <th className="px-4 py-3.5 text-center">🎟️ ALLY_VALIDATOR</th>
               <th className="px-4 py-3.5 text-center">📱 CLIENT</th>
             </tr>
           </thead>
@@ -143,6 +144,7 @@ export function RbacMatrixTable() {
                   <div className="text-xs text-muted-foreground">{row.desc}</div>
                 </td>
                 <td className="px-4 py-3.5 text-center">{renderCheckBadge(row.admin)}</td>
+                <td className="px-4 py-3.5 text-center">{renderCheckBadge(row.accounting)}</td>
                 <td className="px-4 py-3.5 text-center">{renderCheckBadge(row.ally)}</td>
                 <td className="px-4 py-3.5 text-center">{renderCheckBadge(row.accounting)}</td>
                 <td className="px-4 py-3.5 text-center">{renderCheckBadge(row.validator)}</td>

@@ -35,25 +35,30 @@ export function AppHeader({
 
   const getRoleBadge = (role: SessionUser["role"]) => {
     switch (role) {
-      case "ADMIN":
+      case "PLATFORM_ADMIN":
         return {
           label: t("roleAdmin"),
           color: "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30",
         };
-      case "ALLY":
+      case "PLATFORM_ACCOUNTING":
+        return {
+          label: t("roleAccounting"),
+          color: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+        };
+      case "ALLY_ADMIN":
         return {
           label: t("roleAlly"),
           color: "bg-accent/20 text-accent-foreground border-accent/40 font-bold",
         };
-      case "VALIDATOR":
+      case "ALLY_ACCOUNTING":
+        return {
+          label: t("roleAllyAccounting"),
+          color: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
+        };
+      case "ALLY_VALIDATOR":
         return {
           label: t("roleValidator"),
           color: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30",
-        };
-      case "ACCOUNTING":
-        return {
-          label: t("roleAccounting"),
-          color: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
         };
       default:
         return {
@@ -95,7 +100,9 @@ export function AppHeader({
       {/* RIGHT SECTION: Quick Actions, Theme, Lang & Profile */}
       <div className="flex items-center gap-2 sm:gap-3">
         {/* QR Check-in Quick CTA (Module 2 / 6) */}
-        {(user.role === "VALIDATOR" || user.role === "ALLY" || user.role === "ADMIN") && (
+        {(user.role === "ALLY_VALIDATOR" ||
+          user.role === "ALLY_ADMIN" ||
+          user.role === "PLATFORM_ADMIN") && (
           <Link
             href={`${ROUTES.agenda}?qr=open`}
             className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-border-medium bg-surface px-3 py-2 text-xs font-semibold text-foreground shadow-xs hover:bg-muted active:scale-95 transition-all"
@@ -106,7 +113,9 @@ export function AppHeader({
         )}
 
         {/* New Walk-in Reservation Quick CTA (Module 2) */}
-        {(user.role === "ALLY" || user.role === "ADMIN" || user.role === "VALIDATOR") && (
+        {(user.role === "ALLY_ADMIN" ||
+          user.role === "PLATFORM_ADMIN" ||
+          user.role === "ALLY_VALIDATOR") && (
           <Link
             href={`${ROUTES.agenda}?drawer=open`}
             className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs font-bold text-accent-foreground shadow-xs hover:brightness-105 active:scale-95 transition-all"

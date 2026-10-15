@@ -38,7 +38,7 @@ const EMPTY_KPIS: SettlementsKpis = {
 };
 
 export default async function Page() {
-  await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.settlements]);
+  const session = await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.settlements]);
 
   const [settlementsRes, ratesRes] = await Promise.all([
     getSettlementsAction(),
@@ -72,6 +72,7 @@ export default async function Page() {
       initialKpis={initialKpis}
       organizations={organizations}
       bcvRate={bcvRate}
+      userRole={session.user.role}
     />
   );
 }

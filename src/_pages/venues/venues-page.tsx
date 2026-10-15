@@ -3,8 +3,16 @@
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
 import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE } from "@/shared/lib";
-import type { LocationNode, OrganizationData, VenueItem } from "@/features/venues/model/types";
-import { getVenuesListAction } from "@/features/venues/actions/venues-actions";
+import type {
+  LocationNode,
+  OrganizationData,
+  PaymentCollectionMode,
+  VenueItem,
+} from "@/features/venues/model/types";
+import {
+  getVenuesListAction,
+  updateOrganizationAction,
+} from "@/features/venues/actions/venues-actions";
 import { VenuesSubnav } from "@/features/venues/ui/venues-subnav";
 import { OrgMasterCard } from "@/features/venues/ui/org-master-card";
 import { OrgEditModal } from "@/features/venues/ui/org-edit-modal";
@@ -17,6 +25,7 @@ interface VenuesPageProps {
   locationsTree: LocationNode[];
   bcvRate?: number;
   bcvEurRate?: number;
+  userRole?: string;
 }
 
 export function VenuesPage({
@@ -25,8 +34,10 @@ export function VenuesPage({
   locationsTree,
   bcvRate = DEFAULT_BCV_USD_RATE,
   bcvEurRate = DEFAULT_BCV_EUR_RATE,
+  userRole,
 }: VenuesPageProps) {
   const t = useTranslations("venues.top");
+  const tOrg = useTranslations("venues.org");
   const [org, setOrg] = useState<OrganizationData>(initialOrg);
   const [venues, setVenues] = useState<VenueItem[]>(initialVenues);
 
@@ -74,8 +85,42 @@ export function VenuesPage({
   }
 
   function handleOrgSaved(updated: OrganizationData) {
-    setOrg(updated);
+    setOrg((prev) => ({
+      ...updated,
+      venuesCount: updated.venuesCount || prev.venuesCount || venues.length,
+      spacesCount: updated.spacesCount || prev.spacesCount,
+    }));
     showToast(t("toastOrgSaved"), false);
+  }
+
+  async function handleQuickSwitchMode(mode: PaymentCollectionMode) {
+    const bank = org.payoutBank || org.bankName || "";
+    const phone = org.pagoMovilPhone || org.contactPhone || "";
+    if (mode === "ALLY_DIRECT" && (!bank.trim() || !phone.trim())) {
+      showToast(tOrg("errorDirectModeBankPhone"), true);
+      setIsOrgModalOpen(true);
+      return;
+    }
+
+    const res = await updateOrganizationAction({
+      paymentCollectionMode: mode,
+      payoutBank: bank || undefined,
+      bankName: bank || undefined,
+      contactPhone: phone || undefined,
+      pagoMovilPhone: phone || undefined,
+    });
+
+    if (res.ok && res.data) {
+      const updated = res.data;
+      setOrg((prev) => ({
+        ...updated,
+        venuesCount: updated.venuesCount || prev.venuesCount || venues.length,
+        spacesCount: updated.spacesCount || prev.spacesCount,
+      }));
+      showToast(t("toastOrgSaved"), false);
+    } else if (!res.ok) {
+      showToast(res.error.code || tOrg("errorUpdate"), true);
+    }
   }
 
   return (
@@ -127,6 +172,8 @@ export function VenuesPage({
         bcvRate={bcvRate}
         bcvEurRate={bcvEurRate}
         onOpenEditModal={() => setIsOrgModalOpen(true)}
+        onQuickSwitchMode={handleQuickSwitchMode}
+        userRole={userRole}
       />
 
       {/* Venues Grid */}
@@ -142,6 +189,7 @@ export function VenuesPage({
         onClose={() => setIsOrgModalOpen(false)}
         organization={org}
         onSuccess={handleOrgSaved}
+        userRole={userRole}
       />
 
       {/* Venue Add / Edit Modal */}

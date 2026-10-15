@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import type { SettlementBatchItem, SettlementPayoutMethod } from "../model/types";
-import { disburseSettlementAction } from "../actions/treasury-actions";
+import {
+  disburseSettlementAction,
+  reportInvoicePaymentAction,
+} from "../actions/treasury-actions";
 
 export interface SettlementPayoutSubmitPayload {
   batchId: string;
@@ -25,6 +28,9 @@ interface SettlementPayoutModalProps {
   onDisburse?: (
     input: SettlementPayoutSubmitPayload,
   ) => Promise<{ ok: boolean; error?: string }>;
+  onReportInvoice?: (
+    input: SettlementPayoutSubmitPayload,
+  ) => Promise<{ ok: boolean; error?: string }>;
   onSuccess?: (input: { referenceNumber: string; disbursementDate: string }) => void;
 }
 
@@ -34,10 +40,12 @@ export function SettlementPayoutModal({
   bcvRate,
   onClose,
   onDisburse,
+  onReportInvoice,
   onSuccess,
 }: SettlementPayoutModalProps) {
   const t = useTranslations("settlements");
 
+  const [payoutMethod, setPayoutMethod] = useState<SettlementPayoutMethod>("PAGO_MOVIL");
   const [originAccount, setOriginAccount] = useState("BANESCO_0134");
   const [transferRef, setTransferRef] = useState("");
   const [payoutDate, setPayoutDate] = useState(() => new Date().toISOString().split("T")[0]);
@@ -46,8 +54,20 @@ export function SettlementPayoutModal({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (batch) {
+      setTransferRef(batch.payoutReferenceNumber || "");
+      setPayoutMethod(batch.payoutMethod || (batch.direction === "ALLY_TO_PLATFORM" ? "PAGO_MOVIL" : "BANK_TRANSFER"));
+      setNotes(batch.notes || "");
+      setErrorMsg(null);
+    }
+  }, [batch]);
+
   if (!isOpen || !batch) return null;
 
+  const isAllyToPlatform = batch.direction === "ALLY_TO_PLATFORM";
+  const isInvoiceVerify = isAllyToPlatform && batch.status === "PAYMENT_UNDER_REVIEW";
+  const isInvoiceReport = isAllyToPlatform && !isInvoiceVerify;
   const netBs = batch.netPayoutAmount * bcvRate;
 
   async function handleSubmit(e: React.FormEvent) {
@@ -63,14 +83,55 @@ export function SettlementPayoutModal({
 
     const payload: SettlementPayoutSubmitPayload = {
       batchId: batch.id,
-      payoutMethod: "BANK_TRANSFER",
+      payoutMethod: isAllyToPlatform ? payoutMethod : "BANK_TRANSFER",
       referenceNumber: transferRef.trim(),
-      destinationBank: batch.organization?.payoutBank || "Banesco Banco Universal",
+      destinationBank: isAllyToPlatform
+        ? originAccount
+        : batch.organization?.payoutBank || "Banesco Banco Universal",
       originAccount,
       disbursementDate: payoutDate,
       receiptUrl: fileName ? `https://assets.yoreservo.com/receipts/${fileName}` : undefined,
       notes: notes.trim() || undefined,
     };
+
+    if (isInvoiceReport) {
+      if (onReportInvoice) {
+        const res = await onReportInvoice(payload);
+        setLoading(false);
+        if (res.ok) {
+          onSuccess?.({
+            referenceNumber: payload.referenceNumber,
+            disbursementDate: payload.disbursementDate,
+          });
+          onClose();
+        } else {
+          setErrorMsg(res.error || t("payoutError"));
+        }
+        return;
+      }
+
+      const res = await reportInvoicePaymentAction(batch.id, {
+        payoutMethod: payload.payoutMethod,
+        payoutReferenceNumber: payload.referenceNumber,
+        payoutDestinationBank: payload.destinationBank,
+        originAccount: payload.originAccount,
+        payoutDate: payload.disbursementDate,
+        payoutReceiptUrl: payload.receiptUrl,
+        notes: payload.notes,
+      });
+
+      setLoading(false);
+      if (res.ok) {
+        onSuccess?.({
+          referenceNumber: payload.referenceNumber,
+          disbursementDate: payload.disbursementDate,
+        });
+        onClose();
+      } else {
+        setErrorMsg(res.error.code || t("payoutError"));
+      }
+      return;
+    }
 
     if (onDisburse) {
       const res = await onDisburse(payload);
@@ -129,10 +190,14 @@ export function SettlementPayoutModal({
         {/* HEADER */}
         <div className="flex items-center justify-between border-b border-border p-6 bg-surface">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">💸</span>
+            <span className="text-2xl">{isAllyToPlatform ? "💳" : "💸"}</span>
             <div>
               <h3 className="font-display text-lg font-bold text-foreground">
-                {t("modalPayoutTitle")}
+                {isInvoiceReport
+                  ? t("modalReportInvoiceTitle")
+                  : isInvoiceVerify
+                  ? t("modalVerifyInvoiceTitle")
+                  : t("modalPayoutTitle")}
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5" id="modal-payout-subtitle">
                 {t("modalPayoutSubtitle")} #{batch.batchCode}
@@ -170,14 +235,14 @@ export function SettlementPayoutModal({
                   </div>
                 </div>
                 <span className="rounded-full bg-status-hold-bg border border-status-hold-border px-2.5 py-0.5 text-[11px] font-bold text-status-hold-fg">
-                  {t("statusPending")}
+                  {isInvoiceVerify ? t("statusUnderReview") : t("statusPending")}
                 </span>
               </div>
 
               <div className="border-t border-dashed border-border pt-3 flex items-end justify-between">
                 <div>
                   <div className="text-[11px] font-bold uppercase text-muted-foreground">
-                    {t("lblNetToTransfer")}
+                    {isAllyToPlatform ? t("lblInvoiceAmountToPay") : t("lblNetToTransfer")}
                   </div>
                   <div className="font-display text-2xl font-black text-status-available-fg mt-0.5" id="modal-net-usd">
                     ${batch.netPayoutAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
@@ -197,30 +262,59 @@ export function SettlementPayoutModal({
             {/* Destination Bank Account (Confirmation) */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                {t("lblDestAccount")}
+                {isAllyToPlatform ? t("lblYoReservoDestAccount") : t("lblDestAccount")}
               </label>
-              <div className="rounded-xl border border-border bg-surface p-3.5 text-xs text-foreground space-y-1" id="modal-dest-details">
-                <div className="font-bold flex items-center gap-1.5">
-                  <span>🏦</span>
-                  <span>{batch.organization?.payoutBank || "—"}</span>
-                  {batch.organization?.payoutAccountNumber && (
-                    <span className="text-muted-foreground font-mono">
-                      ({batch.organization.payoutAccountNumber})
-                    </span>
-                  )}
+              {isAllyToPlatform ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-foreground space-y-1" id="modal-dest-details">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <span>🏦</span>
+                    <span>Banesco Banco Universal (0134) — YoReservo C.A.</span>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {t("yoreservoBankCoords")}
+                  </div>
                 </div>
-                <div className="text-[11px] text-muted-foreground">
-                  {t("lblDestAccountHolder")}{" "}
-                  {batch.organization?.payoutAccountHolder || batch.organization?.legalName} • RIF:{" "}
-                  {batch.organization?.rif}
+              ) : (
+                <div className="rounded-xl border border-border bg-surface p-3.5 text-xs text-foreground space-y-1" id="modal-dest-details">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <span>🏦</span>
+                    <span>{batch.organization?.payoutBank || "—"}</span>
+                    {batch.organization?.payoutAccountNumber && (
+                      <span className="text-muted-foreground font-mono">
+                        ({batch.organization.payoutAccountNumber})
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {t("lblDestAccountHolder")}{" "}
+                    {batch.organization?.payoutAccountHolder || batch.organization?.legalName} • RIF:{" "}
+                    {batch.organization?.rif}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Originating Account (YoReservo Treasury) */}
+            {isAllyToPlatform && (
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                  {t("lblPaymentMethod")}
+                </label>
+                <select
+                  value={payoutMethod}
+                  onChange={(e) => setPayoutMethod(e.target.value as SettlementPayoutMethod)}
+                  className="form-select text-xs"
+                  disabled={isInvoiceVerify}
+                >
+                  <option value="PAGO_MOVIL">Pago Móvil</option>
+                  <option value="BANK_TRANSFER">Transferencia Bancaria</option>
+                </select>
+              </div>
+            )}
+
+            {/* Originating Account */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                {t("lblOriginAccount")}
+                {isAllyToPlatform ? t("lblAllyOriginBank") : t("lblOriginAccount")}
               </label>
               <select
                 value={originAccount}
@@ -325,7 +419,15 @@ export function SettlementPayoutModal({
               id="btn-confirm-payout"
             >
               <span>✓</span>
-              <span>{loading ? t("btnProcessing") : t("btnConfirmPayout")}</span>
+              <span>
+                {loading
+                  ? t("btnProcessing")
+                  : isInvoiceReport
+                  ? t("btnReportInvoiceSubmit")
+                  : isInvoiceVerify
+                  ? t("btnVerifyInvoiceSubmit")
+                  : t("btnConfirmPayout")}
+              </span>
             </Button>
           </div>
         </form>

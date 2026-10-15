@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.venues]);
+  const session = await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.venues]);
 
   const [orgRes, venuesRes, locsRes, ratesRes] = await Promise.all([
     getOrganizationAction(),
@@ -46,6 +46,10 @@ export default async function Page() {
           payoutAccountType: "",
           payoutAccountHolder: "",
           commissionRate: 0.05,
+          paymentCollectionMode: "PLATFORM_CUSTODY",
+          manualCommissionRate: 0.05,
+          minimumMonthlyFee: 20,
+          isBookingPaused: false,
           status: "ACTIVE",
           venuesCount: 0,
           spacesCount: 0,
@@ -69,6 +73,7 @@ export default async function Page() {
       locationsTree={locationsTree}
       bcvRate={bcvRate}
       bcvEurRate={bcvEurRate}
+      userRole={session.user.role}
     />
   );
 }

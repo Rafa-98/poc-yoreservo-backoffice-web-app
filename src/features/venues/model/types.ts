@@ -1,3 +1,5 @@
+export type PaymentCollectionMode = "PLATFORM_CUSTODY" | "ALLY_DIRECT";
+
 export interface OrganizationData {
   id: string;
   tradeName: string;
@@ -6,14 +8,20 @@ export interface OrganizationData {
   taxId?: string;
   contactEmail: string;
   contactPhone: string;
+  pagoMovilPhone?: string;
   fiscalAddress: string;
   referenceCurrencyCode: string; // 'USD' | 'EUR'
   payoutBank: string;
+  bankName?: string;
   payoutAccountNumber: string;
   payoutAccountType: string;
   payoutAccountHolder: string;
   payoutIdDocument?: string;
   commissionRate: number; // e.g. 0.05
+  paymentCollectionMode: PaymentCollectionMode;
+  manualCommissionRate: number;
+  minimumMonthlyFee: number;
+  isBookingPaused?: boolean;
   status: string;
   venuesCount: number;
   spacesCount: number;
@@ -25,13 +33,19 @@ export interface UpdateOrganizationInput {
   rif?: string;
   contactEmail?: string;
   contactPhone?: string;
+  pagoMovilPhone?: string;
   fiscalAddress?: string;
   referenceCurrencyCode?: string;
   payoutBank?: string;
+  bankName?: string;
   payoutAccountNumber?: string;
   payoutAccountType?: string;
   payoutAccountHolder?: string;
   payoutIdDocument?: string;
+  paymentCollectionMode?: PaymentCollectionMode;
+  manualCommissionRate?: number;
+  minimumMonthlyFee?: number;
+  isBookingPaused?: boolean;
 }
 
 export interface LocationNode {

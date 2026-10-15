@@ -2,12 +2,14 @@
 
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
+import type { BackofficeRole } from "@/shared/config";
 import { Button } from "@/shared/ui/button";
 import type { SettlementBatchItem } from "../model/types";
 
 interface SettlementsTableProps {
   batches: SettlementBatchItem[];
   bcvRate: number;
+  userRole?: BackofficeRole;
   onOpenDrawer: (batch: SettlementBatchItem) => void;
   onOpenPayout: (batch: SettlementBatchItem) => void;
 }
@@ -15,11 +17,19 @@ interface SettlementsTableProps {
 export function SettlementsTable({
   batches,
   bcvRate,
+  userRole = "PLATFORM_ADMIN",
   onOpenDrawer,
   onOpenPayout,
 }: SettlementsTableProps) {
   const t = useTranslations("settlements");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  const isPlatformUser =
+    userRole === "PLATFORM_ADMIN" || userRole === "PLATFORM_ACCOUNTING";
+  const isAllyFinanceOrAdmin =
+    userRole === "ALLY_ADMIN" ||
+    userRole === "ALLY_ACCOUNTING" ||
+    userRole === "PLATFORM_ADMIN";
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
@@ -84,6 +94,9 @@ export function SettlementsTable({
                 const feeBs = batch.platformFeeAmount * bcvRate;
                 const netBs = batch.netPayoutAmount * bcvRate;
                 const isDisbursed = batch.status === "DISBURSED";
+                const isUnderReview = batch.status === "PAYMENT_UNDER_REVIEW";
+                const isOverdue = batch.status === "OVERDUE";
+                const isAllyToPlatform = batch.direction === "ALLY_TO_PLATFORM";
 
                 return (
                   <tr
@@ -92,7 +105,7 @@ export function SettlementsTable({
                   >
                     {/* Batch Code & Organization */}
                     <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => copyToClipboard(batch.batchCode)}
@@ -104,6 +117,17 @@ export function SettlementsTable({
                             {copiedCode === batch.batchCode ? "✓" : "📋"}
                           </span>
                         </button>
+                        <span
+                          className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
+                            isAllyToPlatform
+                              ? "border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              : "border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          }`}
+                        >
+                          {isAllyToPlatform
+                            ? t("directionAllyToPlatform")
+                            : t("directionPlatformToAlly")}
+                        </span>
                       </div>
                       <div className="font-bold text-foreground text-xs mt-1.5">
                         {batch.organization?.tradeName}
@@ -121,6 +145,17 @@ export function SettlementsTable({
                       <div className="text-[11px] text-muted-foreground mt-0.5">
                         {batch.totalReservations} {t("reconciledBookingsShort")}
                       </div>
+                      {batch.dueDate && (
+                        <div
+                          className={`mt-0.5 text-[10.5px] font-semibold ${
+                            isOverdue
+                              ? "text-status-cancelled-fg"
+                              : "text-amber-600 dark:text-amber-400"
+                          }`}
+                        >
+                          📅 {t("dueDateLabel")}: {batch.dueDate}
+                        </div>
+                      )}
                     </td>
 
                     {/* Gross Volume (GMV) */}
@@ -145,7 +180,13 @@ export function SettlementsTable({
 
                     {/* Net Amount to Pay */}
                     <td className="px-4 py-4 text-right">
-                      <div className="font-extrabold text-status-available-fg text-sm">
+                      <div
+                        className={`font-extrabold text-sm ${
+                          isAllyToPlatform
+                            ? "text-amber-600 dark:text-amber-400"
+                            : "text-status-available-fg"
+                        }`}
+                      >
                         ${batch.netPayoutAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                       <div className="text-[11px] text-muted-foreground">
@@ -155,17 +196,35 @@ export function SettlementsTable({
 
                     {/* Destination Account */}
                     <td className="px-4 py-4">
-                      <div className="font-semibold text-foreground truncate max-w-[190px]">
-                        {batch.organization?.payoutBank || "—"}
-                      </div>
-                      <div className="font-mono text-[11px] text-muted-foreground mt-0.5">
-                        {batch.organization?.payoutAccountNumber
-                          ? `••• ${batch.organization.payoutAccountNumber.slice(-6)}`
-                          : "—"}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground truncate max-w-[190px]">
-                        {batch.organization?.payoutAccountHolder || batch.organization?.legalName}
-                      </div>
+                      {isAllyToPlatform ? (
+                        <>
+                          <div className="font-semibold text-foreground truncate max-w-[190px]">
+                            Banesco (0134) — YoReservo C.A.
+                          </div>
+                          <div className="font-mono text-[11px] text-muted-foreground mt-0.5">
+                            J-50123456-7 • 0414-9001122
+                          </div>
+                          {batch.payoutReferenceNumber && (
+                            <div className="text-[10px] font-semibold text-link truncate max-w-[190px]">
+                              Ref: #{batch.payoutReferenceNumber}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <div className="font-semibold text-foreground truncate max-w-[190px]">
+                            {batch.organization?.payoutBank || "—"}
+                          </div>
+                          <div className="font-mono text-[11px] text-muted-foreground mt-0.5">
+                            {batch.organization?.payoutAccountNumber
+                              ? `••• ${batch.organization.payoutAccountNumber.slice(-6)}`
+                              : "—"}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate max-w-[190px]">
+                            {batch.organization?.payoutAccountHolder || batch.organization?.legalName}
+                          </div>
+                        </>
+                      )}
                     </td>
 
                     {/* Status Badge */}
@@ -174,6 +233,16 @@ export function SettlementsTable({
                         <span className="inline-flex items-center gap-1 rounded-full bg-status-confirmed-bg border border-status-confirmed-border px-2.5 py-1 text-[11px] font-bold text-status-confirmed-fg">
                           <span>✓</span>
                           <span>{t("statusDisbursed")}</span>
+                        </span>
+                      ) : isUnderReview ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-500/15 px-2.5 py-1 text-[11px] font-bold text-sky-600 dark:text-sky-400">
+                          <span>🔍</span>
+                          <span>{t("statusUnderReview")}</span>
+                        </span>
+                      ) : isOverdue ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-status-cancelled-bg border border-status-cancelled-border px-2.5 py-1 text-[11px] font-bold text-status-cancelled-fg">
+                          <span>⚠️</span>
+                          <span>{t("statusOverdue")}</span>
                         </span>
                       ) : batch.status === "DRAFT" ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-muted border border-border px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
@@ -203,8 +272,8 @@ export function SettlementsTable({
                           <span className="hidden sm:inline">{t("btnStatement")}</span>
                         </Button>
 
-                        {/* Payout or Receipt CTA */}
-                        {isDisbursed ? (
+                        {/* Payout, Invoice Payment, or Receipt CTA */}
+                        {isDisbursed && (
                           <Button
                             type="button"
                             variant="secondary"
@@ -216,7 +285,9 @@ export function SettlementsTable({
                             <span>🧾</span>
                             <span className="hidden sm:inline">{t("btnReceipt")}</span>
                           </Button>
-                        ) : (
+                        )}
+
+                        {!isDisbursed && !isAllyToPlatform && isPlatformUser && (
                           <Button
                             type="button"
                             variant="primary"
@@ -229,6 +300,38 @@ export function SettlementsTable({
                             <span>{t("btnPayNow")}</span>
                           </Button>
                         )}
+
+                        {!isDisbursed &&
+                          isAllyToPlatform &&
+                          !isUnderReview &&
+                          isAllyFinanceOrAdmin && (
+                            <Button
+                              type="button"
+                              variant="primary"
+                              size="sm"
+                              onClick={() => onOpenPayout(batch)}
+                              className="px-2.5 py-1 text-xs"
+                            >
+                              <span>💳</span>
+                              <span>{t("btnPayInvoice")}</span>
+                            </Button>
+                          )}
+
+                        {!isDisbursed &&
+                          isAllyToPlatform &&
+                          isUnderReview &&
+                          isPlatformUser && (
+                            <Button
+                              type="button"
+                              variant="primary"
+                              size="sm"
+                              onClick={() => onOpenPayout(batch)}
+                              className="px-2.5 py-1 text-xs"
+                            >
+                              <span>✓</span>
+                              <span>{t("btnVerifyInvoice")}</span>
+                            </Button>
+                          )}
                       </div>
                     </td>
                   </tr>

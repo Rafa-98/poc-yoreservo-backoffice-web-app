@@ -58,7 +58,7 @@ export function VenueProvider({
   const [isPending, startTransition] = useTransition();
 
   const isManagedLocked =
-    user.role === "VALIDATOR" && Boolean(user.managedVenueId);
+    user.role === "ALLY_VALIDATOR" && Boolean(user.managedVenueId);
 
   // Initialize active venue ID
   const [activeVenueId, setActiveVenueIdState] = useState<string>(() => {

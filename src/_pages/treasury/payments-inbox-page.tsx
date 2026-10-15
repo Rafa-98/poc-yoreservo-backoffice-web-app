@@ -13,11 +13,17 @@ import { PaymentsTable } from "@/features/treasury/ui/payments-table";
 import { VoucherDrawer } from "@/features/treasury/ui/voucher-drawer";
 import { PaymentRejectModal } from "@/features/treasury/ui/payment-reject-modal";
 
+import type { BackofficeRole } from "@/shared/config";
+
 interface PaymentsInboxPageProps {
   initialData: PaymentsInboxData;
+  userRole?: BackofficeRole;
 }
 
-export function PaymentsInboxPage({ initialData }: PaymentsInboxPageProps) {
+export function PaymentsInboxPage({
+  initialData,
+  userRole = "PLATFORM_ADMIN",
+}: PaymentsInboxPageProps) {
   const t = useTranslations("treasury.inbox");
 
   const [items, setItems] = useState<PaymentItem[]>(initialData.items);
@@ -114,10 +120,15 @@ export function PaymentsInboxPage({ initialData }: PaymentsInboxPageProps) {
     setRejectingPayment(payment);
   };
 
-  const handleConfirmReject = async (paymentId: string, reason: string, notes?: string) => {
+  const handleConfirmReject = async (
+    paymentId: string,
+    reason: string,
+    action: "RETRY" | "CANCEL" = "RETRY",
+    notes?: string,
+  ) => {
     setIsProcessingId(paymentId);
     try {
-      const res = await rejectPaymentAction(paymentId, reason, notes);
+      const res = await rejectPaymentAction(paymentId, reason, action, notes);
       if (res.ok) {
         setItems((prev) =>
           prev.map((item) =>
@@ -172,6 +183,7 @@ export function PaymentsInboxPage({ initialData }: PaymentsInboxPageProps) {
       <section className="px-5">
         <PaymentsTable
           payments={filteredItems}
+          userRole={userRole}
           onOpenVoucher={setSelectedVoucherPayment}
           onApprove={handleApprove}
           onOpenReject={handleOpenReject}
@@ -183,6 +195,7 @@ export function PaymentsInboxPage({ initialData }: PaymentsInboxPageProps) {
       {/* IN-LINE VOUCHER AUDIT DRAWER */}
       <VoucherDrawer
         payment={selectedVoucherPayment}
+        userRole={userRole}
         isOpen={Boolean(selectedVoucherPayment)}
         onClose={() => setSelectedVoucherPayment(null)}
         onApprove={handleApprove}

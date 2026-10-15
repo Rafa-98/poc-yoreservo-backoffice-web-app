@@ -20,25 +20,31 @@ interface DemoRolePreset {
 
 const DEMO_PRESETS: readonly DemoRolePreset[] = [
   {
-    id: "aliado",
+    id: "ally_admin",
     labelKey: "roleAlly",
     email: "aliado@sanagustin.com",
     pass: "AliadoPass123",
   },
   {
-    id: "validator",
+    id: "ally_accounting",
+    labelKey: "roleAllyAccounting",
+    email: "finanzas@sanagustin.com",
+    pass: "FinanceAlly123",
+  },
+  {
+    id: "ally_validator",
     labelKey: "roleValidator",
     email: "recepcion@sanagustin.com",
     pass: "StaffPass123",
   },
   {
-    id: "admin",
+    id: "platform_admin",
     labelKey: "roleAdmin",
     email: "admin@yoreservo.com",
     pass: "AdminPass123",
   },
   {
-    id: "accounting",
+    id: "platform_accounting",
     labelKey: "roleAccounting",
     email: "tesoreria@yoreservo.com",
     pass: "FinancePass123",
@@ -54,7 +60,7 @@ export function LoginForm() {
   const [password, setPassword] = useState("AliadoPass123");
   const [remember, setRemember] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState("aliado");
+  const [selectedRole, setSelectedRole] = useState("ally_admin");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 

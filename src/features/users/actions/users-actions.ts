@@ -5,12 +5,14 @@ import { revalidatePath } from "next/cache";
 import { backendRequest } from "@/shared/api/index.server";
 import { ACCESS_COOKIE_NAME } from "@/shared/auth";
 import { requireSession } from "@/shared/auth/index.server";
+import { normalizeBackofficeRole } from "@/shared/config";
 import { fail, ok, type ActionResult } from "@/shared/lib";
 import type {
   ActiveSessionItem,
   InviteUserInput,
   UpdateUserPrivilegesInput,
   UserItem,
+  UserRole,
   UsersKpi,
 } from "../model/types";
 
@@ -28,7 +30,7 @@ export async function getUsersAction(filter?: {
   status?: string;
 }): Promise<ActionResult<{ kpi: UsersKpi; users: UserItem[] }>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const query = new URLSearchParams();
@@ -47,7 +49,13 @@ export async function getUsersAction(filter?: {
       return fail("USERS_FETCH_FAILED");
     }
 
-    return ok(res.body as { kpi: UsersKpi; users: UserItem[] });
+    const body = res.body as { kpi: UsersKpi; users: UserItem[] };
+    const normalizedUsers = (body?.users ?? []).map((u) => ({
+      ...u,
+      role: (normalizeBackofficeRole(u.role) ?? u.role) as UserRole,
+    }));
+
+    return ok({ kpi: body.kpi, users: normalizedUsers });
   } catch (err: any) {
     return fail(err instanceof Error ? err.message : "USERS_FETCH_FAILED");
   }
@@ -57,7 +65,7 @@ export async function inviteUserAction(
   input: InviteUserInput
 ): Promise<ActionResult<any>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/users/invite", {
@@ -83,7 +91,7 @@ export async function updateUserPrivilegesAction(
   input: UpdateUserPrivilegesInput
 ): Promise<ActionResult<any>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/users/${id}`, {
@@ -109,7 +117,7 @@ export async function resetPasswordAction(
   newPassword?: string
 ): Promise<ActionResult<{ tempPassword?: string; message: string }>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/users/${id}/reset-password`, {
@@ -131,7 +139,7 @@ export async function resetPasswordAction(
 
 export async function getSessionsAction(): Promise<ActionResult<ActiveSessionItem[]>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/users/sessions", {
@@ -143,7 +151,12 @@ export async function getSessionsAction(): Promise<ActionResult<ActiveSessionIte
       return fail("SESSIONS_FETCH_FAILED");
     }
 
-    return ok(res.body as ActiveSessionItem[]);
+    const sessions = ((res.body as ActiveSessionItem[]) ?? []).map((s) => ({
+      ...s,
+      role: (normalizeBackofficeRole(s.role) ?? s.role) as UserRole,
+    }));
+
+    return ok(sessions);
   } catch (err: any) {
     return fail(err instanceof Error ? err.message : "SESSIONS_FETCH_FAILED");
   }
@@ -151,7 +164,7 @@ export async function getSessionsAction(): Promise<ActionResult<ActiveSessionIte
 
 export async function revokeSessionAction(sessionId: string): Promise<ActionResult<{ success: boolean }>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/users/sessions/${sessionId}`, {
@@ -172,7 +185,7 @@ export async function revokeSessionAction(sessionId: string): Promise<ActionResu
 
 export async function revokeAllSessionsAction(): Promise<ActionResult<{ success: boolean }>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/users/sessions", {

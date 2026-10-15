@@ -8,7 +8,12 @@ interface PaymentRejectModalProps {
   payment: PaymentItem | null;
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (paymentId: string, reason: string, notes?: string) => Promise<void>;
+  onConfirm: (
+    paymentId: string,
+    reason: string,
+    action: "RETRY" | "CANCEL",
+    notes?: string,
+  ) => Promise<void>;
   isProcessing?: boolean;
 }
 
@@ -26,9 +31,8 @@ export function PaymentRejectModal({
 
   if (!isOpen || !payment) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onConfirm(payment.id, reason, notes);
+  const handleAction = async (action: "RETRY" | "CANCEL") => {
+    await onConfirm(payment.id, reason, action, notes);
   };
 
   return (
@@ -38,7 +42,7 @@ export function PaymentRejectModal({
     >
       <div
         id="reject-payment-modal-card"
-        className="modal-card w-full max-w-[480px] overflow-hidden rounded-[20px] border border-border bg-surface shadow-2xl"
+        className="modal-card w-full max-w-[500px] overflow-hidden rounded-[20px] border border-border bg-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER */}
@@ -59,7 +63,7 @@ export function PaymentRejectModal({
         </div>
 
         {/* BODY */}
-        <form onSubmit={handleSubmit} className="p-6">
+        <div className="p-6">
           <p className="mb-4.5 text-[13px] leading-relaxed text-muted-foreground">
             {t("desc")}
           </p>
@@ -102,25 +106,37 @@ export function PaymentRejectModal({
             />
           </div>
 
-          <div className="flex gap-2.5">
+          <div className="flex flex-col gap-2.5">
+            <button
+              id="confirm-reject-retry-button"
+              type="button"
+              className="w-full cursor-pointer rounded-[10px] border border-amber-500/40 bg-amber-500/15 px-4 py-2.5 text-[13px] font-bold text-amber-700 transition-colors hover:bg-amber-500/25 disabled:opacity-50 dark:text-amber-300"
+              onClick={() => handleAction("RETRY")}
+              disabled={isProcessing}
+            >
+              ⏳ {isProcessing ? t("rejecting") : t("confirmRetry")}
+            </button>
+
+            <button
+              id="confirm-reject-button"
+              type="button"
+              className="btn btn-destructive w-full rounded-[10px] px-4 py-2.5 text-[13px]"
+              onClick={() => handleAction("CANCEL")}
+              disabled={isProcessing}
+            >
+              ✕ {isProcessing ? t("rejecting") : t("confirmCancelBooking")}
+            </button>
+
             <button
               type="button"
-              className="btn btn-outline flex-1 rounded-[10px] px-4 py-2.5 text-[13px]"
+              className="btn btn-outline w-full rounded-[10px] px-4 py-2 text-[13px]"
               onClick={onClose}
               disabled={isProcessing}
             >
               {t("cancel")}
             </button>
-            <button
-              id="confirm-reject-button"
-              type="submit"
-              className="btn btn-destructive flex-[1.5] rounded-[10px] px-4 py-2.5 text-[13px]"
-              disabled={isProcessing}
-            >
-              {isProcessing ? t("rejecting") : t("confirm")}
-            </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

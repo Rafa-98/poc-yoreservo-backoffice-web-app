@@ -3,7 +3,11 @@
 import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
-import type { OrganizationData, UpdateOrganizationInput } from "../model/types";
+import type {
+  OrganizationData,
+  PaymentCollectionMode,
+  UpdateOrganizationInput,
+} from "../model/types";
 import { updateOrganizationAction } from "../actions/venues-actions";
 
 interface OrgEditModalProps {
@@ -11,6 +15,7 @@ interface OrgEditModalProps {
   onClose: () => void;
   organization: OrganizationData;
   onSuccess: (updated: OrganizationData) => void;
+  userRole?: string;
 }
 
 export function OrgEditModal({
@@ -18,6 +23,7 @@ export function OrgEditModal({
   onClose,
   organization,
   onSuccess,
+  userRole,
 }: OrgEditModalProps) {
   const t = useTranslations("venues.org");
   const [loading, setLoading] = useState(false);
@@ -27,13 +33,15 @@ export function OrgEditModal({
   const [legalName, setLegalName] = useState(organization.legalName || "");
   const [rif, setRif] = useState(organization.rif || "");
   const [contactEmail, setContactEmail] = useState(organization.contactEmail || "");
-  const [contactPhone, setContactPhone] = useState(organization.contactPhone || "");
+  const [contactPhone, setContactPhone] = useState(
+    organization.pagoMovilPhone || organization.contactPhone || ""
+  );
   const [fiscalAddress, setFiscalAddress] = useState(organization.fiscalAddress || "");
   const [referenceCurrencyCode, setReferenceCurrencyCode] = useState(
     organization.referenceCurrencyCode || "USD"
   );
   const [payoutBank, setPayoutBank] = useState(
-    organization.payoutBank || "0102 - Banco de Venezuela"
+    organization.payoutBank || organization.bankName || "0102 - Banco de Venezuela"
   );
   const [payoutAccountNumber, setPayoutAccountNumber] = useState(
     organization.payoutAccountNumber || ""
@@ -44,27 +52,60 @@ export function OrgEditModal({
   const [payoutAccountHolder, setPayoutAccountHolder] = useState(
     organization.payoutAccountHolder || ""
   );
+  const [paymentCollectionMode, setPaymentCollectionMode] =
+    useState<PaymentCollectionMode>(
+      organization.paymentCollectionMode === "ALLY_DIRECT"
+        ? "ALLY_DIRECT"
+        : "PLATFORM_CUSTODY"
+    );
+  const [manualCommissionRate, setManualCommissionRate] = useState(
+    Number(organization.manualCommissionRate ?? organization.commissionRate ?? 0.05)
+  );
+  const [minimumMonthlyFee, setMinimumMonthlyFee] = useState(
+    Number(organization.minimumMonthlyFee ?? 20)
+  );
 
   useEffect(() => {
     setTradeName(organization.tradeName || "");
     setLegalName(organization.legalName || "");
     setRif(organization.rif || "");
     setContactEmail(organization.contactEmail || "");
-    setContactPhone(organization.contactPhone || "");
+    setContactPhone(organization.pagoMovilPhone || organization.contactPhone || "");
     setFiscalAddress(organization.fiscalAddress || "");
     setReferenceCurrencyCode(organization.referenceCurrencyCode || "USD");
-    setPayoutBank(organization.payoutBank || "0102 - Banco de Venezuela");
+    setPayoutBank(
+      organization.payoutBank || organization.bankName || "0102 - Banco de Venezuela"
+    );
     setPayoutAccountNumber(organization.payoutAccountNumber || "");
     setPayoutAccountType(organization.payoutAccountType || "Corriente");
     setPayoutAccountHolder(organization.payoutAccountHolder || "");
+    setPaymentCollectionMode(
+      organization.paymentCollectionMode === "ALLY_DIRECT"
+        ? "ALLY_DIRECT"
+        : "PLATFORM_CUSTODY"
+    );
+    setManualCommissionRate(
+      Number(organization.manualCommissionRate ?? organization.commissionRate ?? 0.05)
+    );
+    setMinimumMonthlyFee(Number(organization.minimumMonthlyFee ?? 20));
+    setErrorMsg(null);
   }, [organization, isOpen]);
 
   if (!isOpen) return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setErrorMsg(null);
+
+    if (
+      paymentCollectionMode === "ALLY_DIRECT" &&
+      (!payoutBank.trim() || !contactPhone.trim())
+    ) {
+      setErrorMsg(t("errorDirectModeBankPhone"));
+      return;
+    }
+
+    setLoading(true);
 
     const input: UpdateOrganizationInput = {
       tradeName,
@@ -72,12 +113,18 @@ export function OrgEditModal({
       rif,
       contactEmail,
       contactPhone,
+      pagoMovilPhone: contactPhone,
       fiscalAddress,
       referenceCurrencyCode,
       payoutBank,
+      bankName: payoutBank,
       payoutAccountNumber,
       payoutAccountType,
       payoutAccountHolder,
+      paymentCollectionMode,
+      ...(userRole === "PLATFORM_ADMIN"
+        ? { manualCommissionRate, minimumMonthlyFee }
+        : {}),
     };
 
     const res = await updateOrganizationAction(input);
@@ -98,7 +145,7 @@ export function OrgEditModal({
       onClick={onClose}
     >
       <div
-        className="modal-card flex max-h-[90vh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl border border-border-medium bg-surface shadow-card"
+        className="modal-card flex max-h-[90vh] w-full max-w-[680px] flex-col overflow-hidden rounded-2xl border border-border-medium bg-surface shadow-card"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4.5">
@@ -120,9 +167,101 @@ export function OrgEditModal({
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5">
           {errorMsg && (
             <div className="mb-4 rounded-lg border border-status-cancelled-border bg-status-cancelled-bg px-3.5 py-2.5 text-[13px] text-status-cancelled-fg">
-              {errorMsg}
+              ⚠️ {errorMsg}
             </div>
           )}
+
+          {/* Modalidad de Cobro de Reservas */}
+          <div className="mb-4 rounded-xl border border-accent/40 bg-accent/5 p-3.5">
+            <div className="mb-2 text-xs font-extrabold tracking-wider text-foreground uppercase">
+              💳 {t("collectionModeSectionTitle")}
+            </div>
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              <label
+                className={`flex cursor-pointer flex-col rounded-xl border p-3 transition-all ${
+                  paymentCollectionMode === "PLATFORM_CUSTODY"
+                    ? "border-accent bg-surface ring-1 ring-accent"
+                    : "border-border bg-surface/60 hover:border-border-medium"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="paymentCollectionMode"
+                    value="PLATFORM_CUSTODY"
+                    checked={paymentCollectionMode === "PLATFORM_CUSTODY"}
+                    onChange={() => setPaymentCollectionMode("PLATFORM_CUSTODY")}
+                    className="accent-accent"
+                    id="radio-mode-platform-custody"
+                  />
+                  <span className="text-xs font-bold text-foreground">
+                    {t("modeOption1Title")}
+                  </span>
+                </div>
+                <span className="mt-1 pl-5 text-[11px] leading-snug text-muted-foreground">
+                  {t("modeOption1Desc")}
+                </span>
+              </label>
+
+              <label
+                className={`flex cursor-pointer flex-col rounded-xl border p-3 transition-all ${
+                  paymentCollectionMode === "ALLY_DIRECT"
+                    ? "border-accent bg-surface ring-1 ring-accent"
+                    : "border-border bg-surface/60 hover:border-border-medium"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="paymentCollectionMode"
+                    value="ALLY_DIRECT"
+                    checked={paymentCollectionMode === "ALLY_DIRECT"}
+                    onChange={() => setPaymentCollectionMode("ALLY_DIRECT")}
+                    className="accent-accent"
+                    id="radio-mode-ally-direct"
+                  />
+                  <span className="text-xs font-bold text-foreground">
+                    {t("modeOption2Title")}
+                  </span>
+                </div>
+                <span className="mt-1 pl-5 text-[11px] leading-snug text-muted-foreground">
+                  {t("modeOption2Desc")}
+                </span>
+              </label>
+            </div>
+
+            {userRole === "PLATFORM_ADMIN" && (
+              <div className="mt-3 grid grid-cols-1 gap-3 border-t border-border/60 pt-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-muted-foreground">
+                    {t("manualCommissionRateLabel")}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="1"
+                    value={manualCommissionRate}
+                    onChange={(e) => setManualCommissionRate(Number(e.target.value))}
+                    className="input-field form-input text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-muted-foreground">
+                    {t("minimumMonthlyFeeLabel")}
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={minimumMonthlyFee}
+                    onChange={(e) => setMinimumMonthlyFee(Number(e.target.value))}
+                    className="input-field form-input text-xs"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
             <div className="form-group">

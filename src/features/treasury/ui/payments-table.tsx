@@ -1,11 +1,13 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import type { BackofficeRole } from "@/shared/config";
 import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import type { PaymentItem } from "../model/types";
 
 interface PaymentsTableProps {
   payments: PaymentItem[];
+  userRole?: BackofficeRole;
   onOpenVoucher: (payment: PaymentItem) => void;
   onApprove: (paymentId: string) => Promise<void>;
   onOpenReject: (payment: PaymentItem) => void;
@@ -13,8 +15,24 @@ interface PaymentsTableProps {
   isProcessingId?: string | null;
 }
 
+export function canUserReconcilePayment(
+  payment: PaymentItem,
+  userRole: BackofficeRole = "PLATFORM_ADMIN",
+): boolean {
+  const mode = payment.collectionMode ?? "PLATFORM_CUSTODY";
+  if (mode === "PLATFORM_CUSTODY") {
+    return userRole === "PLATFORM_ADMIN" || userRole === "PLATFORM_ACCOUNTING";
+  }
+  return (
+    userRole === "ALLY_ADMIN" ||
+    userRole === "ALLY_ACCOUNTING" ||
+    userRole === "PLATFORM_ADMIN"
+  );
+}
+
 export function PaymentsTable({
   payments,
+  userRole = "PLATFORM_ADMIN",
   onOpenVoucher,
   onApprove,
   onOpenReject,
@@ -80,6 +98,8 @@ export function PaymentsTable({
             const isPending = p.status === "PENDING";
             const isVerified = p.status === "VERIFIED";
             const isRejected = p.status === "REJECTED" || p.status === "FAILED";
+            const isDirectMode = p.collectionMode === "ALLY_DIRECT";
+            const canReconcile = canUserReconcilePayment(p, userRole);
 
             const effectiveRate = p.exchangeRate || DEFAULT_BCV_USD_RATE;
             const amountBs = p.amountVes
@@ -117,19 +137,37 @@ export function PaymentsTable({
                       🧾
                     </div>
                     <div>
-                      <div
-                        className={`font-display text-sm font-bold ${
-                          isRejected ? "text-status-cancelled-fg" : "text-link"
-                        }`}
-                      >
-                        #{p.referenceNumber ?? t("noRef")}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span
+                          className={`font-display text-sm font-bold ${
+                            isRejected ? "text-status-cancelled-fg" : "text-link"
+                          }`}
+                        >
+                          #{p.referenceNumber ?? t("noRef")}
+                        </span>
+                        {p.isDuplicateReference && (
+                          <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                            ⚠️ {t("duplicateRefBadge")}
+                          </span>
+                        )}
                       </div>
-                      <span
-                        className="cursor-pointer text-[11px] text-link underline"
-                        onClick={() => onOpenVoucher(p)}
-                      >
-                        👁️ {t("inspect")}
-                      </span>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                        <span
+                          className="cursor-pointer text-[11px] text-link underline"
+                          onClick={() => onOpenVoucher(p)}
+                        >
+                          👁️ {t("inspect")}
+                        </span>
+                        <span
+                          className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
+                            isDirectMode
+                              ? "border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              : "border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          }`}
+                        >
+                          {isDirectMode ? t("modeDirectBadge") : t("modeCustodyBadge")}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -199,7 +237,7 @@ export function PaymentsTable({
 
                 {/* 7. AUDIT ACTIONS */}
                 <td className="px-4.5 py-3.5 text-right">
-                  {isPending && (
+                  {isPending && canReconcile && (
                     <div className="inline-flex gap-2">
                       <button
                         id={`btn-validate-${p.referenceNumber ?? p.id}`}
@@ -222,6 +260,16 @@ export function PaymentsTable({
                         ✕ {t("reject")}
                       </button>
                     </div>
+                  )}
+
+                  {isPending && !canReconcile && (
+                    <button
+                      type="button"
+                      className="btn btn-outline rounded-lg px-3 py-1.5 text-xs"
+                      onClick={() => onOpenVoucher(p)}
+                    >
+                      👁️ {t("audit")}
+                    </button>
                   )}
 
                   {isVerified && (

@@ -56,11 +56,18 @@
       "rejectTitle": "Rechazar Pago",
       "audit": "Auditar",
       "viewReason": "Ver Causa",
+      "duplicateRefBadge": "Ref. Duplicada",
+      "modeDirectBadge": "Cobro Directo Aliado",
+      "modeCustodyBadge": "Custodia YoReservo",
       "empty": "No se encontraron pagos en la bandeja con los filtros seleccionados."
     },
     "voucher": {
       "title": "Auditoría de Comprobante",
       "refTitle": "Comprobante Pago Móvil #{ref}",
+      "modeDirectBadge": "Cobro Directo Aliado",
+      "modeCustodyBadge": "Custodia YoReservo",
+      "duplicateRefAlertTitle": "Posible Referencia Duplicada",
+      "duplicateRefAlertDesc": "Este número de referencia bancaria ya fue utilizado en otro pago registrado. Verifica cuidadosamente el estado de cuenta antes de aprobar.",
       "directViewer": "Visor Directo en Pantalla:",
       "directViewerDesc": "No requiere descargar archivos al equipo. Coteja los datos del extracto bancario con la captura digital en tiempo real.",
       "receiptImageLabel": "Captura Adjunta del Comprobante",
@@ -80,11 +87,13 @@
       "linkedBooking": "Reserva Asociada",
       "reconcileConfirm": "Conciliar & Confirmar",
       "reject": "Rechazar",
+      "readOnlyDirectNotice": "Pago en Cobro Directo: solo el administrador o finanzas del aliado puede aprobar o rechazar este comprobante.",
+      "readOnlyCustodyNotice": "Pago en Custodia YoReservo: validado por el equipo de finanzas de la plataforma.",
       "closeAudit": "Cerrar Auditoría"
     },
     "rejectModal": {
       "title": "Rechazar Pago Móvil",
-      "desc": "Al rechazar este pago, la reserva asociada pasará a estatus PENDIENTE_PAGO y se notificará la observación al cliente.",
+      "desc": "Selecciona si deseas otorgar al cliente 15 minutos adicionales para reenviar un nuevo comprobante o cancelar la reserva de inmediato.",
       "reasonLabel": "Motivo de no coincidencia bancaria *",
       "reasons": {
         "notFound": "Referencia no localizada en el extracto bancario",
@@ -96,6 +105,8 @@
       "notesPlaceholder": "ej. Revisado corte bancario a las 15:45, no figura ingreso.",
       "cancel": "Cancelar",
       "confirm": "Confirmar Rechazo",
+      "confirmRetry": "Rechazar y permitir reintento (15 min)",
+      "confirmCancelBooking": "Rechazar y cancelar reserva inmediatamente",
       "rejecting": "Rechazando..."
     },
     "reasonModal": {

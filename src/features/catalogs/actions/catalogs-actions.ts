@@ -28,7 +28,7 @@ async function getAuthToken(): Promise<string> {
 
 export async function getTaxonomyAction(): Promise<ActionResult<ActivityTypeItem[]>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/catalogs/taxonomy", {
@@ -50,7 +50,7 @@ export async function createActivityAction(
   input: CreateActivityInput
 ): Promise<ActionResult<ActivityItem>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/catalogs/activities", {
@@ -74,7 +74,7 @@ export async function createCategoryAction(
   input: CreateCategoryInput
 ): Promise<ActionResult<ActivityCategoryItem>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/catalogs/categories", {
@@ -96,7 +96,7 @@ export async function createCategoryAction(
 
 export async function getSurfacesAction(): Promise<ActionResult<SurfaceItem[]>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/catalogs/surfaces", {
@@ -118,7 +118,7 @@ export async function createSurfaceAction(
   input: CreateSurfaceInput
 ): Promise<ActionResult<SurfaceItem>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/catalogs/surfaces", {
@@ -143,7 +143,7 @@ export async function updateSurfaceAction(
   input: UpdateSurfaceInput
 ): Promise<ActionResult<SurfaceItem>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/catalogs/surfaces/${id}`, {
@@ -165,7 +165,7 @@ export async function updateSurfaceAction(
 
 export async function getAmenitiesAction(): Promise<ActionResult<AmenityItem[]>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/catalogs/amenities", {
@@ -187,7 +187,7 @@ export async function createAmenityAction(
   input: CreateAmenityInput
 ): Promise<ActionResult<AmenityItem>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/catalogs/amenities", {

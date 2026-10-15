@@ -12,6 +12,7 @@ interface EditUserModalProps {
   user: UserItem | null;
   venues: Array<{ id: string; name: string }>;
   onSuccess: (updated: any) => void;
+  currentUserRole?: string;
 }
 
 export function EditUserModal({
@@ -20,10 +21,11 @@ export function EditUserModal({
   user,
   venues,
   onSuccess,
+  currentUserRole,
 }: EditUserModalProps) {
   const t = useTranslations("users.modalEdit");
 
-  const [role, setRole] = useState<UserRole>("VALIDATOR");
+  const [role, setRole] = useState<UserRole>("ALLY_VALIDATOR");
   const [venueScope, setVenueScope] = useState<string>("org-all");
   const [status, setStatus] = useState<GeneralStatus>("ACTIVE");
   const [loading, setLoading] = useState(false);
@@ -121,10 +123,15 @@ export function EditUserModal({
               className="form-select"
               id="edit-user-role"
             >
-              <option value="ALLY">🏢 {t("roleAlly")}</option>
-              <option value="VALIDATOR">🎟️ {t("roleValidator")}</option>
-              <option value="ACCOUNTING">💳 {t("roleAccounting")}</option>
-              <option value="ADMIN">👑 {t("roleAdmin")}</option>
+              <option value="ALLY_ADMIN">🏢 {t("roleAlly")}</option>
+              <option value="ALLY_ACCOUNTING">📊 {t("roleAllyAccounting")}</option>
+              <option value="ALLY_VALIDATOR">🎟️ {t("roleValidator")}</option>
+              {currentUserRole !== "ALLY_ADMIN" && (
+                <>
+                  <option value="PLATFORM_ACCOUNTING">💳 {t("roleAccounting")}</option>
+                  <option value="PLATFORM_ADMIN">👑 {t("roleAdmin")}</option>
+                </>
+              )}
             </select>
           </div>
 

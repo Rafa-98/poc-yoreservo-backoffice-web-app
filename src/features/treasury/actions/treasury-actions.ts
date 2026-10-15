@@ -71,7 +71,12 @@ export async function getPaymentsInboxAction(filters?: {
   search?: string;
 }): Promise<ActionResult<PaymentsInboxData>> {
   try {
-    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
+    await requireSession([
+      "PLATFORM_ADMIN",
+      "PLATFORM_ACCOUNTING",
+      "ALLY_ADMIN",
+      "ALLY_ACCOUNTING",
+    ]);
     const accessToken = await getAuthToken();
 
     const query = new URLSearchParams();
@@ -97,23 +102,40 @@ export async function getPaymentsInboxAction(filters?: {
     const data = res.body as { total: number; items: any[] };
     const rawItems = data?.items ?? [];
 
-    const items: PaymentItem[] = rawItems.map((p) => ({
-      id: p.id,
-      reservationId: p.reservationId,
-      referenceNumber: p.referenceNumber ?? null,
-      phoneNumber: p.phoneNumber ?? null,
-      originBank: p.originBank ?? null,
-      payerIdDocument: p.payerIdDocument ?? null,
-      payerDocumentType: p.payerDocumentType ?? null,
-      amount: Number(p.amount ?? 0),
-      amountVes: p.amountVes !== null && p.amountVes !== undefined ? Number(p.amountVes) : null,
-      amountReference:
+    const items: PaymentItem[] = rawItems.map((p) => {
+      const rawAmount = Number(p.amount ?? 0);
+      const rate = Number(p.exchangeRate) || DEFAULT_BCV_USD_RATE;
+      const isVesCurrency = p.currency === "VES";
+      const computedAmountVes =
+        p.amountVes !== null && p.amountVes !== undefined
+          ? Number(p.amountVes)
+          : isVesCurrency
+            ? rawAmount
+            : Number((rawAmount * rate).toFixed(2));
+      const computedAmountReference =
         p.amountReference !== null && p.amountReference !== undefined
           ? Number(p.amountReference)
-          : null,
-      currency: p.currency ?? "USD",
-      exchangeRate: Number(p.exchangeRate) || DEFAULT_BCV_USD_RATE,
-      paymentMethod: p.paymentMethod ?? "PAGO_MOVIL",
+          : p.reservation?.totalAmount !== null &&
+              p.reservation?.totalAmount !== undefined
+            ? Number(p.reservation.totalAmount)
+            : isVesCurrency
+              ? Number((rawAmount / rate).toFixed(2))
+              : rawAmount;
+
+      return {
+        id: p.id,
+        reservationId: p.reservationId,
+        referenceNumber: p.referenceNumber ?? null,
+        phoneNumber: p.phoneNumber ?? null,
+        originBank: p.originBank ?? null,
+        payerIdDocument: p.payerIdDocument ?? null,
+        payerDocumentType: p.payerDocumentType ?? null,
+        amount: computedAmountReference,
+        amountVes: computedAmountVes,
+        amountReference: computedAmountReference,
+        currency: p.currency ?? "USD",
+        exchangeRate: rate,
+        paymentMethod: p.paymentMethod ?? "PAGO_MOVIL",
       paymentDate: p.paymentDate ? String(p.paymentDate).slice(0, 10) : "",
       status: p.status,
       rejectionReason: p.rejectionReason ?? null,
@@ -121,6 +143,9 @@ export async function getPaymentsInboxAction(filters?: {
       verifiedBy: p.verifiedBy ?? null,
       verifiedAt: p.verifiedAt ? String(p.verifiedAt) : null,
       createdAt: p.createdAt ? String(p.createdAt) : "",
+      collectionMode:
+        p.collectionMode === "ALLY_DIRECT" ? "ALLY_DIRECT" : "PLATFORM_CUSTODY",
+      isDuplicateReference: Boolean(p.isDuplicateReference),
       reservation: {
         id: p.reservation?.id ?? "",
         shortCode: p.reservation?.shortCode ?? "---",
@@ -153,7 +178,8 @@ export async function getPaymentsInboxAction(filters?: {
             lastName: p.verifier.lastName,
           }
         : null,
-    }));
+      };
+    });
 
     // Calculate live KPIs
     let pendingCount = 0;
@@ -196,7 +222,12 @@ export async function getPaymentsInboxAction(filters?: {
 
 export async function verifyPaymentAction(paymentId: string): Promise<ActionResult<void>> {
   try {
-    await requireSession(["ADMIN", "ACCOUNTING"]);
+    await requireSession([
+      "PLATFORM_ADMIN",
+      "PLATFORM_ACCOUNTING",
+      "ALLY_ADMIN",
+      "ALLY_ACCOUNTING",
+    ]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/treasury/payments/${paymentId}/verify`, {
@@ -222,16 +253,22 @@ export const approvePaymentAction = verifyPaymentAction;
 export async function rejectPaymentAction(
   paymentId: string,
   reason: string,
+  action: "RETRY" | "CANCEL" = "RETRY",
   notes?: string,
 ): Promise<ActionResult<void>> {
   try {
-    await requireSession(["ADMIN", "ACCOUNTING"]);
+    await requireSession([
+      "PLATFORM_ADMIN",
+      "PLATFORM_ACCOUNTING",
+      "ALLY_ADMIN",
+      "ALLY_ACCOUNTING",
+    ]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/treasury/payments/${paymentId}/reject`, {
       method: "PATCH",
       accessToken,
-      body: { reason, notes },
+      body: { reason, action, notes },
     });
 
     if (!res.ok) {
@@ -249,7 +286,12 @@ export async function rejectPaymentAction(
 
 export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRateData>> {
   try {
-    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
+    await requireSession([
+      "PLATFORM_ADMIN",
+      "PLATFORM_ACCOUNTING",
+      "ALLY_ADMIN",
+      "ALLY_ACCOUNTING",
+    ]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/treasury/exchange-rates", {
@@ -327,7 +369,7 @@ export async function overrideExchangeRateAction(
   dto: ManualRateOverrideInput,
 ): Promise<ActionResult<void>> {
   try {
-    await requireSession(["ADMIN", "ACCOUNTING"]);
+    await requireSession(["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/treasury/exchange-rates/override", {
@@ -364,7 +406,12 @@ export async function getSettlementsAction(filters?: {
   }>
 > {
   try {
-    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
+    await requireSession([
+      "PLATFORM_ADMIN",
+      "PLATFORM_ACCOUNTING",
+      "ALLY_ADMIN",
+      "ALLY_ACCOUNTING",
+    ]);
     const accessToken = await getAuthToken();
 
     const query = new URLSearchParams();
@@ -452,6 +499,11 @@ export async function getSettlementsAction(filters?: {
           b.payoutExchangeRate !== null && b.payoutExchangeRate !== undefined
             ? Number(b.payoutExchangeRate)
             : DEFAULT_BCV_USD_RATE,
+        direction:
+          b.direction === "ALLY_TO_PLATFORM"
+            ? "ALLY_TO_PLATFORM"
+            : "PLATFORM_TO_ALLY",
+        dueDate: b.dueDate ? String(b.dueDate).slice(0, 10) : null,
         status: b.status,
         payoutMethod: b.payoutMethod ?? null,
         payoutReferenceNumber: b.payoutReferenceNumber ?? null,
@@ -509,7 +561,12 @@ export async function getSettlementDetailAction(
   id: string,
 ): Promise<ActionResult<SettlementBatchItem>> {
   try {
-    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
+    await requireSession([
+      "PLATFORM_ADMIN",
+      "PLATFORM_ACCOUNTING",
+      "ALLY_ADMIN",
+      "ALLY_ACCOUNTING",
+    ]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/settlements/${id}`, {
@@ -556,6 +613,11 @@ export async function getSettlementDetailAction(
         b.payoutExchangeRate !== null && b.payoutExchangeRate !== undefined
           ? Number(b.payoutExchangeRate)
           : DEFAULT_BCV_USD_RATE,
+      direction:
+        b.direction === "ALLY_TO_PLATFORM"
+          ? "ALLY_TO_PLATFORM"
+          : "PLATFORM_TO_ALLY",
+      dueDate: b.dueDate ? String(b.dueDate).slice(0, 10) : null,
       status: b.status,
       payoutMethod: b.payoutMethod ?? null,
       payoutReferenceNumber: b.payoutReferenceNumber ?? null,
@@ -642,7 +704,7 @@ export async function disburseSettlementAction(
   dto: DisburseSettlementInput,
 ): Promise<ActionResult<void>> {
   try {
-    await requireSession(["ADMIN", "ACCOUNTING"]);
+    await requireSession(["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/settlements/${id}/disburse`, {
@@ -670,11 +732,49 @@ export async function disburseSettlementAction(
   }
 }
 
+export async function reportInvoicePaymentAction(
+  id: string,
+  dto: DisburseSettlementInput,
+): Promise<ActionResult<void>> {
+  try {
+    await requireSession([
+      "PLATFORM_ADMIN",
+      "PLATFORM_ACCOUNTING",
+      "ALLY_ADMIN",
+      "ALLY_ACCOUNTING",
+    ]);
+    const accessToken = await getAuthToken();
+
+    const res = await backendRequest(`/backoffice/settlements/${id}/report-payment`, {
+      method: "POST",
+      accessToken,
+      body: {
+        payoutMethod: dto.payoutMethod,
+        payoutReferenceNumber: dto.payoutReferenceNumber,
+        payoutDestinationBank: dto.payoutDestinationBank,
+        payoutReceiptUrl: dto.payoutReceiptUrl,
+        notes: dto.notes,
+      },
+    });
+
+    if (!res.ok) {
+      const msg = (res.body as any)?.message ?? "FAILED_TO_REPORT_INVOICE_PAYMENT";
+      return fail(msg);
+    }
+
+    revalidatePath(ROUTES.settlements);
+    return ok(undefined);
+  } catch (e) {
+    console.error("[treasury] reportInvoicePaymentAction failed:", e);
+    return fail("SERVICE_UNAVAILABLE");
+  }
+}
+
 export async function syncBcvExchangeRatesAction(): Promise<
   ActionResult<{ message: string; usdRate?: number; eurRate?: number }>
 > {
   try {
-    await requireSession(["ADMIN", "ACCOUNTING"]);
+    await requireSession(["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/treasury/exchange-rates/sync", {
@@ -703,7 +803,7 @@ export async function generateSettlementBatchAction(input: {
   venueId?: string;
 }): Promise<ActionResult<any>> {
   try {
-    await requireSession(["ADMIN", "ACCOUNTING"]);
+    await requireSession(["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/settlements/generate", {
@@ -730,7 +830,12 @@ export async function exportSettlementBankingFileAction(
   format: "BDV" | "BANESCO" | "PAGO_MOVIL" | "CSV" = "CSV",
 ): Promise<ActionResult<{ filename: string; mimeType: string; content: string }>> {
   try {
-    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
+    await requireSession([
+      "PLATFORM_ADMIN",
+      "PLATFORM_ACCOUNTING",
+      "ALLY_ADMIN",
+      "ALLY_ACCOUNTING",
+    ]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/settlements/${id}/export?format=${format}`, {

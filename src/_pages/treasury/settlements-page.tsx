@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import type { BackofficeRole } from "@/shared/config";
 import { Button } from "@/shared/ui/button";
 import { TreasurySubnav } from "@/features/treasury/ui/treasury-subnav";
 import { SettlementsKpiStrip } from "@/features/treasury/ui/settlements-kpi-strip";
@@ -16,6 +17,7 @@ import { SettlementStatementDrawer } from "@/features/treasury/ui/settlement-sta
 import {
   disburseSettlementAction,
   getSettlementsAction,
+  reportInvoicePaymentAction,
 } from "@/features/treasury/actions/treasury-actions";
 import type {
   SettlementBatchItem,
@@ -28,6 +30,7 @@ interface SettlementsPageProps {
   initialKpis: SettlementsKpis;
   organizations: Array<{ id: string; name: string }>;
   bcvRate: number;
+  userRole?: BackofficeRole;
 }
 
 export function SettlementsPage({
@@ -35,6 +38,7 @@ export function SettlementsPage({
   initialKpis,
   organizations,
   bcvRate,
+  userRole = "PLATFORM_ADMIN",
 }: SettlementsPageProps) {
   const t = useTranslations("settlements");
 
@@ -50,6 +54,9 @@ export function SettlementsPage({
 
   const [selectedForDrawer, setSelectedForDrawer] = useState<SettlementBatchItem | null>(null);
   const [selectedForPayout, setSelectedForPayout] = useState<SettlementBatchItem | null>(null);
+
+  const isPlatformUser =
+    userRole === "PLATFORM_ADMIN" || userRole === "PLATFORM_ACCOUNTING";
 
   // Client-side filtering
   const displayedBatches = useMemo(() => {
@@ -128,6 +135,41 @@ export function SettlementsPage({
                 status: "DISBURSED",
                 payoutReferenceNumber: input.referenceNumber,
                 disbursedAt: input.disbursementDate,
+              }
+            : b,
+        ),
+      );
+      await refreshSettlements();
+      setSelectedForPayout(null);
+      return { ok: true };
+    }
+
+    return { ok: false, error: res.error.code || t("payoutError") };
+  }
+
+  async function handleReportInvoice(
+    input: SettlementPayoutSubmitPayload,
+  ): Promise<{ ok: boolean; error?: string }> {
+    const res = await reportInvoicePaymentAction(input.batchId, {
+      payoutMethod: input.payoutMethod,
+      payoutReferenceNumber: input.referenceNumber,
+      payoutDestinationBank: input.destinationBank,
+      originAccount: input.originAccount,
+      payoutDate: input.disbursementDate,
+      payoutReceiptUrl: input.receiptUrl,
+      notes: input.notes,
+    });
+
+    if (res.ok) {
+      setBatches((prev) =>
+        prev.map((b) =>
+          b.id === input.batchId
+            ? {
+                ...b,
+                status: "PAYMENT_UNDER_REVIEW",
+                payoutReferenceNumber: input.referenceNumber,
+                payoutDestinationBank: input.destinationBank,
+                notes: input.notes,
               }
             : b,
         ),
@@ -224,18 +266,20 @@ export function SettlementsPage({
             <span>📥</span> {t("btnExportAll")}
           </Button>
 
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={() => {
-              const pendingBatch = batches.find((b) => b.status !== "DISBURSED") || batches[0];
-              if (pendingBatch) setSelectedForPayout(pendingBatch);
-            }}
-            id="btn-new-payout"
-          >
-            <span>💸</span> {t("btnRecordPayout")}
-          </Button>
+          {isPlatformUser && (
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                const pendingBatch = batches.find((b) => b.status !== "DISBURSED") || batches[0];
+                if (pendingBatch) setSelectedForPayout(pendingBatch);
+              }}
+              id="btn-new-payout"
+            >
+              <span>💸</span> {t("btnRecordPayout")}
+            </Button>
+          )}
         </div>
       </header>
 
@@ -265,6 +309,7 @@ export function SettlementsPage({
         <SettlementsTable
           batches={displayedBatches}
           bcvRate={bcvRate}
+          userRole={userRole}
           onOpenDrawer={(batch) => setSelectedForDrawer(batch)}
           onOpenPayout={(batch) => setSelectedForPayout(batch)}
         />
@@ -278,13 +323,14 @@ export function SettlementsPage({
         onClose={() => setSelectedForDrawer(null)}
       />
 
-      {/* MODAL: EXECUTE PAYOUT */}
+      {/* MODAL: EXECUTE PAYOUT OR REPORT INVOICE */}
       <SettlementPayoutModal
         isOpen={!!selectedForPayout}
         batch={selectedForPayout}
         bcvRate={bcvRate}
         onClose={() => setSelectedForPayout(null)}
         onDisburse={handleDisburse}
+        onReportInvoice={handleReportInvoice}
       />
     </div>
   );

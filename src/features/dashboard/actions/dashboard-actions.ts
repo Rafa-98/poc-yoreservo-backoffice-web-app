@@ -204,7 +204,9 @@ async function getAuthToken(): Promise<string | undefined> {
 
 export async function getDashboardSummaryAction(): Promise<ExecutiveDashboardData> {
   const session = await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.dashboard]);
-  const isGlobalAdmin = session.user.role === "ADMIN";
+  const isGlobalAdmin =
+    session.user.role === "PLATFORM_ADMIN" ||
+    session.user.role === "PLATFORM_ACCOUNTING";
   const accessToken = await getAuthToken();
 
   let backendSummary: BackendDashboardSummary | null = null;

@@ -1,4 +1,10 @@
-export type UserRole = 'ADMIN' | 'ALLY' | 'ACCOUNTING' | 'VALIDATOR' | 'CLIENT';
+export type UserRole =
+  | 'PLATFORM_ADMIN'
+  | 'PLATFORM_ACCOUNTING'
+  | 'ALLY_ADMIN'
+  | 'ALLY_ACCOUNTING'
+  | 'ALLY_VALIDATOR'
+  | 'CLIENT';
 export type DocumentType = 'V' | 'E' | 'J' | 'G' | 'P' | 'C';
 export type GeneralStatus = 'ACTIVE' | 'INACTIVE' | 'IN_VERIFICATION' | 'INVITATION_PENDING';
 

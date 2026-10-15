@@ -63,13 +63,59 @@ function mapVenueItem(v: any): VenueItem {
   };
 }
 
+function mapOrganizationData(raw: any): OrganizationData {
+  const commissionRate = Number(raw?.commissionRate ?? raw?.manualCommissionRate ?? 0.05);
+  return {
+    id: String(raw?.id ?? ""),
+    tradeName: String(raw?.tradeName ?? ""),
+    legalName: String(raw?.legalName ?? ""),
+    rif: String(raw?.rif ?? raw?.taxId ?? ""),
+    taxId: raw?.taxId ? String(raw.taxId) : undefined,
+    contactEmail: String(raw?.contactEmail ?? ""),
+    contactPhone: String(raw?.contactPhone ?? raw?.pagoMovilPhone ?? ""),
+    pagoMovilPhone: raw?.pagoMovilPhone
+      ? String(raw.pagoMovilPhone)
+      : raw?.contactPhone
+      ? String(raw.contactPhone)
+      : undefined,
+    fiscalAddress: String(raw?.fiscalAddress ?? ""),
+    referenceCurrencyCode: String(raw?.referenceCurrencyCode ?? "USD"),
+    payoutBank: String(raw?.payoutBank ?? raw?.bankName ?? ""),
+    bankName: raw?.bankName
+      ? String(raw.bankName)
+      : raw?.payoutBank
+      ? String(raw.payoutBank)
+      : undefined,
+    payoutAccountNumber: String(raw?.payoutAccountNumber ?? ""),
+    payoutAccountType: String(raw?.payoutAccountType ?? "Corriente"),
+    payoutAccountHolder: String(raw?.payoutAccountHolder ?? ""),
+    payoutIdDocument: raw?.payoutIdDocument ? String(raw.payoutIdDocument) : undefined,
+    commissionRate,
+    paymentCollectionMode:
+      raw?.paymentCollectionMode === "ALLY_DIRECT"
+        ? "ALLY_DIRECT"
+        : "PLATFORM_CUSTODY",
+    manualCommissionRate: Number(raw?.manualCommissionRate ?? commissionRate),
+    minimumMonthlyFee: Number(raw?.minimumMonthlyFee ?? 20),
+    isBookingPaused: Boolean(raw?.isBookingPaused),
+    status: String(raw?.status ?? "ACTIVE"),
+    venuesCount: Number(raw?.venuesCount ?? 0),
+    spacesCount: Number(raw?.spacesCount ?? 0),
+  };
+}
+
 // =============================================================================
 // ORGANIZATION ACTIONS
 // =============================================================================
 
 export async function getOrganizationAction(): Promise<ActionResult<OrganizationData>> {
   try {
-    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
+    await requireSession([
+      "PLATFORM_ADMIN",
+      "PLATFORM_ACCOUNTING",
+      "ALLY_ADMIN",
+      "ALLY_ACCOUNTING",
+    ]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/organization", { accessToken });
@@ -77,7 +123,7 @@ export async function getOrganizationAction(): Promise<ActionResult<Organization
       return fail("FAILED_TO_LOAD_ORGANIZATION");
     }
 
-    return ok(res.body as OrganizationData);
+    return ok(mapOrganizationData(res.body));
   } catch (error) {
     return fail(error instanceof Error ? error.message : "UNKNOWN_ERROR");
   }
@@ -87,7 +133,7 @@ export async function updateOrganizationAction(
   input: UpdateOrganizationInput
 ): Promise<ActionResult<OrganizationData>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/organization", {
@@ -97,14 +143,15 @@ export async function updateOrganizationAction(
     });
 
     if (!res.ok) {
-      return fail("FAILED_TO_UPDATE_ORGANIZATION");
+      const msg = (res.body as any)?.message || "FAILED_TO_UPDATE_ORGANIZATION";
+      return fail(msg);
     }
 
     revalidatePath(ROUTES.venues);
     revalidatePath(ROUTES.spaces);
     revalidatePath(ROUTES.schedules);
 
-    return ok(res.body as OrganizationData);
+    return ok(mapOrganizationData(res.body));
   } catch (error) {
     return fail(error instanceof Error ? error.message : "UNKNOWN_ERROR");
   }
@@ -116,7 +163,13 @@ export async function updateOrganizationAction(
 
 export async function getVenuesListAction(): Promise<ActionResult<VenueItem[]>> {
   try {
-    await requireSession(["ADMIN", "ALLY", "ACCOUNTING", "VALIDATOR"]);
+    await requireSession([
+      "PLATFORM_ADMIN",
+      "PLATFORM_ACCOUNTING",
+      "ALLY_ADMIN",
+      "ALLY_ACCOUNTING",
+      "ALLY_VALIDATOR",
+    ]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/venues", { accessToken });
@@ -135,7 +188,7 @@ export async function createVenueAction(
   input: CreateVenueInput
 ): Promise<ActionResult<VenueItem>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/venues", {
@@ -160,7 +213,7 @@ export async function updateVenueAction(
   input: UpdateVenueInput
 ): Promise<ActionResult<VenueItem>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/venues/${venueId}`, {
@@ -188,7 +241,13 @@ export async function getSpacesAction(
   venueId: string
 ): Promise<ActionResult<SpaceItem[]>> {
   try {
-    await requireSession(["ADMIN", "ALLY", "ACCOUNTING", "VALIDATOR"]);
+    await requireSession([
+      "PLATFORM_ADMIN",
+      "PLATFORM_ACCOUNTING",
+      "ALLY_ADMIN",
+      "ALLY_ACCOUNTING",
+      "ALLY_VALIDATOR",
+    ]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/venues/${venueId}/spaces`, {
@@ -209,7 +268,7 @@ export async function createSpaceAction(
   input: CreateSpaceInput
 ): Promise<ActionResult<SpaceItem>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/venues/${venueId}/spaces`, {
@@ -235,7 +294,7 @@ export async function updateSpaceAction(
   input: UpdateSpaceInput
 ): Promise<ActionResult<SpaceItem>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/spaces/${spaceId}`, {
@@ -261,7 +320,7 @@ export async function updateSpaceStatusAction(
   input: UpdateSpaceStatusInput
 ): Promise<ActionResult<SpaceStatusConflictResult>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/spaces/${spaceId}/status`, {
@@ -289,7 +348,12 @@ export async function getSpaceSchedulesAction(
   spaceId: string
 ): Promise<ActionResult<WeeklyScheduleData>> {
   try {
-    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
+    await requireSession([
+      "PLATFORM_ADMIN",
+      "PLATFORM_ACCOUNTING",
+      "ALLY_ADMIN",
+      "ALLY_ACCOUNTING",
+    ]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/spaces/${spaceId}/schedules`, {
@@ -308,7 +372,12 @@ export async function getSpaceSchedulesAction(
 export async function getWeeklySchedulesAction(
   spaceId: string
 ): Promise<ActionResult<WeeklyScheduleData>> {
-  await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
+  await requireSession([
+    "PLATFORM_ADMIN",
+    "PLATFORM_ACCOUNTING",
+    "ALLY_ADMIN",
+    "ALLY_ACCOUNTING",
+  ]);
   return getSpaceSchedulesAction(spaceId);
 }
 
@@ -317,7 +386,7 @@ export async function updateSpaceSchedulesAction(
   input: WeeklySchedulesInput
 ): Promise<ActionResult<any>> {
   try {
-    await requireSession(["ADMIN", "ALLY"]);
+    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest(`/backoffice/spaces/${spaceId}/schedules`, {
@@ -341,7 +410,7 @@ export async function saveWeeklySchedulesAction(
   spaceId: string,
   input: WeeklySchedulesInput
 ): Promise<ActionResult<any>> {
-  await requireSession(["ADMIN", "ALLY"]);
+  await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   return updateSpaceSchedulesAction(spaceId, input);
 }
 
@@ -351,7 +420,12 @@ export async function saveWeeklySchedulesAction(
 
 export async function getLocationsTreeAction(): Promise<ActionResult<LocationNode[]>> {
   try {
-    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
+    await requireSession([
+      "PLATFORM_ADMIN",
+      "PLATFORM_ACCOUNTING",
+      "ALLY_ADMIN",
+      "ALLY_ACCOUNTING",
+    ]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/locations/tree", {
@@ -369,7 +443,12 @@ export async function getLocationsTreeAction(): Promise<ActionResult<LocationNod
 
 export async function getCategoriesAction(): Promise<ActionResult<SportCategoryItem[]>> {
   try {
-    await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
+    await requireSession([
+      "PLATFORM_ADMIN",
+      "PLATFORM_ACCOUNTING",
+      "ALLY_ADMIN",
+      "ALLY_ACCOUNTING",
+    ]);
     const accessToken = await getAuthToken();
 
     const res = await backendRequest("/backoffice/categories", {
@@ -386,6 +465,11 @@ export async function getCategoriesAction(): Promise<ActionResult<SportCategoryI
 }
 
 export async function getSportCategoriesAction(): Promise<ActionResult<SportCategoryItem[]>> {
-  await requireSession(["ADMIN", "ALLY", "ACCOUNTING"]);
+  await requireSession([
+    "PLATFORM_ADMIN",
+    "PLATFORM_ACCOUNTING",
+    "ALLY_ADMIN",
+    "ALLY_ACCOUNTING",
+  ]);
   return getCategoriesAction();
 }

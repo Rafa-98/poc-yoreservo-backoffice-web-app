@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeBackofficeRole } from "@/shared/config/roles";
 
 export const ACCESS_COOKIE_NAME = "yoreservo_bo_access";
 export const REFRESH_COOKIE_NAME = "yoreservo_bo_refresh";
@@ -41,7 +42,10 @@ export function refreshCookieOptions(expiresAt: Date): AuthCookieOptions {
 
 const accessClaimsSchema = z.object({
   sub: z.string().uuid(),
-  role: z.string(),
+  role: z.preprocess(
+    (val) => (typeof val === "string" ? normalizeBackofficeRole(val) ?? val : val),
+    z.string(),
+  ),
   sid: z.string().min(1),
   /** Expiration as a Unix timestamp in seconds. */
   exp: z.number().int().positive(),

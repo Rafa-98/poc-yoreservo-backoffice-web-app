@@ -17,10 +17,11 @@ export function RoleSimulatorBar({
 
   const roles: Array<{ id: UserRole | "ALL"; icon: string; label: string }> = [
     { id: "ALL", icon: "🌐", label: t("allRoles") },
-    { id: "ADMIN", icon: "👑", label: t("admin") },
-    { id: "ALLY", icon: "🏢", label: t("ally") },
-    { id: "ACCOUNTING", icon: "💳", label: t("accounting") },
-    { id: "VALIDATOR", icon: "🎟️", label: t("validator") },
+    { id: "PLATFORM_ADMIN", icon: "👑", label: t("admin") },
+    { id: "PLATFORM_ACCOUNTING", icon: "💳", label: t("accounting") },
+    { id: "ALLY_ADMIN", icon: "🏢", label: t("ally") },
+    { id: "ALLY_ACCOUNTING", icon: "📊", label: t("allyAccounting") },
+    { id: "ALLY_VALIDATOR", icon: "🎟️", label: t("validator") },
   ];
 
   return (

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.users]);
+  const session = await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.users]);
 
   const [usersRes, sessionsRes, venuesRes] = await Promise.all([
     getUsersAction(),
@@ -42,6 +42,7 @@ export default async function Page() {
       initialUsers={users}
       initialSessions={sessions}
       venues={venues}
+      currentUserRole={session.user.role}
     />
   );
 }

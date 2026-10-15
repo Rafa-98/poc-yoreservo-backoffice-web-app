@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.paymentsInbox]);
+  const session = await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.paymentsInbox]);
   const res = await getPaymentsInboxAction();
 
   const initialData = res.ok
@@ -34,5 +34,5 @@ export default async function Page() {
         },
       };
 
-  return <PaymentsInboxPage initialData={initialData} />;
+  return <PaymentsInboxPage initialData={initialData} userRole={session.user.role} />;
 }

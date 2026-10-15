@@ -11,6 +11,7 @@ interface InviteUserModalProps {
   onClose: () => void;
   venues: Array<{ id: string; name: string }>;
   onSuccess: (result: any) => void;
+  currentUserRole?: string;
 }
 
 export function InviteUserModal({
@@ -18,6 +19,7 @@ export function InviteUserModal({
   onClose,
   venues,
   onSuccess,
+  currentUserRole,
 }: InviteUserModalProps) {
   const t = useTranslations("users.modalInvite");
 
@@ -29,7 +31,7 @@ export function InviteUserModal({
   const [phoneNum, setPhoneNum] = useState("9876543");
   const [docType, setDocType] = useState<DocumentType>("V");
   const [docNum, setDocNum] = useState("19876543");
-  const [role, setRole] = useState<UserRole>("VALIDATOR");
+  const [role, setRole] = useState<UserRole>("ALLY_VALIDATOR");
   const [venueScope, setVenueScope] = useState<string>("org-all");
   const [deliveryMethod, setDeliveryMethod] = useState<"magic_link" | "temp_pass">("magic_link");
   const [tempPass, setTempPass] = useState("Y0Reservo#2026!Secure");
@@ -257,10 +259,15 @@ export function InviteUserModal({
                 className="form-select"
                 id="inv-role"
               >
-                <option value="ALLY">🏢 {t("roleAlly")}</option>
-                <option value="VALIDATOR">🎟️ {t("roleValidator")}</option>
-                <option value="ACCOUNTING">💳 {t("roleAccounting")}</option>
-                <option value="ADMIN">👑 {t("roleAdmin")}</option>
+                <option value="ALLY_ADMIN">🏢 {t("roleAlly")}</option>
+                <option value="ALLY_ACCOUNTING">📊 {t("roleAllyAccounting")}</option>
+                <option value="ALLY_VALIDATOR">🎟️ {t("roleValidator")}</option>
+                {currentUserRole !== "ALLY_ADMIN" && (
+                  <>
+                    <option value="PLATFORM_ACCOUNTING">💳 {t("roleAccounting")}</option>
+                    <option value="PLATFORM_ADMIN">👑 {t("roleAdmin")}</option>
+                  </>
+                )}
               </select>
             </div>
 
