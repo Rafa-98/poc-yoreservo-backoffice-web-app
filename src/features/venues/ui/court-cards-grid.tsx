@@ -49,6 +49,8 @@ export function CourtCardsGrid({
     return `⚽ ${t("defaultSport")}`;
   }
 
+  const totalSpacesCount = venues.reduce((acc, v) => acc + (v.spacesCount || 0), 0);
+
   return (
     <section className="py-5">
       {/* Venue Selector & Header */}
@@ -66,6 +68,12 @@ export function CourtCardsGrid({
             value={selectedVenueId}
             onChange={(e) => onSelectVenueId(e.target.value)}
           >
+            <option value="ALL">
+              {t("venueOption", {
+                name: "Consolidado Todas las Sedes",
+                count: totalSpacesCount || spaces.length,
+              })}
+            </option>
             {venues.map((v) => (
               <option key={v.id} value={v.id}>
                 {t("venueOption", { name: v.name, count: v.spacesCount })}
@@ -85,18 +93,6 @@ export function CourtCardsGrid({
         </button>
       </div>
 
-      {/* Database Entity Info Box */}
-      <div className="px-5 pb-5">
-        <div className="rounded-xl border border-border bg-muted px-4.5 py-3.5 text-[12.5px] leading-relaxed">
-          <strong className="text-foreground">
-            {t("infoTitle")}
-          </strong>{" "}
-          <span className="text-muted-foreground">
-            {t("infoDesc")}
-          </span>
-        </div>
-      </div>
-
       {/* Grid of Courts */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-5 px-5 pb-8">
         {spaces.map((court) => {
@@ -105,8 +101,11 @@ export function CourtCardsGrid({
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           });
-          const minCap = court.capacity || 10;
-          const maxCap = minCap + 2;
+          const surfaceName = court.surfaceType || t("defaultSurface");
+          const courtVenueName =
+            court.venueName ||
+            court.venue?.name ||
+            venues.find((v) => v.id === court.venueId)?.name;
 
           return (
             <div
@@ -133,13 +132,29 @@ export function CourtCardsGrid({
                   )}
                 </div>
 
+                {court.imageUrl && (
+                  <div className="mb-3 overflow-hidden rounded-xl border border-border bg-muted/40">
+                    <img
+                      src={court.imageUrl}
+                      alt={court.spaceNumber}
+                      className="h-36 w-full object-cover"
+                    />
+                  </div>
+                )}
+
+                {courtVenueName && (
+                  <div className="mb-0.5 text-[11px] font-bold uppercase tracking-wider text-link">
+                    📍 {courtVenueName}
+                  </div>
+                )}
                 <h3 className="mb-1.5 text-[19px] font-bold text-foreground">
                   {court.spaceNumber}
                 </h3>
+
                 <div className="mb-3.5 text-[12.5px] text-muted-foreground">
                   {t("surfaceLabel")}{" "}
                   <strong className="text-foreground">
-                    {court.surfaceType || t("defaultSurface")}
+                    {surfaceName}
                   </strong>
                 </div>
 
@@ -161,13 +176,20 @@ export function CourtCardsGrid({
                 </div>
 
                 <div className="mb-4 text-xs leading-relaxed text-muted-foreground">
-                  • {t("capacityRange", { min: minCap, max: maxCap })}
+                  {court.capacity != null && court.capacity > 0 && (
+                    <>
+                      • {t("capacity", { cap: court.capacity })}
+                      <br />
+                    </>
+                  )}
+                  • {t("surfaceLabel")} {surfaceName}
                   <br />
                   •{" "}
                   {t("coveredLabel", {
-                    value: court.isCovered ? t("coveredYes") : t("coveredNo"),
+                    value: court.isCovered
+                      ? "Techada (Indoor)"
+                      : "Aire Libre (Outdoor)",
                   })}
-                  <br />• {t("lighting")}
                   {court.activeBookingsCount > 0 && (
                     <div className="mt-1 font-semibold text-link">
                       {t("activeBookingsBadge", {

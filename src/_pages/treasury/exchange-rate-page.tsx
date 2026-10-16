@@ -16,21 +16,28 @@ import { RateTickerRibbon } from "@/features/treasury/ui/rate-ticker-ribbon";
 import { RateOverrideCard } from "@/features/treasury/ui/rate-override-card";
 import { RateHistoryTable } from "@/features/treasury/ui/rate-history-table";
 
+import type { BackofficeRole } from "@/shared/config";
+
 interface ExchangeRatePageProps {
   initialData: ExchangeRateData;
   operatorName?: string;
+  userRole?: BackofficeRole;
 }
 
 export function ExchangeRatePage({
   initialData,
   operatorName = "YoReservo Tesorería",
+  userRole = "PLATFORM_ADMIN",
 }: ExchangeRatePageProps) {
   const [activeUsd, setActiveUsd] = useState<ExchangeRateItem | null>(initialData.activeUsd);
   const [activeEur, setActiveEur] = useState<ExchangeRateItem | null>(initialData.activeEur);
   const [history, setHistory] = useState<ExchangeRateItem[]>(initialData.history);
   const [lastSync, setLastSync] = useState(initialData.lastSync);
-  const [secondaryCurrencies] = useState(initialData.secondaryCurrencies);
+  const [secondaryCurrencies, setSecondaryCurrencies] = useState(initialData.secondaryCurrencies);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const canManageRates =
+    userRole === "PLATFORM_ADMIN" || userRole === "PLATFORM_ACCOUNTING";
 
   const handleForceSync = async () => {
     await syncBcvExchangeRatesAction();
@@ -39,6 +46,7 @@ export function ExchangeRatePage({
       setActiveUsd(res.data.activeUsd);
       setActiveEur(res.data.activeEur);
       setHistory(res.data.history);
+      setSecondaryCurrencies(res.data.secondaryCurrencies);
       setLastSync(new Date().toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" }));
     }
   };
@@ -53,6 +61,7 @@ export function ExchangeRatePage({
           setActiveUsd(refreshed.data.activeUsd);
           setActiveEur(refreshed.data.activeEur);
           setHistory(refreshed.data.history);
+          setSecondaryCurrencies(refreshed.data.secondaryCurrencies);
         }
       }
     } finally {
@@ -70,14 +79,19 @@ export function ExchangeRatePage({
         lastSync={lastSync}
         secondaryCurrencies={secondaryCurrencies}
         onForceSync={handleForceSync}
+        canSync={canManageRates}
       />
 
       {/* MANUAL OVERRIDE CARD */}
-      <RateOverrideCard
-        onSaveOverride={handleSaveOverride}
-        operatorName={operatorName}
-        isProcessing={isProcessing}
-      />
+      {canManageRates && (
+        <RateOverrideCard
+          onSaveOverride={handleSaveOverride}
+          operatorName={operatorName}
+          isProcessing={isProcessing}
+          activeUsdRate={activeUsd?.rate}
+          activeEurRate={activeEur?.rate}
+        />
+      )}
 
       {/* RATE HISTORY LEDGER TABLE */}
       <RateHistoryTable rates={history} />

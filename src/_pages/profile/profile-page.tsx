@@ -156,8 +156,20 @@ export function ProfilePage({ initialData }: ProfilePageProps) {
           <ProfileUserCard
             profile={profile}
             onAvatarChange={() =>
-              showToast(t("sidebar.changePhoto"), "info")
+              showToast(t("toast.actionError"), "error")
             }
+            onAvatarUploaded={async (url) => {
+              await handleUpdateProfile({
+                name: profile.name,
+                lastName: profile.lastName,
+                documentType: profile.documentType || undefined,
+                documentNumber: profile.documentNumber || undefined,
+                phone: profile.phone || undefined,
+                preferredLanguage: profile.preferredLanguage,
+                imageUrl: url,
+                avatarUrl: url,
+              });
+            }}
           />
         </div>
 

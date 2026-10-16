@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { TimeFormatToggle, useTimeFormat } from "@/shared/lib/time-format";
 import { Button } from "@/shared/ui/button";
 import type { UserItem, UserRole } from "../model/types";
 
 interface UsersTableProps {
   users: UserItem[];
   venues: Array<{ id: string; name: string }>;
+  activeVenueId?: string;
   onEditUser: (user: UserItem) => void;
   onResetPassword: (user: UserItem) => void;
   onInviteClick: () => void;
@@ -16,16 +18,25 @@ interface UsersTableProps {
 export function UsersTable({
   users,
   venues,
+  activeVenueId,
   onEditUser,
   onResetPassword,
   onInviteClick,
 }: UsersTableProps) {
   const t = useTranslations("users");
+  const { formatTime } = useTimeFormat();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRole, setSelectedRole] = useState<string>("all");
-  const [selectedVenue, setSelectedVenue] = useState<string>("all");
+  const [selectedVenue, setSelectedVenue] = useState<string>(
+    activeVenueId && activeVenueId !== "ALL" ? activeVenueId : "all"
+  );
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+
+  useEffect(() => {
+    if (!activeVenueId) return;
+    setSelectedVenue(activeVenueId === "ALL" ? "all" : activeVenueId);
+  }, [activeVenueId]);
 
   const filteredUsers = users.filter((u) => {
     if (searchTerm) {
@@ -175,6 +186,8 @@ export function UsersTable({
         </div>
 
         <div className="flex items-center gap-2">
+          <TimeFormatToggle size="xs" />
+
           {(searchTerm || selectedRole !== "all" || selectedVenue !== "all" || selectedStatus !== "all") && (
             <Button
               type="button"
@@ -286,7 +299,7 @@ export function UsersTable({
 
                     {/* Last Session */}
                     <td className="px-5 py-4 text-xs text-muted-foreground">
-                      {u.lastSession}
+                      {formatTime(u.lastSession)}
                     </td>
 
                     {/* Actions */}

@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Laptop, Smartphone, Ban, ShieldCheck } from "lucide-react";
+import { TimeFormatToggle, useTimeFormat } from "@/shared/lib/time-format";
 import type { ProfileSessionItem } from "../model/types";
 
 interface ProfileSessionsListProps {
@@ -18,6 +19,7 @@ export function ProfileSessionsList({
   isRevoking = false,
 }: ProfileSessionsListProps) {
   const t = useTranslations("profile");
+  const { formatTime } = useTimeFormat();
 
   const otherSessionsCount = sessions.filter((s) => !s.isCurrent).length;
 
@@ -34,17 +36,20 @@ export function ProfileSessionsList({
           </p>
         </div>
 
-        {otherSessionsCount > 0 && (
-          <button
-            type="button"
-            onClick={onRequestRevokeAll}
-            disabled={isRevoking}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-500/20 active:scale-95 transition-all shadow-2xs self-start sm:self-auto cursor-pointer"
-          >
-            <Ban className="size-3.5" />
-            <span>{t("sessions.revokeAll")}</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          <TimeFormatToggle size="xs" />
+          {otherSessionsCount > 0 && (
+            <button
+              type="button"
+              onClick={onRequestRevokeAll}
+              disabled={isRevoking}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-500/20 active:scale-95 transition-all shadow-2xs cursor-pointer"
+            >
+              <Ban className="size-3.5" />
+              <span>{t("sessions.revokeAll")}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Sessions List */}
@@ -97,7 +102,7 @@ export function ProfileSessionsList({
                     </strong>
                   ) : (
                     <span>
-                      {session.lastActiveText || t("sessions.recent")}
+                      {formatTime(session.lastActiveText) || t("sessions.recent")}
                     </span>
                   )}
                 </div>

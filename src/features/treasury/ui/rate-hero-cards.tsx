@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE } from "@/shared/lib";
+import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE, useTimeFormat } from "@/shared/lib";
 import type { ExchangeRateItem } from "../model/types";
 
 interface RateHeroCardsProps {
@@ -11,13 +11,14 @@ interface RateHeroCardsProps {
 
 export function RateHeroCards({ activeUsd, activeEur }: RateHeroCardsProps) {
   const t = useTranslations("treasury.rate");
+  const { formatTime } = useTimeFormat();
 
   const usdRate = activeUsd ? activeUsd.rate : DEFAULT_BCV_USD_RATE;
   const eurRate = activeEur ? activeEur.rate : DEFAULT_BCV_EUR_RATE;
 
   const todayIso = new Date().toISOString().slice(0, 10);
-  const usdValueDate = activeUsd?.valueDate || todayIso;
-  const eurValueDate = activeEur?.valueDate || todayIso;
+  const usdValueDate = formatTime(activeUsd?.valueDate || todayIso);
+  const eurValueDate = formatTime(activeEur?.valueDate || todayIso);
 
   return (
     <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">

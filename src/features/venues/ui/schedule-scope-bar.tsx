@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
+import { TimeFormatToggle } from "@/shared/lib";
 import type { SpaceItem, VenueItem } from "../model/types";
 
 interface ScheduleScopeBarProps {
@@ -13,6 +14,7 @@ interface ScheduleScopeBarProps {
   onSelectSpaceId: (id: string) => void;
   applyToAllVenueSpaces: boolean;
   onToggleApplyToAll: (applyAll: boolean) => void;
+  onApplyStandardTemplate?: () => void;
   onCopyMondayToWeek: () => void;
   onSaveSchedules: () => void;
   isSaving: boolean;
@@ -27,12 +29,16 @@ export function ScheduleScopeBar({
   onSelectSpaceId,
   applyToAllVenueSpaces,
   onToggleApplyToAll,
+  onApplyStandardTemplate,
   onCopyMondayToWeek,
   onSaveSchedules,
   isSaving,
 }: ScheduleScopeBarProps) {
   const t = useTranslations("venues.schedules");
-  const currentVenue = venues.find((v) => v.id === selectedVenueId) || venues[0];
+  const currentVenue =
+    selectedVenueId === "ALL"
+      ? null
+      : venues.find((v) => v.id === selectedVenueId) || venues[0];
 
   return (
     <div className="mx-5 mb-6 flex flex-col gap-4 rounded-2xl border border-border bg-surface px-6 py-4.5 shadow-card">
@@ -48,6 +54,7 @@ export function ScheduleScopeBar({
               value={selectedVenueId}
               onChange={(e) => onSelectVenueId(e.target.value)}
             >
+              <option value="ALL">Consolidado Todas las Sedes</option>
               {venues.map((v) => (
                 <option key={v.id} value={v.id}>
                   {v.name}
@@ -71,7 +78,10 @@ export function ScheduleScopeBar({
                 />
                 <span>
                   {t("scopeVenueAll", {
-                    venueName: currentVenue?.name || t("defaultVenue"),
+                    venueName:
+                      selectedVenueId === "ALL"
+                        ? "Todas las Sedes"
+                        : currentVenue?.name || t("defaultVenue"),
                   })}
                 </span>
               </label>
@@ -93,11 +103,19 @@ export function ScheduleScopeBar({
                   value={selectedSpaceId}
                   onChange={(e) => onSelectSpaceId(e.target.value)}
                 >
-                  {spaces.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.spaceNumber}
-                    </option>
-                  ))}
+                  {spaces.map((s) => {
+                    const vName =
+                      s.venueName ||
+                      s.venue?.name ||
+                      venues.find((v) => v.id === s.venueId)?.name;
+                    return (
+                      <option key={s.id} value={s.id}>
+                        {selectedVenueId === "ALL" && vName
+                          ? `${vName} — ${s.spaceNumber}`
+                          : s.spaceNumber}
+                      </option>
+                    );
+                  })}
                 </select>
               )}
             </div>
@@ -105,11 +123,22 @@ export function ScheduleScopeBar({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <TimeFormatToggle />
+          {onApplyStandardTemplate && (
+            <button
+              type="button"
+              className="btn btn-outline text-[12.5px]"
+              onClick={onApplyStandardTemplate}
+              id="btn-apply-standard-template"
+            >
+              ⚡ <span>{t("btnApplyTemplate")}</span>
+            </button>
+          )}
           <button
             type="button"
-            className="btn btn-outline text-[12.5px]"
             onClick={onCopyMondayToWeek}
+            className="btn btn-outline text-[12.5px]"
             id="btn-copy-monday"
           >
             📋 <span>{t("btnCopyMonday")}</span>
@@ -149,3 +178,4 @@ export function ScheduleScopeBar({
     </div>
   );
 }
+

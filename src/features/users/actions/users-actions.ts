@@ -1,10 +1,8 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { backendRequest } from "@/shared/api/index.server";
-import { ACCESS_COOKIE_NAME } from "@/shared/auth";
-import { requireSession } from "@/shared/auth/index.server";
+import { requireSessionWithToken } from "@/shared/auth/index.server";
 import { normalizeBackofficeRole } from "@/shared/config";
 import { fail, ok, type ActionResult } from "@/shared/lib";
 import type {
@@ -16,23 +14,14 @@ import type {
   UsersKpi,
 } from "../model/types";
 
-async function getAuthToken(): Promise<string> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(ACCESS_COOKIE_NAME)?.value;
-  if (!token) throw new Error("Unauthorized");
-  return token;
-}
-
 export async function getUsersAction(filter?: {
   search?: string;
   role?: string;
   venueId?: string;
   status?: string;
 }): Promise<ActionResult<{ kpi: UsersKpi; users: UserItem[] }>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
-    const accessToken = await getAuthToken();
-
     const query = new URLSearchParams();
     if (filter?.search) query.append("search", filter.search);
     if (filter?.role && filter.role !== "all") query.append("role", filter.role);
@@ -64,10 +53,8 @@ export async function getUsersAction(filter?: {
 export async function inviteUserAction(
   input: InviteUserInput
 ): Promise<ActionResult<any>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/users/invite", {
       method: "POST",
       accessToken,
@@ -90,10 +77,8 @@ export async function updateUserPrivilegesAction(
   id: string,
   input: UpdateUserPrivilegesInput
 ): Promise<ActionResult<any>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest(`/backoffice/users/${id}`, {
       method: "PUT",
       accessToken,
@@ -116,10 +101,8 @@ export async function resetPasswordAction(
   id: string,
   newPassword?: string
 ): Promise<ActionResult<{ tempPassword?: string; message: string }>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest(`/backoffice/users/${id}/reset-password`, {
       method: "POST",
       accessToken,
@@ -138,10 +121,8 @@ export async function resetPasswordAction(
 }
 
 export async function getSessionsAction(): Promise<ActionResult<ActiveSessionItem[]>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/users/sessions", {
       method: "GET",
       accessToken,
@@ -163,10 +144,8 @@ export async function getSessionsAction(): Promise<ActionResult<ActiveSessionIte
 }
 
 export async function revokeSessionAction(sessionId: string): Promise<ActionResult<{ success: boolean }>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest(`/backoffice/users/sessions/${sessionId}`, {
       method: "DELETE",
       accessToken,
@@ -184,10 +163,8 @@ export async function revokeSessionAction(sessionId: string): Promise<ActionResu
 }
 
 export async function revokeAllSessionsAction(): Promise<ActionResult<{ success: boolean }>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/users/sessions", {
       method: "DELETE",
       accessToken,

@@ -9,6 +9,7 @@ import {
   sessionUserSchema,
 } from "@/shared/auth";
 import { createSession } from "@/shared/auth/index.server";
+import { isBackofficeRole } from "@/shared/config";
 import { fail, ok, type ActionResult } from "@/shared/lib";
 
 const invitationDetailsSchema = z.object({
@@ -67,7 +68,7 @@ const loginResponseSchema = authTokensResponseSchema.extend({
 
 export async function setPasswordAction(
   input: SetPasswordInput,
-): Promise<ActionResult<{ activated: boolean }>> {
+): Promise<ActionResult<{ activated: boolean; role?: string }>> {
   const parsed = setPasswordSchema.safeParse(input);
   if (!parsed.success) {
     return fail("VALIDATION_FAILED");
@@ -89,8 +90,12 @@ export async function setPasswordAction(
       return fail("INVITATION_FAILED");
     }
 
-    const invitationResult = res.body as { user?: { email: string } };
+    const invitationResult = res.body as {
+      user?: { email?: string; role?: string };
+      role?: string;
+    };
     const email = invitationResult?.user?.email;
+    let activatedRole = invitationResult?.user?.role || invitationResult?.role;
 
     // 2. Automatically log the user in if email is returned
     if (email) {
@@ -109,6 +114,10 @@ export async function setPasswordAction(
             "POST /auth/login after accept",
             loginRes.correlationId,
           );
+          if (!isBackofficeRole(payload.user.role)) {
+            return fail("FORBIDDEN_ROLE");
+          }
+          activatedRole = payload.user.role;
           const tokens = buildAuthTokens(payload, loginRes.refreshCookie);
           await createSession(tokens);
         }
@@ -117,7 +126,7 @@ export async function setPasswordAction(
       }
     }
 
-    return ok({ activated: true });
+    return ok({ activated: true, role: activatedRole });
   } catch (error) {
     console.error("[auth] Set password error:", error);
     return fail("SERVICE_UNAVAILABLE");

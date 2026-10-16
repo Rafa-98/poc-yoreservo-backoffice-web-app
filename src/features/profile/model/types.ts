@@ -23,20 +23,27 @@ export interface UserProfileData {
   documentNumber?: string | null;
   phone?: string | null;
   imageUrl?: string | null;
+  avatarUrl?: string | null;
   role: string;
   status: string;
   preferredLanguage: string;
   createdAt: string;
-  organization?: {
-    id: string;
-    tradeName: string;
-    legalName: string;
-    rif: string;
-  } | null;
-  managedVenue?: {
-    id: string;
-    name: string;
-  } | null;
+  organization?:
+    | {
+        id: string;
+        tradeName: string;
+        legalName: string;
+        rif: string;
+      }
+    | string
+    | null;
+  managedVenue?:
+    | {
+        id: string;
+        name: string;
+      }
+    | string
+    | null;
   sessions: ProfileSessionItem[];
 }
 
@@ -48,6 +55,7 @@ export interface UpdateProfileInput {
   documentNumber?: string;
   preferredLanguage?: string;
   imageUrl?: string;
+  avatarUrl?: string;
 }
 
 export interface ChangePasswordInput {

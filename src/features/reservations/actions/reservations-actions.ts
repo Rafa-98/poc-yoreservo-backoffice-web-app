@@ -1,10 +1,8 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { backendRequest } from "@/shared/api/index.server";
-import { ACCESS_COOKIE_NAME } from "@/shared/auth";
-import { requireSession } from "@/shared/auth/index.server";
+import { requireSessionWithToken } from "@/shared/auth/index.server";
 import { DEFAULT_BCV_USD_RATE, fail, ok, type ActionResult } from "@/shared/lib";
 import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
 import type {
@@ -13,13 +11,6 @@ import type {
   ReservationItem,
   ReservationKpis,
 } from "../model/types";
-
-async function getAuthToken(): Promise<string> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(ACCESS_COOKIE_NAME)?.value;
-  if (!token) throw new Error("Unauthorized");
-  return token;
-}
 
 function formatTime(val: any): string {
   if (!val) return "00:00";
@@ -50,8 +41,15 @@ function mapReservationRow(row: any, fallbackBcvRate = DEFAULT_BCV_USD_RATE): Re
   const clientName =
     row.customerName ||
     (row.client ? `${row.client.name} ${row.client.lastName || ""}`.trim() : "Cliente YoReservo");
-  const phone = row.customerPhone || row.client?.phone || "+58 414 0000000";
-  const dni = row.customerDni || row.client?.dni || "V-00000000";
+  const phone = row.customerPhone || row.client?.phone || "—";
+  const dni =
+    row.clientDni ||
+    row.customerDni ||
+    (row.customerDocumentType && row.customerDocumentNumber
+      ? `${row.customerDocumentType}-${row.customerDocumentNumber}`
+      : null) ||
+    row.client?.dni ||
+    "—";
 
   const dateObj = row.reservationDate ? new Date(row.reservationDate) : new Date();
   const dateStr = dateObj.toISOString().split("T")[0];
@@ -63,19 +61,33 @@ function mapReservationRow(row: any, fallbackBcvRate = DEFAULT_BCV_USD_RATE): Re
 
   const priceUsd = Number(row.totalAmount || row.subtotal || 0);
   const rateBcv = Number(row.exchangeRateValue || fallbackBcvRate);
-  const priceBs = Number(row.totalAmountVes || (priceUsd * rateBcv));
+  const priceBs = Number(row.totalAmountVes || priceUsd * rateBcv);
 
-  // Determine payment method and meta
-  const latestPayment = Array.isArray(row.payments) && row.payments.length > 0 ? row.payments[0] : null;
+  // Determine payment method and meta from actual payment record first
+  const latestPayment =
+    Array.isArray(row.payments) && row.payments.length > 0 ? row.payments[0] : null;
   let paymentMethod = "pago_movil";
-  let paymentMeta = "Pago Móvil Banesco";
+  let paymentMeta = "Pendiente de pago";
 
-  if (isWalkIn) {
+  if (latestPayment && latestPayment.paymentMethod) {
+    const rawMethod = String(latestPayment.paymentMethod).toUpperCase();
+    if (rawMethod === "PAGO_MOVIL") {
+      paymentMethod = "pago_movil";
+    } else if (rawMethod === "CASH") {
+      paymentMethod = "cash";
+    } else if (rawMethod === "POS" || rawMethod === "CARD") {
+      paymentMethod = "pos";
+    } else {
+      paymentMethod = rawMethod.toLowerCase();
+    }
+    const bankPart = latestPayment.originBank ? ` (${latestPayment.originBank})` : "";
+    const refPart = latestPayment.referenceNumber
+      ? ` • Ref: #${latestPayment.referenceNumber}`
+      : "";
+    paymentMeta = `${latestPayment.paymentMethod}${bankPart}${refPart}`;
+  } else if (isWalkIn) {
     paymentMethod = "cash";
     paymentMeta = "Efectivo en Mostrador (Caja)";
-  } else if (latestPayment) {
-    paymentMethod = String(latestPayment.paymentMethod || "pago_movil").toLowerCase();
-    paymentMeta = `${latestPayment.paymentMethod} • Ref: #${latestPayment.referenceNumber || "S/R"}`;
   }
 
   // Sport name resolution
@@ -97,6 +109,8 @@ function mapReservationRow(row: any, fallbackBcvRate = DEFAULT_BCV_USD_RATE): Re
     origin: isWalkIn ? "walk-in" : "app",
     clientName,
     dni,
+    clientDni: dni,
+    isFrequentPlayer: Boolean(row.isFrequentPlayer),
     phone,
     venueId: row.space?.venue?.id || "",
     venue: row.space?.venue?.name || "Sede Principal",
@@ -113,7 +127,9 @@ function mapReservationRow(row: any, fallbackBcvRate = DEFAULT_BCV_USD_RATE): Re
     paymentMeta,
     status: row.status,
     checkedIn: isCheckedIn,
-    checkedInBy: row.validator ? `${row.validator.name} ${row.validator.lastName || ""}`.trim() : undefined,
+    checkedInBy: row.validator
+      ? `${row.validator.name} ${row.validator.lastName || ""}`.trim()
+      : undefined,
     validatedAt: row.validatedAt,
     cancellationReason: row.cancellationReason,
   };
@@ -126,10 +142,8 @@ export async function getReservationsAction(filter?: {
   fromDate?: string;
   toDate?: string;
 }): Promise<ActionResult<{ items: ReservationItem[]; kpis: ReservationKpis; total: number }>> {
+  const { accessToken } = await requireSessionWithToken(ROUTE_ALLOWED_ROLES[ROUTES.reservations]);
   try {
-    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.reservations]);
-    const accessToken = await getAuthToken();
-
     const query = new URLSearchParams();
     if (filter?.venueId && filter.venueId !== "all") query.append("venueId", filter.venueId);
     if (filter?.status && filter.status !== "all") query.append("status", filter.status);
@@ -170,10 +184,8 @@ export async function getReservationsAction(filter?: {
 }
 
 export async function getReservationDetailAction(id: string): Promise<ActionResult<any>> {
+  const { accessToken } = await requireSessionWithToken(ROUTE_ALLOWED_ROLES[ROUTES.reservations]);
   try {
-    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.reservations]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest(`/backoffice/reservations/${id}`, {
       method: "GET",
       accessToken,
@@ -193,10 +205,12 @@ export async function checkInReservationAction(
   id: string,
   method: CheckInMethod = "SHORT_CODE_MANUAL"
 ): Promise<ActionResult<any>> {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "ALLY_ADMIN",
+    "ALLY_VALIDATOR",
+  ]);
   try {
-    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.reservations]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest(`/backoffice/reservations/${id}/check-in`, {
       method: "POST",
       accessToken,
@@ -219,10 +233,11 @@ export async function cancelReservationAction(
   id: string,
   reason: string
 ): Promise<ActionResult<any>> {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "ALLY_ADMIN",
+  ]);
   try {
-    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.reservations]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest(`/backoffice/reservations/${id}/cancel`, {
       method: "POST",
       accessToken,
@@ -244,10 +259,12 @@ export async function cancelReservationAction(
 export async function createWalkInReservationAction(
   input: CreateWalkInReservationInput
 ): Promise<ActionResult<any>> {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "ALLY_ADMIN",
+    "ALLY_VALIDATOR",
+  ]);
   try {
-    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.reservations]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/agenda/walk-in", {
       method: "POST",
       accessToken,

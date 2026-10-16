@@ -1,10 +1,8 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { backendRequest } from "@/shared/api/index.server";
-import { ACCESS_COOKIE_NAME } from "@/shared/auth";
-import { requireSession } from "@/shared/auth/index.server";
+import { requireSessionWithToken } from "@/shared/auth/index.server";
 import { fail, ok, type ActionResult } from "@/shared/lib";
 import type {
   ActivityCategoryItem,
@@ -19,18 +17,9 @@ import type {
   UpdateSurfaceInput,
 } from "../model/types";
 
-async function getAuthToken(): Promise<string> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(ACCESS_COOKIE_NAME)?.value;
-  if (!token) throw new Error("Unauthorized");
-  return token;
-}
-
 export async function getTaxonomyAction(): Promise<ActionResult<ActivityTypeItem[]>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/catalogs/taxonomy", {
       method: "GET",
       accessToken,
@@ -49,10 +38,8 @@ export async function getTaxonomyAction(): Promise<ActionResult<ActivityTypeItem
 export async function createActivityAction(
   input: CreateActivityInput
 ): Promise<ActionResult<ActivityItem>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/catalogs/activities", {
       method: "POST",
       accessToken,
@@ -73,10 +60,8 @@ export async function createActivityAction(
 export async function createCategoryAction(
   input: CreateCategoryInput
 ): Promise<ActionResult<ActivityCategoryItem>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/catalogs/categories", {
       method: "POST",
       accessToken,
@@ -95,10 +80,8 @@ export async function createCategoryAction(
 }
 
 export async function getSurfacesAction(): Promise<ActionResult<SurfaceItem[]>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/catalogs/surfaces", {
       method: "GET",
       accessToken,
@@ -117,10 +100,8 @@ export async function getSurfacesAction(): Promise<ActionResult<SurfaceItem[]>> 
 export async function createSurfaceAction(
   input: CreateSurfaceInput
 ): Promise<ActionResult<SurfaceItem>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/catalogs/surfaces", {
       method: "POST",
       accessToken,
@@ -142,10 +123,8 @@ export async function updateSurfaceAction(
   id: string,
   input: UpdateSurfaceInput
 ): Promise<ActionResult<SurfaceItem>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest(`/backoffice/catalogs/surfaces/${id}`, {
       method: "PATCH",
       accessToken,
@@ -164,10 +143,8 @@ export async function updateSurfaceAction(
 }
 
 export async function getAmenitiesAction(): Promise<ActionResult<AmenityItem[]>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/catalogs/amenities", {
       method: "GET",
       accessToken,
@@ -186,10 +163,8 @@ export async function getAmenitiesAction(): Promise<ActionResult<AmenityItem[]>>
 export async function createAmenityAction(
   input: CreateAmenityInput
 ): Promise<ActionResult<AmenityItem>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/catalogs/amenities", {
       method: "POST",
       accessToken,

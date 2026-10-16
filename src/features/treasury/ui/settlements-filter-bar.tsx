@@ -22,6 +22,7 @@ export function SettlementsFilterBar({
   counts,
 }: SettlementsFilterBarProps) {
   const t = useTranslations("settlements");
+  const tOverrides = useTranslations("treasury.settlementsOverrides");
 
   return (
     <div className="card p-4 space-y-4">
@@ -51,10 +52,10 @@ export function SettlementsFilterBar({
               className="form-select text-xs font-semibold h-10"
               id="settlements-period-filter"
             >
-              <option value="CURRENT_FORTNIGHT">{t("periodCurrent")}</option>
-              <option value="PREV_FORTNIGHT">{t("periodPrev")}</option>
-              <option value="SEPT_FIRST">{t("periodSept1")}</option>
-              <option value="ALL">{t("periodAll")}</option>
+              <option value="ALL">{tOverrides("periodAll")}</option>
+              <option value="CURRENT_MONTH">{tOverrides("periodCurrentMonth")}</option>
+              <option value="PREV_MONTH">{tOverrides("periodPrevMonth")}</option>
+              <option value="LAST_90_DAYS">{tOverrides("periodLast90Days")}</option>
             </select>
           </div>
 

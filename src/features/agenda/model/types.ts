@@ -48,6 +48,8 @@ export interface CourtReservation {
 export interface CourtSpace {
   id: string;
   spaceNumber: string;
+  venueId?: string;
+  venueName?: string;
   surfaceType?: string | null;
   isCovered: boolean;
   pricePerHour: number;
@@ -59,10 +61,23 @@ export interface CourtSpace {
   reservations: CourtReservation[];
 }
 
+
+export interface AgendaKpis {
+  totalAvailableSlots?: number;
+  occupiedSlots?: number;
+  occupancyRatePct?: number;
+  paidBookingsCount?: number;
+  estimatedRevenueUsd?: number;
+  nextMatchTime?: string | null;
+  nextMatchCourt?: string | null;
+}
+
 export interface AgendaData {
   venue: VenueRef;
   date: string;
   dayOfWeek: number;
+  bcvRate?: number;
+  kpis?: AgendaKpis;
   spaces: CourtSpace[];
 }
 

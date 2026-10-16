@@ -1,5 +1,20 @@
 export type PaymentCollectionMode = "PLATFORM_CUSTODY" | "ALLY_DIRECT";
 
+export interface OrganizationSummaryItem {
+  id: string;
+  tradeName: string;
+  legalName?: string;
+  rif?: string;
+  status?: string;
+  isBookingPaused?: boolean;
+  paymentCollectionMode?: PaymentCollectionMode;
+  commissionRate?: number;
+  referenceCurrencyCode?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  venuesCount?: number;
+}
+
 export interface OrganizationData {
   id: string;
   tradeName: string;
@@ -18,6 +33,7 @@ export interface OrganizationData {
   payoutAccountHolder: string;
   payoutIdDocument?: string;
   commissionRate: number; // e.g. 0.05
+  commissionPct?: number; // e.g. 5
   paymentCollectionMode: PaymentCollectionMode;
   manualCommissionRate: number;
   minimumMonthlyFee: number;
@@ -25,9 +41,36 @@ export interface OrganizationData {
   status: string;
   venuesCount: number;
   spacesCount: number;
+  organizations?: OrganizationSummaryItem[];
+}
+
+export interface CreateOrganizationInput {
+  tradeName: string;
+  legalName: string;
+  rif: string;
+  contactEmail: string;
+  contactPhone: string;
+  fiscalAddress?: string;
+  referenceCurrencyCode?: string;
+  commissionRate?: number;
+  manualCommissionRate?: number;
+  minimumMonthlyFee?: number;
+  paymentCollectionMode?: PaymentCollectionMode;
+  payoutBank?: string;
+  payoutAccountNumber?: string;
+  payoutAccountType?: string;
+  payoutAccountHolder?: string;
+  payoutIdDocument?: string;
+  payoutPhoneNumber?: string;
+}
+
+export interface UpdateOrganizationStatusInput {
+  status?: "ACTIVE" | "INACTIVE" | "SUSPENDED";
+  isBookingPaused?: boolean;
 }
 
 export interface UpdateOrganizationInput {
+  organizationId?: string;
   tradeName?: string;
   legalName?: string;
   rif?: string;
@@ -47,6 +90,7 @@ export interface UpdateOrganizationInput {
   minimumMonthlyFee?: number;
   isBookingPaused?: boolean;
 }
+
 
 export interface LocationNode {
   id: string;
@@ -69,6 +113,11 @@ export interface VenueItem {
   imageUrl: string | null;
   locationLat: number;
   locationLng: number;
+  locationId?: string;
+  neighborhoodId?: string;
+  cityId?: string;
+  stateId?: string;
+  city?: string;
   location?: any;
   spacesCount: number;
   sports: string[];
@@ -114,7 +163,13 @@ export interface SportCategoryItem {
 export interface SpaceItem {
   id: string;
   venueId: string;
+  venueName?: string;
+  venue?: {
+    id: string;
+    name: string;
+  };
   spaceNumber: string;
+
   activityCategoryId: string;
   activityCategory?: {
     id: string;
@@ -128,6 +183,7 @@ export interface SpaceItem {
   surfaceType: string | null;
   capacity: number | null;
   isCovered: boolean;
+  imageUrl?: string | null;
   status: "ENABLED" | "DISABLED";
   activeBookingsCount: number;
 }
@@ -139,6 +195,7 @@ export interface CreateSpaceInput {
   surfaceType?: string;
   capacity?: number;
   isCovered?: boolean;
+  imageUrl?: string;
 }
 
 export interface UpdateSpaceInput {
@@ -148,6 +205,7 @@ export interface UpdateSpaceInput {
   surfaceType?: string;
   capacity?: number;
   isCovered?: boolean;
+  imageUrl?: string;
 }
 
 export interface UpdateSpaceStatusInput {
@@ -170,6 +228,8 @@ export interface ShiftRange {
 export interface DaySchedule {
   dayOfWeek: number; // 0=Sunday, 1=Monday ... 6=Saturday
   isOpen: boolean;
+  enabled?: boolean;
+  shifts?: ShiftRange[];
   shift1: ShiftRange;
   shift2?: ShiftRange;
 }

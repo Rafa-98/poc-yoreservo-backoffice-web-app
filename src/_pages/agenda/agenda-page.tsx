@@ -42,16 +42,14 @@ export function AgendaPage({ initialAgenda, initialVenues }: AgendaPageProps) {
   );
   const [selectedSport, setSelectedSport] = useState("all");
   const [activeVenueId, setActiveVenueId] = useState<string>(
-    globalVenueId !== "ALL" && globalVenueId
-      ? globalVenueId
-      : initialAgenda?.venue?.id || initialVenues[0]?.id || ""
+    globalVenueId || initialAgenda?.venue?.id || "ALL"
   );
   const [agenda, setAgenda] = useState<AgendaData | null>(initialAgenda);
   const [isPending, startTransition] = useTransition();
 
   // Sync with global header venue changes
   useEffect(() => {
-    if (globalVenueId && globalVenueId !== "ALL" && globalVenueId !== activeVenueId) {
+    if (globalVenueId && globalVenueId !== activeVenueId) {
       setActiveVenueId(globalVenueId);
       startTransition(async () => {
         const res = await getAgendaAction(globalVenueId, selectedDate);
@@ -60,7 +58,8 @@ export function AgendaPage({ initialAgenda, initialVenues }: AgendaPageProps) {
         }
       });
     }
-  }, [globalVenueId, selectedDate]);
+  }, [globalVenueId, selectedDate, activeVenueId]);
+
 
   // Modals and Drawers state
   const [isWalkInOpen, setIsWalkInOpen] = useState(false);
@@ -222,7 +221,11 @@ export function AgendaPage({ initialAgenda, initialVenues }: AgendaPageProps) {
       </div>
 
       {/* KPI Stats Strip */}
-      <AgendaKpiStrip spaces={allSpaces} />
+      <AgendaKpiStrip
+        spaces={allSpaces}
+        bcvRate={agenda?.bcvRate}
+        totalAvailableSlots={agenda?.kpis?.totalAvailableSlots}
+      />
 
       {/* Controls Bar: Date pills & Sport category tabs */}
       <AgendaControlsBar
@@ -250,6 +253,7 @@ export function AgendaPage({ initialAgenda, initialVenues }: AgendaPageProps) {
         selectedDate={selectedDate}
         startTime={selectedWalkInHour}
         onSuccess={refreshAgenda}
+        bcvRate={agenda?.bcvRate}
       />
 
       {/* Express Check-In Modal */}

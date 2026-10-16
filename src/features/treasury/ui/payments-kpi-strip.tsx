@@ -43,7 +43,9 @@ export function PaymentsKpiStrip({ kpis }: PaymentsKpiStripProps) {
             {t("verifiedCount", { count: kpis.verifiedTodayCount })}
           </span>
           <span className="badge badge-available rounded-md bg-status-available-bg px-2 py-0.5 text-[10px] font-bold text-status-available-fg">
-            {t("verifiedBadge")}
+            {kpis.approvalRatePct !== undefined
+              ? `${kpis.approvalRatePct}% OK`
+              : t("verifiedBadge")}
           </span>
         </div>
       </div>
@@ -70,7 +72,7 @@ export function PaymentsKpiStrip({ kpis }: PaymentsKpiStripProps) {
         </span>
         <div className="mt-1 flex items-baseline gap-2">
           <span className="text-[22px] font-extrabold text-link">
-            {kpis.averageSpeedMin || t("speedValue")}
+            {kpis.averageSpeedMin || "—"}
           </span>
           <span className="text-xs text-muted-foreground">
             {t("speedTarget")}

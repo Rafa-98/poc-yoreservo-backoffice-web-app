@@ -16,8 +16,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.dashboard]);
+  const session = await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.dashboard]);
   const initialData = await getDashboardSummaryAction();
 
-  return <ExecutiveDashboardPage initialData={initialData} />;
+  return (
+    <ExecutiveDashboardPage
+      initialData={initialData}
+      userRole={session.user.role}
+    />
+  );
 }

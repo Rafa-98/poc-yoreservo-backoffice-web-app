@@ -57,14 +57,17 @@ export default async function Page() {
       ? settlementsRes.data.kpis
       : EMPTY_KPIS;
 
-  const organizations = Array.from(
-    new Map(
-      initialBatches.map((b) => [
-        b.organizationId,
-        { id: b.organizationId, name: b.organization?.tradeName },
-      ]),
-    ).values(),
-  );
+  const organizations =
+    settlementsRes.ok && settlementsRes.data?.organizations?.length
+      ? settlementsRes.data.organizations
+      : Array.from(
+          new Map(
+            initialBatches.map((b) => [
+              b.organizationId,
+              { id: b.organizationId, name: b.organization?.tradeName },
+            ]),
+          ).values(),
+        );
 
   return (
     <SettlementsPage

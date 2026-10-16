@@ -12,7 +12,8 @@ export function RbacMatrixTable() {
       desc: t("c1Desc"),
       admin: { label: t("allowed"), type: "allowed" },
       ally: { label: t("scopedClub"), type: "scoped" },
-      accounting: { label: t("readOnly"), type: "allowed" },
+      platformAccounting: { label: t("readOnly"), type: "allowed" },
+      allyAccounting: { label: t("scopedClub"), type: "scoped" },
       validator: { label: t("scopedVenue"), type: "scoped" },
       client: { label: t("noAccess"), type: "denied" },
     },
@@ -21,7 +22,8 @@ export function RbacMatrixTable() {
       desc: t("c2Desc"),
       admin: { label: t("permitted"), type: "allowed" },
       ally: { label: t("permitted"), type: "allowed" },
-      accounting: { label: t("denied"), type: "denied" },
+      platformAccounting: { label: t("denied"), type: "denied" },
+      allyAccounting: { label: t("denied"), type: "denied" },
       validator: { label: t("permitted"), type: "allowed" },
       client: { label: t("denied"), type: "denied" },
     },
@@ -30,7 +32,8 @@ export function RbacMatrixTable() {
       desc: t("c3Desc"),
       admin: { label: t("permitted"), type: "allowed" },
       ally: { label: t("permitted"), type: "allowed" },
-      accounting: { label: t("auditOnly"), type: "allowed" },
+      platformAccounting: { label: t("auditOnly"), type: "allowed" },
+      allyAccounting: { label: t("auditOnly"), type: "scoped" },
       validator: { label: t("permitted"), type: "allowed" },
       client: { label: t("denied"), type: "denied" },
     },
@@ -39,7 +42,8 @@ export function RbacMatrixTable() {
       desc: t("c4Desc"),
       admin: { label: t("allowed"), type: "allowed" },
       ally: { label: t("permitted"), type: "allowed" },
-      accounting: { label: t("exclusive"), type: "allowed" },
+      platformAccounting: { label: t("exclusive"), type: "allowed" },
+      allyAccounting: { label: t("scopedClub"), type: "scoped" },
       validator: { label: t("denied"), type: "denied" },
       client: { label: t("denied"), type: "denied" },
     },
@@ -48,7 +52,8 @@ export function RbacMatrixTable() {
       desc: t("c5Desc"),
       admin: { label: t("allowed"), type: "allowed" },
       ally: { label: t("denied"), type: "denied" },
-      accounting: { label: t("superviseOnly"), type: "allowed" },
+      platformAccounting: { label: t("superviseOnly"), type: "allowed" },
+      allyAccounting: { label: t("denied"), type: "denied" },
       validator: { label: t("denied"), type: "denied" },
       client: { label: t("denied"), type: "denied" },
     },
@@ -57,7 +62,8 @@ export function RbacMatrixTable() {
       desc: t("c6Desc"),
       admin: { label: t("allowed"), type: "allowed" },
       ally: { label: t("scopedClub"), type: "scoped" },
-      accounting: { label: t("denied"), type: "denied" },
+      platformAccounting: { label: t("denied"), type: "denied" },
+      allyAccounting: { label: t("denied"), type: "denied" },
       validator: { label: t("denied"), type: "denied" },
       client: { label: t("denied"), type: "denied" },
     },
@@ -66,7 +72,8 @@ export function RbacMatrixTable() {
       desc: t("c7Desc"),
       admin: { label: t("allowed"), type: "allowed" },
       ally: { label: t("scopedClub"), type: "scoped" },
-      accounting: { label: t("denied"), type: "denied" },
+      platformAccounting: { label: t("denied"), type: "denied" },
+      allyAccounting: { label: t("denied"), type: "denied" },
       validator: { label: t("denied"), type: "denied" },
       client: { label: t("denied"), type: "denied" },
     },
@@ -75,7 +82,8 @@ export function RbacMatrixTable() {
       desc: t("c8Desc"),
       admin: { label: t("allowed"), type: "allowed" },
       ally: { label: t("scopedValidators"), type: "scoped" },
-      accounting: { label: t("denied"), type: "denied" },
+      platformAccounting: { label: t("denied"), type: "denied" },
+      allyAccounting: { label: t("denied"), type: "denied" },
       validator: { label: t("denied"), type: "denied" },
       client: { label: t("denied"), type: "denied" },
     },
@@ -84,7 +92,8 @@ export function RbacMatrixTable() {
       desc: t("c9Desc"),
       admin: { label: t("exclusive"), type: "allowed" },
       ally: { label: t("denied"), type: "denied" },
-      accounting: { label: t("denied"), type: "denied" },
+      platformAccounting: { label: t("denied"), type: "denied" },
+      allyAccounting: { label: t("denied"), type: "denied" },
       validator: { label: t("denied"), type: "denied" },
       client: { label: t("denied"), type: "denied" },
     },
@@ -144,9 +153,9 @@ export function RbacMatrixTable() {
                   <div className="text-xs text-muted-foreground">{row.desc}</div>
                 </td>
                 <td className="px-4 py-3.5 text-center">{renderCheckBadge(row.admin)}</td>
-                <td className="px-4 py-3.5 text-center">{renderCheckBadge(row.accounting)}</td>
+                <td className="px-4 py-3.5 text-center">{renderCheckBadge(row.platformAccounting)}</td>
                 <td className="px-4 py-3.5 text-center">{renderCheckBadge(row.ally)}</td>
-                <td className="px-4 py-3.5 text-center">{renderCheckBadge(row.accounting)}</td>
+                <td className="px-4 py-3.5 text-center">{renderCheckBadge(row.allyAccounting)}</td>
                 <td className="px-4 py-3.5 text-center">{renderCheckBadge(row.validator)}</td>
                 <td className="px-4 py-3.5 text-center">{renderCheckBadge(row.client)}</td>
               </tr>

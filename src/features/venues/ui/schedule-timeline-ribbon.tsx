@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
+import { useTimeFormat } from "@/shared/lib/time-format";
 import type { ShiftRange } from "../model/types";
 
 interface ScheduleTimelineRibbonProps {
@@ -24,6 +25,7 @@ export function ScheduleTimelineRibbon({
   showTicks = true,
 }: ScheduleTimelineRibbonProps) {
   const t = useTranslations("venues.schedules");
+  const { formatTime } = useTimeFormat();
 
   if (!isOpen) {
     return (
@@ -89,10 +91,10 @@ export function ScheduleTimelineRibbon({
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-3 px-2">
           {s1Pct > 0 && (
             <span
-              title={`${t("legendShift1")}: ${shift1.openTime} - ${shift1.closeTime}`}
+              title={`${t("legendShift1")}: ${formatTime(shift1.openTime)} - ${formatTime(shift1.closeTime)}`}
               className="truncate rounded bg-accent px-1.5 py-0.5 text-[10.5px] font-bold text-accent-foreground"
             >
-              {t("shift1Prefix")}: {shift1.openTime}-{shift1.closeTime}
+              {t("shift1Prefix")}: {formatTime(shift1.openTime)} - {formatTime(shift1.closeTime)}
             </span>
           )}
           {recessPct > 8 && (
@@ -105,10 +107,10 @@ export function ScheduleTimelineRibbon({
           )}
           {s2Pct > 0 && (
             <span
-              title={`${t("legendShift2")}: ${shift2?.openTime} - ${shift2?.closeTime}`}
+              title={`${t("legendShift2")}: ${formatTime(shift2?.openTime)} - ${formatTime(shift2?.closeTime)}`}
               className="truncate rounded bg-primary px-1.5 py-0.5 text-[10.5px] font-bold text-primary-foreground"
             >
-              {t("shift2Prefix")}: {shift2?.openTime}-{shift2?.closeTime}
+              {t("shift2Prefix")}: {formatTime(shift2?.openTime)} - {formatTime(shift2?.closeTime)}
             </span>
           )}
         </div>
@@ -120,15 +122,30 @@ export function ScheduleTimelineRibbon({
 }
 
 function TimelineTicks() {
+  const { timeFormat } = useTimeFormat();
   return (
     <div className="flex justify-between px-0.5 font-mono text-[10px] text-faint-foreground">
-      <span>00h</span>
-      <span>04h</span>
-      <span>08h</span>
-      <span>12h</span>
-      <span>16h</span>
-      <span>20h</span>
-      <span>24h</span>
+      {timeFormat === "12h" ? (
+        <>
+          <span>12 AM</span>
+          <span>4 AM</span>
+          <span>8 AM</span>
+          <span>12 PM</span>
+          <span>4 PM</span>
+          <span>8 PM</span>
+          <span>12 AM</span>
+        </>
+      ) : (
+        <>
+          <span>00:00</span>
+          <span>04:00</span>
+          <span>08:00</span>
+          <span>12:00</span>
+          <span>16:00</span>
+          <span>20:00</span>
+          <span>24:00</span>
+        </>
+      )}
     </div>
   );
 }

@@ -1,28 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
+import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import type { ManualRateOverrideInput } from "../model/types";
 
 interface RateOverrideCardProps {
   onSaveOverride: (input: ManualRateOverrideInput) => Promise<void>;
   operatorName?: string;
   isProcessing?: boolean;
+  activeUsdRate?: number;
+  activeEurRate?: number;
 }
 
 export function RateOverrideCard({
   onSaveOverride,
   operatorName = "YoReservo Tesorería",
   isProcessing = false,
+  activeUsdRate,
+  activeEurRate,
 }: RateOverrideCardProps) {
   const t = useTranslations("treasury.rate.override");
 
   const [currencyCode, setCurrencyCode] = useState<"USD" | "EUR">("USD");
-  const [rate, setRate] = useState<string>(() => DEFAULT_BCV_USD_RATE.toFixed(2));
+  const [rate, setRate] = useState<string>(() =>
+    (activeUsdRate ?? DEFAULT_BCV_USD_RATE).toFixed(2),
+  );
   const [valueDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
-  const [justification, setJustification] = useState(() => t("defaultJustification"));
+  const [justification, setJustification] = useState("");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const targetRate =
+      currencyCode === "EUR"
+        ? (activeEurRate ?? DEFAULT_BCV_EUR_RATE)
+        : (activeUsdRate ?? DEFAULT_BCV_USD_RATE);
+    setRate(targetRate.toFixed(2));
+  }, [currencyCode, activeUsdRate, activeEurRate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +52,7 @@ export function RateOverrideCard({
         notes: justification,
         sourceDetails: `Manual Admin Override by ${operatorName}`,
       });
+      setJustification("");
       setStatusMessage(t("success"));
       setTimeout(() => setStatusMessage(null), 5000);
     } catch (err) {

@@ -42,7 +42,8 @@ export const ROUTES = {
   exchangeRate: "/treasury/exchange-rate",
   settlements: "/treasury/settlements",
 
-  // Module 4: venues, courts & schedules
+  // Module 4: organization, venues, courts & schedules
+  organization: "/venues/organization",
   venues: "/venues",
   spaces: "/venues/spaces",
   schedules: "/venues/schedules",
@@ -124,6 +125,12 @@ export const ROUTE_ALLOWED_ROLES: Record<string, readonly BackofficeRole[]> = {
     "ALLY_ACCOUNTING",
   ],
   "/treasury": [
+    "PLATFORM_ADMIN",
+    "PLATFORM_ACCOUNTING",
+    "ALLY_ADMIN",
+    "ALLY_ACCOUNTING",
+  ],
+  [ROUTES.organization]: [
     "PLATFORM_ADMIN",
     "PLATFORM_ACCOUNTING",
     "ALLY_ADMIN",

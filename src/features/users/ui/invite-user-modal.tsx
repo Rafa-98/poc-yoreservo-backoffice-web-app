@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import { inviteUserAction } from "../actions/users-actions";
@@ -12,6 +12,16 @@ interface InviteUserModalProps {
   venues: Array<{ id: string; name: string }>;
   onSuccess: (result: any) => void;
   currentUserRole?: string;
+}
+
+function buildRandomTempPass(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+  let pass = "Y0R#";
+  for (let i = 0; i < 8; i++) {
+    pass += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  pass += "!2026";
+  return pass;
 }
 
 export function InviteUserModal({
@@ -28,27 +38,28 @@ export function InviteUserModal({
   const [email, setEmail] = useState("");
   const [countryCode, setCountryCode] = useState("+58");
   const [operator, setOperator] = useState("0412");
-  const [phoneNum, setPhoneNum] = useState("9876543");
+  const [phoneNum, setPhoneNum] = useState("");
   const [docType, setDocType] = useState<DocumentType>("V");
-  const [docNum, setDocNum] = useState("19876543");
+  const [docNum, setDocNum] = useState("");
   const [role, setRole] = useState<UserRole>("ALLY_VALIDATOR");
   const [venueScope, setVenueScope] = useState<string>("org-all");
   const [deliveryMethod, setDeliveryMethod] = useState<"magic_link" | "temp_pass">("magic_link");
-  const [tempPass, setTempPass] = useState("Y0Reservo#2026!Secure");
+  const [tempPass, setTempPass] = useState(() => buildRandomTempPass());
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (isOpen) {
+      setTempPass(buildRandomTempPass());
+      setCopied(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   function generatePass() {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
-    let pass = "Y0R#";
-    for (let i = 0; i < 8; i++) {
-      pass += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    pass += "!2026";
-    setTempPass(pass);
+    setTempPass(buildRandomTempPass());
     setCopied(false);
   }
 

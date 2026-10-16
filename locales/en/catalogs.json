@@ -11,16 +11,14 @@
     "amenities": "Amenities & Services"
   },
   "taxonomy": {
-    "bannerTitle": "📐 Relational Taxonomy in Database (Fixing Data Model Omissions)",
-    "bannerDesc": "Physical spaces are not bound to a generic flat sport. They are structured as: ActivityType (Activity Type) ➔ Activity (Specific sport with icon) ➔ ActivityCategory (Game format: 5v5, Doubles, etc., to which Space.activityCategoryId points).",
-    "parityBadge": "i18n JSONB Parity (ES / EN)",
     "btnAddSport": "+ Add Sport",
     "btnAddCategory": "+ Format / Category",
     "btnEditSport": "Edit Sport",
     "btnEditCategory": "Edit Category",
     "spacesCount": "{count} courts on platform",
     "courtsCount": "{count} courts",
-    "active": "Active"
+    "active": "Active",
+    "inactive": "Inactive"
   },
   "surfaces": {
     "bannerTitle": "Official Court Surfaces Catalog",
@@ -32,7 +30,8 @@
     "thActions": "Actions",
     "btnAdd": "New Surface",
     "btnEdit": "Edit",
-    "active": "Active"
+    "active": "Active",
+    "inactive": "Inactive"
   },
   "amenities": {
     "bannerTitle": "Global Amenities & Services Catalog",

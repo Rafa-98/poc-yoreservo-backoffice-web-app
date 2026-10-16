@@ -33,6 +33,7 @@
   "kpiUpcomingBadge": "Próximo",
   "thTime": "Hora",
   "slotAvailable": "Disponible",
+  "slotClosed": "Cerrado",
   "slotBookWalkIn": "+ Reservar",
   "slotBookTitle": "Reservar en mostrador: {court} ({start} - {end})",
   "badgeChecked": "Checked-in",

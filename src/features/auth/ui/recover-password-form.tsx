@@ -12,7 +12,7 @@ import { recoverPasswordAction } from "../actions/recover-password-action";
 export function RecoverPasswordForm() {
   const t = useTranslations("auth");
 
-  const [email, setEmail] = useState("aliado@sanagustin.com");
+  const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [countdown, setCountdown] = useState(30);

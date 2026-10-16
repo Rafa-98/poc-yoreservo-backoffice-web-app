@@ -342,7 +342,7 @@ export function SettlementsTable({
         </table>
       </div>
 
-      {/* Pagination Footer */}
+      {/* Summary Footer */}
       <div className="flex items-center justify-between border-t border-border bg-surface px-6 py-3.5 text-xs text-muted-foreground">
         <div>
           {t("showing")}{" "}
@@ -350,15 +350,6 @@ export function SettlementsTable({
           {t("of")}{" "}
           <strong className="text-foreground">{batches.length}</strong>{" "}
           {t("batches")}
-        </div>
-
-        <div className="flex gap-2">
-          <Button type="button" variant="secondary" size="sm" disabled className="px-2.5 py-1 text-xs">
-            {t("btnPrev")}
-          </Button>
-          <Button type="button" variant="secondary" size="sm" disabled className="px-2.5 py-1 text-xs">
-            {t("btnNext")}
-          </Button>
         </div>
       </div>
     </div>

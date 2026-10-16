@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Check, CheckCircle2, QrCode, ScanLine, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useTimeFormat } from "@/shared/lib";
 import { Button } from "@/shared/ui/button";
 import { Alert } from "@/shared/ui/alert";
 import { checkInAction } from "../actions/agenda-actions";
@@ -21,6 +22,7 @@ export function ExpressCheckInModal({
   onValidate,
 }: ExpressCheckInModalProps) {
   const t = useTranslations("agenda");
+  const { formatTime } = useTimeFormat();
 
   const [code, setCode] = useState("");
   const [isValidating, setIsValidating] = useState(false);
@@ -166,10 +168,15 @@ export function ExpressCheckInModal({
                         <span>
                           {t("checkInValidatedAt", {
                             time: feedback.details.validatedAt
-                              ? new Date(feedback.details.validatedAt).toLocaleTimeString()
+                              ? formatTime(
+                                  new Date(feedback.details.validatedAt)
+                                    .toTimeString()
+                                    .slice(0, 5)
+                                )
                               : t("checkInPreviously"),
                           })}
                         </span>
+
                         {feedback.details.space && (
                           <span className="ml-2 font-semibold">
                             {t("labelCourt")}: {feedback.details.space.spaceNumber}

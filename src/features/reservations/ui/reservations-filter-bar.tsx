@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
+import { TimeFormatToggle } from "@/shared/lib/time-format";
 import { Button } from "@/shared/ui/button";
 import type { ReservationFilter } from "../model/types";
 
@@ -60,7 +61,8 @@ export function ReservationsFilterBar({
           })}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
+          <TimeFormatToggle size="xs" />
           <span className="rounded-xl border border-border bg-muted/60 px-3 py-1 text-xs font-bold text-foreground">
             {t("bcvRefBadge", { rate: bcvRate.toFixed(2) })}
           </span>

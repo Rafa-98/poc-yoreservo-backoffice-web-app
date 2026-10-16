@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { CheckCircle2, Info } from "lucide-react";
 import type {
@@ -9,8 +9,10 @@ import type {
   RolePerspective,
   TimeframeKey,
 } from "@/features/dashboard/model/types";
+import { getDashboardSummaryAction } from "@/features/dashboard/actions/dashboard-actions";
 import { checkInReservationAction } from "@/features/reservations/actions/reservations-actions";
 import { checkInAction } from "@/features/agenda/actions/agenda-actions";
+import { useActiveVenue } from "@/features/venues/context/venue-context";
 import { DashboardTopbarControls } from "@/features/dashboard/ui/dashboard-topbar-controls";
 import { DashboardTimeframeBar } from "@/features/dashboard/ui/dashboard-timeframe-bar";
 import { DashboardAdminBanner } from "@/features/dashboard/ui/dashboard-admin-banner";
@@ -21,23 +23,64 @@ import { DashboardRevenueChart } from "@/features/dashboard/ui/dashboard-revenue
 import { DashboardSportsDistribution } from "@/features/dashboard/ui/dashboard-sports-distribution";
 import { DashboardActivityStream } from "@/features/dashboard/ui/dashboard-activity-stream";
 
+import type { BackofficeRole } from "@/shared/config";
+
 interface ExecutiveDashboardPageProps {
   initialData: ExecutiveDashboardData;
+  userRole?: BackofficeRole;
 }
 
 export function ExecutiveDashboardPage({
   initialData,
+  userRole,
 }: ExecutiveDashboardPageProps) {
   const t = useTranslations("dashboard");
+  const { activeVenueId, activeVenue } = useActiveVenue();
 
-  const [perspective, setPerspective] = useState<RolePerspective>(
-    initialData.perspective
-  );
+  const perspective: RolePerspective =
+    userRole === "PLATFORM_ADMIN" ||
+    userRole === "PLATFORM_ACCOUNTING" ||
+    (!userRole && initialData.perspective === "ADMIN")
+      ? "ADMIN"
+      : "ALLY";
+
+  const [data, setData] = useState<ExecutiveDashboardData>(initialData);
   const [timeframe, setTimeframe] = useState<TimeframeKey>("MES");
   const [checkedInIds, setCheckedInIds] = useState<Set<string>>(new Set());
   const [pendingCheckIns, setPendingCheckIns] = useState<number>(
-    initialData.allyKpis?.pendingCheckInCount ?? 4
+    initialData.allyKpis?.pendingCheckInCount ?? 0
   );
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      if (timeframe === "MES" && (!activeVenueId || activeVenueId === "ALL")) {
+        return;
+      }
+    }
+
+    let cancelled = false;
+    getDashboardSummaryAction({
+      period: timeframe,
+      venueId:
+        activeVenueId && activeVenueId !== "ALL" ? activeVenueId : undefined,
+    })
+      .then((fresh) => {
+        if (!cancelled) {
+          setData(fresh);
+          setPendingCheckIns(fresh.allyKpis?.pendingCheckInCount ?? 0);
+        }
+      })
+      .catch(() => {
+        // Keep current state on error
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [timeframe, activeVenueId]);
+
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "info";
@@ -48,19 +91,6 @@ export function ExecutiveDashboardPage({
     setTimeout(() => {
       setToast(null);
     }, 4000);
-  };
-
-  const handleTogglePerspective = (newPerspective: RolePerspective) => {
-    setPerspective(newPerspective);
-    showToast(
-      t("toast.viewSwitched", {
-        role:
-          newPerspective === "ADMIN"
-            ? t("roles.admin")
-            : t("roles.ally"),
-      }),
-      "info"
-    );
   };
 
   const handleCheckIn = async (court: CourtRibbonItem) => {
@@ -99,7 +129,7 @@ export function ExecutiveDashboardPage({
     );
   };
 
-  const currentChartData = initialData.chartData[timeframe];
+  const currentChartData = data.chartData[timeframe];
 
   return (
     <div className="space-y-6 max-w-[1480px] mx-auto w-full">
@@ -119,10 +149,7 @@ export function ExecutiveDashboardPage({
           </p>
         </div>
 
-        <DashboardTopbarControls
-          perspective={perspective}
-          onTogglePerspective={handleTogglePerspective}
-        />
+        <DashboardTopbarControls perspective={perspective} />
       </div>
 
       {/* Timeframe selector bar */}
@@ -130,35 +157,47 @@ export function ExecutiveDashboardPage({
         perspective={perspective}
         timeframe={timeframe}
         onSelectTimeframe={setTimeframe}
-        bcvRate={initialData.bcvRate}
+        bcvRate={data.bcvRate}
+        allyKpis={data.allyKpis}
       />
 
       {/* Actionable Alerts Banner (Admin View Only) */}
-      {perspective === "ADMIN" && <DashboardAdminBanner />}
+      {perspective === "ADMIN" && (
+        <DashboardAdminBanner
+          pendingPaymentsCount={data.adminKpis?.pendingPaymentsCount ?? 0}
+          pendingSettlementBatchesCount={
+            data.adminKpis?.pendingSettlementBatchesCount ?? 0
+          }
+          pendingSettlementAmountUsd={
+            data.adminKpis?.pendingSettlementAmountUsd ?? 0
+          }
+        />
+      )}
 
       {/* Role-Adaptive KPI Cards */}
       {perspective === "ADMIN" ? (
         <DashboardAdminKpis
           timeframe={timeframe}
           chartData={currentChartData}
-          bcvRate={initialData.bcvRate}
-          metrics={initialData.metrics}
-          adminKpis={initialData.adminKpis}
+          bcvRate={data.bcvRate}
+          metrics={data.metrics}
+          adminKpis={data.adminKpis}
         />
       ) : (
         <DashboardAllyKpis
-          bcvRate={initialData.bcvRate}
+          bcvRate={data.bcvRate}
           pendingCheckInCount={pendingCheckIns}
-          allyKpis={initialData.allyKpis}
+          allyKpis={data.allyKpis}
         />
       )}
 
       {/* Live Court Status Ribbon (Ally Organization View) */}
       {perspective === "ALLY" && (
         <DashboardCourtRibbon
-          courts={initialData.courtsRibbon}
+          courts={data.courtsRibbon}
           checkedInIds={checkedInIds}
           onCheckIn={handleCheckIn}
+          venueName={activeVenue?.name || data.allyKpis?.organizationName}
         />
       )}
 
@@ -171,15 +210,16 @@ export function ExecutiveDashboardPage({
           />
         </div>
         <div>
-          <DashboardSportsDistribution data={initialData.sportsDistribution} />
+          <DashboardSportsDistribution data={data.sportsDistribution} />
         </div>
       </div>
 
       {/* Bottom Section: Activity Stream & Platform Status */}
       <DashboardActivityStream
         perspective={perspective}
-        adminFeed={initialData.adminActivityFeed}
-        allyFeed={initialData.allyActivityFeed}
+        adminFeed={data.adminActivityFeed}
+        allyFeed={data.allyActivityFeed}
+        bcvRate={data.bcvRate}
       />
 
       {/* Interactive Toast Notification */}

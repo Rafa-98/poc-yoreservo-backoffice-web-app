@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useTimeFormat } from "@/shared/lib/time-format";
 import type { TimeframeChartData } from "../model/types";
 
 interface DashboardRevenueChartProps {
@@ -13,6 +14,7 @@ export function DashboardRevenueChart({
   onBarClick,
 }: DashboardRevenueChartProps) {
   const t = useTranslations("dashboard");
+  const { formatTime } = useTimeFormat();
 
   const maxGmv = Math.max(...data.gmv, 1) * 1.15;
 
@@ -49,14 +51,15 @@ export function DashboardRevenueChart({
           const gmvHeightPct = Math.max((gmv / maxGmv) * 100, 4);
           // Visual multiplier for 5% so the fee bar is clearly visible alongside large GMV
           const feeHeightPct = Math.max((fee / maxGmv) * 100 * 4, 3);
+          const formattedLabel = formatTime(lbl);
 
           return (
             <div
               key={lbl}
               className="flex-1 flex flex-col items-center justify-end h-full relative group cursor-pointer"
-              onClick={() => onBarClick?.(lbl, gmv, fee)}
+              onClick={() => onBarClick?.(formattedLabel, gmv, fee)}
               title={t("chart.barTooltip", {
-                label: lbl,
+                label: formattedLabel,
                 gmv: gmv.toFixed(2),
                 fee: fee.toFixed(2),
               })}
@@ -80,7 +83,7 @@ export function DashboardRevenueChart({
 
               {/* Label below */}
               <span className="absolute -bottom-6 text-[11px] font-semibold text-muted-foreground group-hover:text-foreground transition-colors whitespace-nowrap">
-                {lbl}
+                {formattedLabel}
               </span>
             </div>
           );
@@ -91,7 +94,7 @@ export function DashboardRevenueChart({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 text-xs text-muted-foreground">
         <div>
           <span>{t("chart.peakVolume")} </span>
-          <strong className="text-foreground font-semibold">{data.peakText}</strong>
+          <strong className="text-foreground font-semibold">{formatTime(data.peakText)}</strong>
         </div>
         <div>
           <span>{t("chart.operatingMargin")} </span>

@@ -33,6 +33,7 @@
   "kpiUpcomingBadge": "Upcoming",
   "thTime": "Time",
   "slotAvailable": "Available",
+  "slotClosed": "Closed",
   "slotBookWalkIn": "+ Book",
   "slotBookTitle": "Counter booking: {court} ({start} - {end})",
   "badgeChecked": "Checked-in",

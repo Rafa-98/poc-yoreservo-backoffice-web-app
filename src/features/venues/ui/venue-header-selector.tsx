@@ -108,7 +108,7 @@ export function VenueHeaderSelector() {
           <div className="flex items-center gap-1.5">
             <span className="max-w-[130px] sm:max-w-[210px] md:max-w-[260px] truncate font-bold text-foreground">
               {isLoading
-                ? "Cargando sedes..."
+                ? t("allVenues")
                 : isAllSelected
                 ? t("allVenuesConsolidated")
                 : activeVenue?.name || t("allVenues")}
@@ -151,8 +151,8 @@ export function VenueHeaderSelector() {
                 <Sparkles className="size-3.5 text-accent" />
                 <span>{t("venueSelectorTitle")}</span>
               </div>
-              <span className="text-[11px] font-medium text-muted-foreground">
-                {venues.length} {venues.length === 1 ? "sede" : "sedes"}
+              <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-bold text-accent-foreground">
+                {venues.length}
               </span>
             </div>
 
@@ -208,7 +208,7 @@ export function VenueHeaderSelector() {
                       {t("allVenuesConsolidated")}
                     </div>
                     <div className="text-[10px] text-muted-foreground">
-                      Vista consolidada de todas las instalaciones
+                      {t("allVenues")}
                     </div>
                   </div>
                 </div>

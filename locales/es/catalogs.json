@@ -11,16 +11,14 @@
     "amenities": "Amenidades & Servicios"
   },
   "taxonomy": {
-    "bannerTitle": "📐 Taxonomía Relacional en Base de Datos (Solución a Fallas de Modelo)",
-    "bannerDesc": "Las canchas físicas no se vinculan a un deporte genérico plano. Se estructuran en: ActivityType (Tipo de Actividad) ➔ Activity (Deporte específico con ícono) ➔ ActivityCategory (Formato de juego: 5v5, Dobles, etc., al cual se asocia Space.activityCategoryId).",
-    "parityBadge": "i18n JSONB Parity (ES / EN)",
     "btnAddSport": "+ Agregar Deporte",
     "btnAddCategory": "+ Formato / Categoría",
     "btnEditSport": "Editar Deporte",
     "btnEditCategory": "Editar Categoría",
     "spacesCount": "{count} canchas en plataforma",
     "courtsCount": "{count} canchas",
-    "active": "Activo"
+    "active": "Activo",
+    "inactive": "Inactivo"
   },
   "surfaces": {
     "bannerTitle": "Catálogo Oficial de Superficies de Cancha",
@@ -32,7 +30,8 @@
     "thActions": "Acciones",
     "btnAdd": "Nueva Superficie",
     "btnEdit": "Editar",
-    "active": "Activo"
+    "active": "Activo",
+    "inactive": "Inactivo"
   },
   "amenities": {
     "bannerTitle": "Catálogo Global de Amenidades & Servicios",

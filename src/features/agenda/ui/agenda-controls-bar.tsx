@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Calendar as CalendarIcon } from "lucide-react";
+import { TimeFormatToggle } from "@/shared/lib";
 
 export interface AgendaControlsBarProps {
   selectedDate: string;
@@ -90,10 +91,14 @@ export function AgendaControlsBar({
               className="h-9 rounded-xl border border-border bg-surface px-3 py-1 text-xs font-semibold text-foreground focus:border-accent focus:outline-none cursor-pointer"
             />
           </div>
+
+          {/* AM/PM | 24h Selector */}
+          <TimeFormatToggle />
         </div>
 
         {/* Live Legend Chips */}
         <div className="flex flex-wrap items-center gap-3 text-xs">
+
           <div className="flex items-center gap-1.5">
             <span className="size-2.5 rounded-sm bg-status-available-bg border border-dashed border-status-available-border" />
             <span className="text-muted-foreground font-medium">{t("statusAvail")}</span>

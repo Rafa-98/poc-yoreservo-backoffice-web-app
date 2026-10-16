@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useActiveVenue } from "@/features/venues/context/venue-context";
 import type {
   DaySchedule,
   SpaceItem,
@@ -9,7 +10,6 @@ import type {
   WeeklyScheduleData,
   WeeklySchedulesInput,
 } from "@/features/venues/model/types";
-import { VenuesSubnav } from "@/features/venues/ui/venues-subnav";
 import { ScheduleScopeBar } from "@/features/venues/ui/schedule-scope-bar";
 import { DayScheduleCard } from "@/features/venues/ui/day-schedule-card";
 import {
@@ -26,50 +26,44 @@ interface SchedulesPageProps {
   initialSchedules?: WeeklyScheduleData | null;
 }
 
-const DEFAULT_DAYS: DaySchedule[] = [
-  {
-    dayOfWeek: 1, // Monday
-    isOpen: true,
-    shift1: { openTime: "07:00", closeTime: "12:00", isEnabled: true },
-    shift2: { openTime: "16:00", closeTime: "23:00", isEnabled: true },
-  },
-  {
-    dayOfWeek: 2, // Tuesday
-    isOpen: true,
-    shift1: { openTime: "07:00", closeTime: "12:00", isEnabled: true },
-    shift2: { openTime: "16:00", closeTime: "23:00", isEnabled: true },
-  },
-  {
-    dayOfWeek: 3, // Wednesday
-    isOpen: true,
-    shift1: { openTime: "07:00", closeTime: "12:00", isEnabled: true },
-    shift2: { openTime: "16:00", closeTime: "23:00", isEnabled: true },
-  },
-  {
-    dayOfWeek: 4, // Thursday
-    isOpen: true,
-    shift1: { openTime: "07:00", closeTime: "12:00", isEnabled: true },
-    shift2: { openTime: "16:00", closeTime: "23:00", isEnabled: true },
-  },
-  {
-    dayOfWeek: 5, // Friday
-    isOpen: true,
-    shift1: { openTime: "07:00", closeTime: "12:00", isEnabled: true },
-    shift2: { openTime: "16:00", closeTime: "23:00", isEnabled: true },
-  },
-  {
-    dayOfWeek: 6, // Saturday
-    isOpen: true,
-    shift1: { openTime: "08:00", closeTime: "14:00", isEnabled: true },
-    shift2: { openTime: "16:00", closeTime: "22:00", isEnabled: true },
-  },
-  {
-    dayOfWeek: 0, // Sunday
-    isOpen: true,
-    shift1: { openTime: "08:00", closeTime: "18:00", isEnabled: true },
-    shift2: { openTime: "18:00", closeTime: "22:00", isEnabled: false },
-  },
-];
+export const EMPTY_DAYS: DaySchedule[] = [1, 2, 3, 4, 5, 6, 0].map(
+  (dayOfWeek) => ({
+    dayOfWeek,
+    isOpen: false,
+    enabled: false,
+    shifts: [],
+    shift1: { openTime: "07:00", closeTime: "22:00", isEnabled: false },
+    shift2: { openTime: "16:00", closeTime: "22:00", isEnabled: false },
+  })
+);
+
+function normalizeDays(
+  rawDays: DaySchedule[] | undefined | null
+): DaySchedule[] {
+  if (!rawDays || rawDays.length === 0) {
+    return EMPTY_DAYS.map((d) => ({
+      ...d,
+      shifts: [],
+      shift1: { ...d.shift1 },
+      shift2: d.shift2 ? { ...d.shift2 } : undefined,
+    }));
+  }
+  const mapped = [...rawDays].map((d) => ({
+    ...d,
+    enabled: d.isOpen,
+    shifts: d.isOpen
+      ? [
+          d.shift1,
+          ...(d.shift2?.isEnabled ? [d.shift2] : []),
+        ]
+      : [],
+  }));
+  return mapped.sort((a, b) => {
+    const orderA = a.dayOfWeek === 0 ? 7 : a.dayOfWeek;
+    const orderB = b.dayOfWeek === 0 ? 7 : b.dayOfWeek;
+    return orderA - orderB;
+  });
+}
 
 export function SchedulesPage({
   initialVenues,
@@ -80,6 +74,16 @@ export function SchedulesPage({
 }: SchedulesPageProps) {
   const topT = useTranslations("venues.top");
   const schedT = useTranslations("venues.schedules");
+
+  let activeVenueId = "ALL";
+  let setActiveVenueId: ((id: string) => void) | undefined;
+  try {
+    const venueCtx = useActiveVenue();
+    activeVenueId = venueCtx.activeVenueId;
+    setActiveVenueId = venueCtx.setActiveVenueId;
+  } catch {
+    // Fallback if rendered outside VenueProvider
+  }
 
   const [venues] = useState<VenueItem[]>(initialVenues);
   const [selectedVenueId, setSelectedVenueId] = useState<string>(
@@ -95,32 +99,42 @@ export function SchedulesPage({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
 
-  // Initialize 7 days
-  const [days, setDays] = useState<DaySchedule[]>(() => {
-    if (initialSchedules && initialSchedules.days?.length > 0) {
-      // Re-order starting from Monday (1) to Sunday (0)
-      const mapped = [...initialSchedules.days];
-      return mapped.sort((a, b) => {
-        const orderA = a.dayOfWeek === 0 ? 7 : a.dayOfWeek;
-        const orderB = b.dayOfWeek === 0 ? 7 : b.dayOfWeek;
-        return orderA - orderB;
-      });
-    }
-    return DEFAULT_DAYS;
-  });
+  // Initialize 7 days from backend data or empty unconfigured state
+  const [days, setDays] = useState<DaySchedule[]>(() =>
+    normalizeDays(initialSchedules?.days)
+  );
 
-  const currentVenue = venues.find((v) => v.id === selectedVenueId) || venues[0];
+  const effectiveVenueId =
+    selectedVenueId && selectedVenueId !== "ALL"
+      ? selectedVenueId
+      : activeVenueId && activeVenueId !== "ALL"
+      ? activeVenueId
+      : "";
+  const currentVenue =
+    effectiveVenueId
+      ? venues.find((v) => v.id === effectiveVenueId) || venues[0]
+      : null;
+
+  const selectableSpaces = spaces.filter(
+    (s) => !effectiveVenueId || !s.venueId || s.venueId === effectiveVenueId
+  );
 
   function showToast(message: string, isError = false) {
     setToast({ message, isError });
     setTimeout(() => setToast(null), 4000);
   }
 
-  async function handleSelectVenue(venueId: string) {
+  async function handleSelectVenue(venueId: string, syncContext = true) {
     setSelectedVenueId(venueId);
+    if (syncContext && setActiveVenueId && venueId && venueId !== activeVenueId) {
+      setActiveVenueId(venueId);
+    }
     const spacesRes = await getSpacesAction(venueId);
     if (!spacesRes.ok) {
       showToast(topT("errorLoadSpaces", { code: spacesRes.error.code }), true);
+      setSpaces([]);
+      setSelectedSpaceId("");
+      setDays(normalizeDays(null));
       return;
     }
     if (spacesRes.data && spacesRes.data.length > 0) {
@@ -131,8 +145,20 @@ export function SchedulesPage({
     } else {
       setSpaces([]);
       setSelectedSpaceId("");
+      setDays(normalizeDays(null));
     }
   }
+
+  useEffect(() => {
+    if (
+      activeVenueId &&
+      activeVenueId !== selectedVenueId &&
+      (activeVenueId === "ALL" || venues.some((v) => v.id === activeVenueId))
+    ) {
+      handleSelectVenue(activeVenueId, false);
+    }
+  }, [activeVenueId, selectedVenueId, venues]);
+
 
   async function handleSelectSpace(spaceId: string) {
     setSelectedSpaceId(spaceId);
@@ -140,27 +166,51 @@ export function SchedulesPage({
   }
 
   async function loadSpaceSchedules(spaceId: string) {
+    if (!spaceId) {
+      setDays(normalizeDays(null));
+      return;
+    }
     const res = await getSpaceSchedulesAction(spaceId);
     if (!res.ok) {
       showToast(schedT("toastLoadError", { code: res.error.code }), true);
+      setDays(normalizeDays(null));
       return;
     }
-    if (res.data && res.data.days?.length > 0) {
-      const sorted = [...res.data.days].sort((a, b) => {
-        const orderA = a.dayOfWeek === 0 ? 7 : a.dayOfWeek;
-        const orderB = b.dayOfWeek === 0 ? 7 : b.dayOfWeek;
-        return orderA - orderB;
-      });
-      setDays(sorted);
-    }
+    const rawDays = Array.isArray(res.data)
+      ? (res.data as unknown as DaySchedule[])
+      : res.data?.days;
+    setDays(normalizeDays(rawDays));
   }
 
   function handleUpdateDay(index: number, updated: DaySchedule) {
     setDays((prev) => {
       const next = [...prev];
-      next[index] = updated;
+      next[index] = {
+        ...updated,
+        enabled: updated.isOpen,
+        shifts: updated.isOpen
+          ? [
+              updated.shift1,
+              ...(updated.shift2?.isEnabled ? [updated.shift2] : []),
+            ]
+          : [],
+      };
       return next;
     });
+  }
+
+  function handleApplyStandardTemplate() {
+    setDays(
+      [1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => ({
+        dayOfWeek,
+        isOpen: true,
+        enabled: true,
+        shifts: [{ openTime: "07:00", closeTime: "22:00", isEnabled: true }],
+        shift1: { openTime: "07:00", closeTime: "22:00", isEnabled: true },
+        shift2: { openTime: "16:00", closeTime: "22:00", isEnabled: false },
+      }))
+    );
+    showToast(schedT("toastTemplateApplied"), false);
   }
 
   function handleCopyMondayToWeek() {
@@ -174,6 +224,8 @@ export function SchedulesPage({
           return {
             dayOfWeek: day.dayOfWeek,
             isOpen: monday.isOpen,
+            enabled: monday.isOpen,
+            shifts: monday.shifts ? [...monday.shifts] : [],
             shift1: { ...monday.shift1 },
             shift2: monday.shift2 ? { ...monday.shift2 } : undefined,
           };
@@ -200,7 +252,7 @@ export function SchedulesPage({
     if (res.ok) {
       showToast(
         applyToAllVenueSpaces
-          ? schedT("toastSavedAll", { count: spaces.length })
+          ? schedT("toastSavedAll", { count: selectableSpaces.length })
           : schedT("toastSavedSingle"),
         false
       );
@@ -230,12 +282,6 @@ export function SchedulesPage({
         </div>
       </div>
 
-      {/* Subnav */}
-      <VenuesSubnav
-        venuesCount={venues.length}
-        spacesCount={spaces.length}
-      />
-
       {/* Toast feedback banner */}
       {toast && (
         <div className="mt-4 px-5">
@@ -264,11 +310,12 @@ export function SchedulesPage({
           venues={venues}
           selectedVenueId={selectedVenueId}
           onSelectVenueId={handleSelectVenue}
-          spaces={spaces}
+          spaces={selectableSpaces}
           selectedSpaceId={selectedSpaceId}
           onSelectSpaceId={handleSelectSpace}
           applyToAllVenueSpaces={applyToAllVenueSpaces}
           onToggleApplyToAll={setApplyToAllVenueSpaces}
+          onApplyStandardTemplate={handleApplyStandardTemplate}
           onCopyMondayToWeek={handleCopyMondayToWeek}
           onSaveSchedules={handleSaveSchedules}
           isSaving={isSaving}

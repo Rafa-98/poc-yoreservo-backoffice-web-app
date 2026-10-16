@@ -22,12 +22,15 @@
     "validateCheckin": "Check-in Player",
     "walkInAction": "+ Walk-in",
     "reviewPayments": "Verify Payments (3)",
+    "reviewPaymentsCount": "Verify Payments ({count})",
     "reviewSettlements": "Settlements",
     "goToAgenda": "Open Multi-Court Agenda"
   },
   "headings": {
     "globalOverview": "Executive Performance Overview",
     "allyOverview": "Organization Operations: Avila Group (2 Venues)",
+    "allyOverviewDynamic": "Organization Operations: {org} ({count} Venues)",
+    "defaultOrg": "My Organization",
     "periodAnalyzed": "Analyzed Period:",
     "bcvRate": "BCV Rate:"
   },
@@ -43,7 +46,10 @@
   },
   "alerts": {
     "title": "Immediate Operational Attention Alerts:",
-    "desc": "There are 3 Pago Móvil payments pending verification and 2 settlement batches ready for disbursement to allies ($7,480.00 USD)."
+    "desc": "There are 3 Pago Móvil payments pending verification and 2 settlement batches ready for disbursement to allies ($7,480.00 USD).",
+    "descDynamic": "There are {payments} Pago Móvil payments pending verification and {batches} settlement batches ready for disbursement to allies (${amount} USD).",
+    "allClearTitle": "Operations Up to Date:",
+    "allClearDesc": "0 payments pending verification and 0 settlement batches pending disbursement."
   },
   "kpis": {
     "adminGmv": "Gross Volume (GMV)",
@@ -55,21 +61,25 @@
     "adminBookings": "Completed Bookings",
     "adminBookingsSub": "91% Mobile App • 9% Web Portal",
     "adminBookingsBadge": "98.2% Fulfillment",
+    "adminBookingsBadgeDynamic": "{pct} Fulfillment",
     "adminVenues": "Partner Venues",
     "adminVenuesSub": "88 active courts in Caracas and Miranda",
     "adminVenuesDynamicSub": "{count} active courts in Caracas and Miranda",
     "adminVenuesBadge": "+3 in Onboarding",
+    "adminVenuesBadgeDynamic": "+{count} in Onboarding",
     "adminVenuesCount": "24 Venues",
     "adminVenuesDynamicCount": "{count} Venues",
     "allyOccupancy": "Today's Court Occupancy",
     "allyOccupancySub": "6 open slots available for Walk-in",
     "allyOccupancyDynamicSub": "{count} open slots available for Walk-in",
     "allyOccupancyBadge": "78.5% Peak",
+    "allyOccupancyBadgeDynamic": "{pct} Peak",
     "allyOccupancyCount": "22 / 28 Slots",
     "allyOccupancyDynamicCount": "{occupied} / {total} Slots",
     "allyRev": "Net Club Revenue (Today)",
     "allyRevSub": "Fortnightly disbursement",
     "allyRevBadge": "Net 95%",
+    "allyRevBadgeDynamic": "Net {pct}%",
     "allyCheckin": "Front-Desk Check-in",
     "allyCheckinSub": "14 players currently on court",
     "allyCheckinDynamicSub": "{count} players currently on court",
@@ -79,14 +89,21 @@
     "allyNext": "Next Match",
     "allyNextTime": "In 15 Minutes",
     "allyNextDesc": "18:00 - Football 7 • Carlos Mendoza",
+    "noUpcomingMatch": "No upcoming matches",
+    "noUpcomingDesc": "No upcoming reservations scheduled for today",
     "court1Badge": "Court 1"
   },
   "courtRibbon": {
     "title": "Live Real-Time Court Status — Avila Complex",
+    "titleDynamic": "Live Real-Time Court Status — {venue}",
+    "allVenues": "All Venues",
     "summary": "🟢 In Play (2) • 🟡 Upcoming (1) • 🔵 Available (1)",
+    "summaryDynamic": "🟢 In Play ({inPlay}) • 🟡 Upcoming ({upcoming}) • 🔵 Available ({available})",
     "statusInPlay": "IN PLAY",
     "statusUpcoming": "UPCOMING",
     "statusAvailable": "AVAILABLE",
+    "statusMaintenance": "MAINTENANCE",
+    "emptyCourts": "No courts registered for the selected venue.",
     "checkinDone": "✓ Check-in Completed",
     "freeSlot": "Available Slot:",
     "noReservation": "No reservation assigned",
@@ -99,7 +116,7 @@
     "legendFee": "Fee (5%)",
     "peakVolume": "Highest volume recorded:",
     "operatingMargin": "Operating margin:",
-    "fixedMargin": "5.00% Fixed",
+    "fixedMargin": "5.00% Fijo",
     "barTooltip": "{label} — GMV: ${gmv} | Fee 5%: ${fee}"
   },
   "sports": {
@@ -112,14 +129,18 @@
     "tennisCount": "12% (341)",
     "other": "🏀 Basketball & Pickleball",
     "otherCount": "6% (171)",
+    "emptySports": "No reservations recorded in this period.",
     "peakHoursTitle": "Peak Demand Time Window",
     "peakHoursTime": "18:00 to 22:00 hrs",
-    "peakHoursSub": "94% occupancy across illuminated & indoor courts"
+    "peakHoursSub": "94% occupancy across illuminated & indoor courts",
+    "noPeakActivity": "No activity",
+    "noPeakSub": "0% recorded occupancy"
   },
   "stream": {
     "titleAdmin": "Live Transactional Activity Stream",
     "titleAlly": "Front Desk & Reception Log",
-    "websocketActive": "WebSocket Active"
+    "websocketActive": "WebSocket Active",
+    "emptyStream": "No recent activity recorded."
   },
   "systemStatus": {
     "title": "Services & Treasury Status",

@@ -123,7 +123,7 @@
     "valDate": "Fecha Valor:",
     "usdDesc": "Referencia aplicada a los aliados que cobran en Dólares ($).",
     "eurDesc": "Referencia aplicada a los aliados que cobran en Euros (€).",
-    "otherCurrencies": "Otras Divisas Publicadas por el BCV:",
+    "otherCurrencies": "Paridades & Variación BCV:",
     "lastSync": "Última sync: {time}",
     "syncNow": "Forzar Sincronización BCV",
     "syncSuccess": "Tasas sincronizadas con éxito desde el Banco Central de Venezuela",
@@ -164,5 +164,14 @@
       "historical": "HISTÓRICA",
       "empty": "No hay registros históricos de tasas disponibles."
     }
+  },
+  "settlementsOverrides": {
+    "periodAll": "Todos los Periodos",
+    "periodCurrentMonth": "Mes Actual",
+    "periodPrevMonth": "Mes Anterior",
+    "periodLast90Days": "Últimos 90 Días",
+    "originAccBanesco": "0134 — Banesco Cuenta Custodia YoReservo",
+    "originAccMercantil": "0105 — Mercantil Cuenta Operativa YoReservo",
+    "originAccZelle": "Zelle Corporativo — YoReservo LLC"
   }
 }

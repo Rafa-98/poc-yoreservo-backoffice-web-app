@@ -8,12 +8,14 @@ interface RateTickerRibbonProps {
   lastSync: string;
   secondaryCurrencies: SecondaryCurrency[];
   onForceSync: () => Promise<void>;
+  canSync?: boolean;
 }
 
 export function RateTickerRibbon({
   lastSync,
   secondaryCurrencies,
   onForceSync,
+  canSync = true,
 }: RateTickerRibbonProps) {
   const t = useTranslations("treasury.rate");
   const [isSyncing, setIsSyncing] = useState(false);
@@ -59,22 +61,24 @@ export function RateTickerRibbon({
         <div className="text-right text-[11.5px] text-muted-foreground">
           <span>{t("lastSync", { time: lastSync })}</span>
         </div>
-        <button
-          id="btn-force-sync"
-          type="button"
-          className="btn btn-primary inline-flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-xs"
-          onClick={handleSync}
-          disabled={isSyncing}
-        >
-          <span
-            className={`inline-block transition-transform duration-500 ${
-              isSyncing ? "rotate-180" : ""
-            }`}
+        {canSync && (
+          <button
+            id="btn-force-sync"
+            type="button"
+            className="btn btn-primary inline-flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-xs"
+            onClick={handleSync}
+            disabled={isSyncing}
           >
-            🔄
-          </span>
-          <span>{isSyncing ? t("syncing") : t("syncNow")}</span>
-        </button>
+            <span
+              className={`inline-block transition-transform duration-500 ${
+                isSyncing ? "rotate-180" : ""
+              }`}
+            >
+              🔄
+            </span>
+            <span>{isSyncing ? t("syncing") : t("syncNow")}</span>
+          </button>
+        )}
       </div>
     </div>
   );

@@ -1,12 +1,19 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { backendRequest } from "@/shared/api/index.server";
-import { ACCESS_COOKIE_NAME } from "@/shared/auth";
-import { requireSession } from "@/shared/auth/index.server";
+import {
+  getRefreshToken,
+  requireSessionWithToken,
+  setAuthCookies,
+} from "@/shared/auth/index.server";
+import { refreshTokens } from "@/shared/auth/token-refresh";
 import { fail, ok, type ActionResult } from "@/shared/lib";
-import { ROUTES } from "@/shared/config";
+import {
+  getDefaultRouteForRole,
+  ROUTES,
+  type BackofficeRole,
+} from "@/shared/config";
 import type {
   ChangePasswordInput,
   ProfileSessionItem,
@@ -14,22 +21,13 @@ import type {
   UserProfileData,
 } from "../model/types";
 
-async function getAuthToken(): Promise<string | undefined> {
-  try {
-    const cookieStore = await cookies();
-    return cookieStore.get(ACCESS_COOKIE_NAME)?.value;
-  } catch {
-    return undefined;
-  }
-}
-
 const CURRENT_SESSION_FALLBACK: ProfileSessionItem = {
   id: "current-session-id",
-  deviceIp: "190.202.44.12",
-  userAgent: "Google Chrome en Windows 11",
-  deviceLabel: "Google Chrome en Windows 11",
+  deviceIp: "—",
+  userAgent: "Sesión Actual",
+  deviceLabel: "Sesión Actual",
   deviceType: "desktop",
-  location: "Caracas, Venezuela",
+  location: "—",
   lastActiveText: "Activo ahora",
   isCurrent: true,
   createdAt: new Date().toISOString(),
@@ -37,7 +35,7 @@ const CURRENT_SESSION_FALLBACK: ProfileSessionItem = {
 
 function enrichSession(s: any): ProfileSessionItem {
   const ua = s.userAgent || "";
-  let deviceLabel = "Navegador Web";
+  let deviceLabel = ua || "Navegador Web";
   let deviceType: "desktop" | "mobile" | "tablet" = "desktop";
 
   if (ua.includes("iPhone")) {
@@ -50,17 +48,17 @@ function enrichSession(s: any): ProfileSessionItem {
     deviceLabel = "Chrome en macOS";
     deviceType = "desktop";
   } else if (ua.includes("Windows")) {
-    deviceLabel = "Google Chrome en Windows 11";
+    deviceLabel = "Google Chrome en Windows";
     deviceType = "desktop";
   }
 
   return {
     id: s.id,
-    deviceIp: s.deviceIp || "190.202.44.12",
+    deviceIp: s.deviceIp || "—",
     userAgent: s.userAgent || deviceLabel,
     deviceLabel,
     deviceType,
-    location: "Caracas, Venezuela",
+    location: s.location || "—",
     lastActiveText: s.isCurrent ? "Activo ahora" : "Reciente",
     isCurrent: !!s.isCurrent,
     createdAt: s.createdAt ? new Date(s.createdAt).toISOString() : new Date().toISOString(),
@@ -69,8 +67,7 @@ function enrichSession(s: any): ProfileSessionItem {
 }
 
 export async function getProfileAction(): Promise<UserProfileData> {
-  const session = await requireSession();
-  const accessToken = await getAuthToken();
+  const { user, accessToken } = await requireSessionWithToken();
 
   try {
     const res = await backendRequest("/backoffice/profile", {
@@ -85,30 +82,35 @@ export async function getProfileAction(): Promise<UserProfileData> {
       const allSessions =
         mappedSessions.length > 0 ? mappedSessions : [CURRENT_SESSION_FALLBACK];
 
+      const effectiveRole = String(data.role || user.role || "");
+      const isPlatformRole = effectiveRole.startsWith("PLATFORM_");
+
+      const resolvedOrganization =
+        data.organization ??
+        (isPlatformRole ? "YoReservo (Plataforma Central)" : "Sin asignar");
+
+      const resolvedManagedVenue =
+        data.managedVenue ??
+        (isPlatformRole
+          ? "Todas las Sedes (Global)"
+          : data.organization?.tradeName || "Sin asignar");
+
       return {
-        id: data.id || session.user.id,
-        name: data.name || session.user.name,
-        lastName: data.lastName || session.user.lastName || "",
-        fullName: data.fullName || `${session.user.name} ${session.user.lastName || ""}`.trim(),
-        email: data.email || session.user.email,
+        id: data.id || user.id,
+        name: data.name || user.name,
+        lastName: data.lastName || user.lastName || "",
+        fullName: data.fullName || `${user.name} ${user.lastName || ""}`.trim(),
+        email: data.email || user.email,
         documentType: data.documentType || "V",
-        documentNumber: data.documentNumber || "19876543",
-        phone: data.phone || "+584121234567",
-        imageUrl: data.imageUrl || null,
-        role: data.role || session.user.role,
+        documentNumber: data.documentNumber || "",
+        phone: data.phone || "",
+        imageUrl: data.imageUrl || data.avatarUrl || user.imageUrl || null,
+        role: effectiveRole,
         status: data.status || "ACTIVE",
         preferredLanguage: data.preferredLanguage || "es",
-        createdAt: data.createdAt || new Date("2026-01-15").toISOString(),
-        organization: data.organization || {
-          id: "org-avila-1",
-          tradeName: "Complejo Ávila",
-          legalName: "Inversiones Ávila, C.A.",
-          rif: "J-50123890-4",
-        },
-        managedVenue: data.managedVenue || {
-          id: "ven-avila-1",
-          name: "Complejo Deportivo Ávila",
-        },
+        createdAt: data.createdAt || "",
+        organization: resolvedOrganization,
+        managedVenue: resolvedManagedVenue,
         sessions: allSessions,
       };
     }
@@ -116,30 +118,24 @@ export async function getProfileAction(): Promise<UserProfileData> {
     // Fallback gracefully to session user
   }
 
+  const isPlatformRole = String(user.role || "").startsWith("PLATFORM_");
+
   return {
-    id: session.user.id,
-    name: session.user.name,
-    lastName: session.user.lastName || "",
-    fullName: `${session.user.name} ${session.user.lastName || ""}`.trim(),
-    email: session.user.email,
+    id: user.id,
+    name: user.name,
+    lastName: user.lastName || "",
+    fullName: `${user.name} ${user.lastName || ""}`.trim(),
+    email: user.email,
     documentType: "V",
-    documentNumber: "19876543",
-    phone: "+584121234567",
-    imageUrl: null,
-    role: session.user.role,
+    documentNumber: "",
+    phone: "",
+    imageUrl: user.imageUrl || null,
+    role: user.role,
     status: "ACTIVE",
     preferredLanguage: "es",
-    createdAt: new Date("2026-01-15").toISOString(),
-    organization: {
-      id: "org-avila-1",
-      tradeName: "Complejo Ávila",
-      legalName: "Inversiones Ávila, C.A.",
-      rif: "J-50123890-4",
-    },
-    managedVenue: {
-      id: "ven-avila-1",
-      name: "Complejo Deportivo Ávila",
-    },
+    createdAt: "",
+    organization: isPlatformRole ? "YoReservo (Plataforma Central)" : "Sin asignar",
+    managedVenue: isPlatformRole ? "Todas las Sedes (Global)" : "Sin asignar",
     sessions: [CURRENT_SESSION_FALLBACK],
   };
 }
@@ -147,14 +143,18 @@ export async function getProfileAction(): Promise<UserProfileData> {
 export async function updateProfileAction(
   input: UpdateProfileInput,
 ): Promise<ActionResult<UserProfileData>> {
+  const { accessToken } = await requireSessionWithToken();
   try {
-    await requireSession();
-    const accessToken = await getAuthToken();
+    const resolvedImage = input.imageUrl ?? input.avatarUrl;
+    const payload =
+      resolvedImage !== undefined
+        ? { ...input, imageUrl: resolvedImage, avatarUrl: resolvedImage }
+        : input;
 
     const res = await backendRequest("/backoffice/profile", {
       method: "PATCH",
       accessToken,
-      body: input,
+      body: payload,
     });
 
     if (!res.ok) {
@@ -169,13 +169,44 @@ export async function updateProfileAction(
   }
 }
 
+export async function switchTestingRoleAction(
+  role: BackofficeRole,
+): Promise<ActionResult<{ role: BackofficeRole; redirectTo: string }>> {
+  const { accessToken } = await requireSessionWithToken();
+  try {
+    const res = await backendRequest("/backoffice/profile/role", {
+      method: "PATCH",
+      accessToken,
+      body: { role },
+    });
+
+    if (!res.ok) {
+      return fail("ROLE_SWITCH_FAILED");
+    }
+
+    const refreshToken = await getRefreshToken();
+    if (refreshToken) {
+      const refreshResult = await refreshTokens(refreshToken, true);
+      if (refreshResult.kind === "refreshed") {
+        await setAuthCookies(refreshResult.tokens);
+      }
+    }
+
+    revalidatePath("/", "layout");
+    return ok({
+      role,
+      redirectTo: getDefaultRouteForRole(role),
+    });
+  } catch {
+    return fail("NETWORK_ERROR");
+  }
+}
+
 export async function changePasswordAction(
   input: ChangePasswordInput,
 ): Promise<ActionResult<{ success: boolean; message: string }>> {
+  const { accessToken } = await requireSessionWithToken();
   try {
-    await requireSession();
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/profile/change-password", {
       method: "POST",
       accessToken,
@@ -196,10 +227,8 @@ export async function changePasswordAction(
 }
 
 export async function revokeOtherSessionsAction(): Promise<ActionResult<{ count: number }>> {
+  const { accessToken } = await requireSessionWithToken();
   try {
-    await requireSession();
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/profile/sessions/revoke-others", {
       method: "DELETE",
       accessToken,
@@ -219,10 +248,8 @@ export async function revokeOtherSessionsAction(): Promise<ActionResult<{ count:
 export async function revokeSessionAction(
   sessionId: string,
 ): Promise<ActionResult<{ sessionId: string }>> {
+  const { accessToken } = await requireSessionWithToken();
   try {
-    await requireSession();
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest(`/backoffice/profile/sessions/${sessionId}`, {
       method: "DELETE",
       accessToken,

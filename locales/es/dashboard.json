@@ -22,12 +22,15 @@
     "validateCheckin": "Validar Entrada",
     "walkInAction": "+ Walk-in",
     "reviewPayments": "Validar Pagos (3)",
+    "reviewPaymentsCount": "Validar Pagos ({count})",
     "reviewSettlements": "Liquidaciones",
     "goToAgenda": "Ir a la Agenda de Canchas"
   },
   "headings": {
     "globalOverview": "Resumen Ejecutivo de Rendimiento",
     "allyOverview": "Operaciones de Organización: Grupo Ávila (2 Sedes)",
+    "allyOverviewDynamic": "Operaciones de Organización: {org} ({count} Sedes)",
+    "defaultOrg": "Mi Organización",
     "periodAnalyzed": "Período analizado:",
     "bcvRate": "Tasa BCV:"
   },
@@ -43,7 +46,10 @@
   },
   "alerts": {
     "title": "Alertas Operativas de Atención Inmediata:",
-    "desc": "Hay 3 pagos Pago Móvil pendientes de verificación y 2 lotes de liquidación listos para desembolso a aliados ($7,480.00 USD)."
+    "desc": "Hay 3 pagos Pago Móvil pendientes de verificación y 2 lotes de liquidación listos para desembolso a aliados ($7,480.00 USD).",
+    "descDynamic": "Hay {payments} pagos Pago Móvil pendientes de verificación y {batches} lotes de liquidación listos para desembolso a aliados (${amount} USD).",
+    "allClearTitle": "Operaciones al Día:",
+    "allClearDesc": "0 pagos pendientes de verificación y 0 lotes de liquidación pendientes por desembolsar."
   },
   "kpis": {
     "adminGmv": "Volumen Bruto (GMV)",
@@ -55,21 +61,25 @@
     "adminBookings": "Reservas Completadas",
     "adminBookingsSub": "91% Móvil App • 9% Web Portal",
     "adminBookingsBadge": "98.2% Cumplimiento",
+    "adminBookingsBadgeDynamic": "{pct} Cumplimiento",
     "adminVenues": "Recintos Afiliados",
     "adminVenuesSub": "88 canchas activas en Caracas y Miranda",
     "adminVenuesDynamicSub": "{count} canchas activas en Caracas y Miranda",
     "adminVenuesBadge": "+3 en Onboarding",
+    "adminVenuesBadgeDynamic": "+{count} en Onboarding",
     "adminVenuesCount": "24 Sedes",
     "adminVenuesDynamicCount": "{count} Sedes",
     "allyOccupancy": "Ocupación Canchas Hoy",
     "allyOccupancySub": "6 turnos disponibles para Walk-in",
     "allyOccupancyDynamicSub": "{count} turnos disponibles para Walk-in",
     "allyOccupancyBadge": "78.5% Pico",
+    "allyOccupancyBadgeDynamic": "{pct} Pico",
     "allyOccupancyCount": "22 / 28 Turnos",
     "allyOccupancyDynamicCount": "{occupied} / {total} Turnos",
     "allyRev": "Ingreso Neto Club (Hoy)",
     "allyRevSub": "Acreditado quincenal",
     "allyRevBadge": "Neto 95%",
+    "allyRevBadgeDynamic": "Neto {pct}%",
     "allyCheckin": "Check-in Mostrador",
     "allyCheckinSub": "14 jugadores ya en cancha",
     "allyCheckinDynamicSub": "{count} jugadores ya en cancha",
@@ -79,14 +89,21 @@
     "allyNext": "Próximo Partido",
     "allyNextTime": "En 15 Minutos",
     "allyNextDesc": "18:00 - Fútbol 7 • Carlos Mendoza",
+    "noUpcomingMatch": "Sin próximos turnos",
+    "noUpcomingDesc": "No hay reservas próximas programadas para hoy",
     "court1Badge": "Cancha 1"
   },
   "courtRibbon": {
     "title": "Estado en Tiempo Real de Canchas — Complejo Ávila",
+    "titleDynamic": "Estado en Tiempo Real de Canchas — {venue}",
+    "allVenues": "Todas las Sedes",
     "summary": "🟢 En Juego (2) • 🟡 Próximo (1) • 🔵 Libre (1)",
+    "summaryDynamic": "🟢 En Juego ({inPlay}) • 🟡 Próximo ({upcoming}) • 🔵 Libre ({available})",
     "statusInPlay": "EN JUEGO",
     "statusUpcoming": "PRÓXIMO",
     "statusAvailable": "DISPONIBLE",
+    "statusMaintenance": "MANTENIMIENTO",
+    "emptyCourts": "No hay canchas registradas para la sede seleccionada.",
     "checkinDone": "✓ Check-in Realizado",
     "freeSlot": "Franja Libre:",
     "noReservation": "Sin reserva asignada",
@@ -112,14 +129,18 @@
     "tennisCount": "12% (341)",
     "other": "🏀 Baloncesto & Pickleball",
     "otherCount": "6% (171)",
+    "emptySports": "Sin reservas registradas en este período.",
     "peakHoursTitle": "Franja Horaria Más Demandada",
     "peakHoursTime": "18:00 a 22:00 hrs",
-    "peakHoursSub": "94% de ocupación en canchas techadas e iluminadas"
+    "peakHoursSub": "94% de ocupación en canchas techadas e iluminadas",
+    "noPeakActivity": "Sin actividad",
+    "noPeakSub": "0% de ocupación registrada"
   },
   "stream": {
     "titleAdmin": "Flujo de Actividad Transaccional en Tiempo Real",
     "titleAlly": "Bitácora de Mostrador & Recepción",
-    "websocketActive": "WebSocket Activo"
+    "websocketActive": "WebSocket Activo",
+    "emptyStream": "No hay actividad reciente registrada."
   },
   "systemStatus": {
     "title": "Estado de Servicios & Tesorería",

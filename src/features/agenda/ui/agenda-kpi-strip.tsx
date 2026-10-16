@@ -7,19 +7,22 @@ import {
   DollarSign,
   TrendingUp,
 } from "lucide-react";
-import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
+import { DEFAULT_BCV_USD_RATE, useTimeFormat } from "@/shared/lib";
 import type { CourtSpace } from "../model/types";
 
 export interface AgendaKpiStripProps {
   spaces: CourtSpace[];
   bcvRate?: number;
+  totalAvailableSlots?: number;
 }
 
 export function AgendaKpiStrip({
   spaces,
   bcvRate = DEFAULT_BCV_USD_RATE,
+  totalAvailableSlots,
 }: AgendaKpiStripProps) {
   const t = useTranslations("agenda");
+  const { formatTime } = useTimeFormat();
 
   // Calculate statistics
   let totalSlots = 0;
@@ -45,7 +48,9 @@ export function AgendaKpiStrip({
     // Reservations
     space.reservations.forEach((r) => {
       totalBookings++;
-      occupiedSlots++;
+      const [sH] = r.startTime.split(":").map(Number);
+      const [eH] = r.endTime.split(":").map(Number);
+      occupiedSlots += Math.max(1, eH - sH);
       totalRevenue += r.totalAmount;
       if (r.status === "CONFIRMED" || r.status === "COMPLETED") {
         paidBookings++;
@@ -68,13 +73,18 @@ export function AgendaKpiStrip({
     });
 
     // Space Blocks
-    space.blocks.forEach(() => {
-      occupiedSlots++;
+    space.blocks.forEach((b) => {
+      const [bsH] = b.startTime.split(":").map(Number);
+      const [beH] = b.endTime.split(":").map(Number);
+      occupiedSlots += Math.max(1, beH - bsH);
     });
   });
 
+  const resolvedTotalSlots = totalAvailableSlots ?? totalSlots;
   const occupancyRate =
-    totalSlots > 0 ? Math.round((occupiedSlots / totalSlots) * 100) : 0;
+    resolvedTotalSlots > 0
+      ? Math.round((occupiedSlots / resolvedTotalSlots) * 100)
+      : 0;
   const revenueVes = Math.round(totalRevenue * bcvRate);
 
   return (
@@ -94,7 +104,7 @@ export function AgendaKpiStrip({
             {occupancyRate}%
           </span>
           <span className="text-xs text-muted-foreground font-medium">
-            {occupiedSlots} / {Math.max(occupiedSlots, totalSlots || 24)}{" "}
+            {occupiedSlots} / {Math.max(occupiedSlots, resolvedTotalSlots)}{" "}
             {t("kpiSlotsUnit")}
           </span>
         </div>
@@ -153,7 +163,7 @@ export function AgendaKpiStrip({
         <div className="flex items-baseline gap-2">
           <span className="font-display text-base sm:text-lg font-bold text-foreground truncate">
             {nextMatchTime
-              ? `${nextMatchTime} • ${nextMatchCourt}`
+              ? `${formatTime(nextMatchTime)} • ${nextMatchCourt}`
               : t("kpiNoMatches")}
           </span>
           {nextMatchTime && (
@@ -166,3 +176,4 @@ export function AgendaKpiStrip({
     </section>
   );
 }
+

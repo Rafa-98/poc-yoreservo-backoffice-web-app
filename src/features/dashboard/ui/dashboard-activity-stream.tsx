@@ -4,20 +4,24 @@ import Link from "next/link";
 import { Radio, Calendar, ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ROUTES } from "@/shared/config";
+import { useTimeFormat } from "@/shared/lib/time-format";
 import type { ActivityStreamItem, RolePerspective } from "../model/types";
 
 interface DashboardActivityStreamProps {
   perspective: RolePerspective;
   adminFeed: ActivityStreamItem[];
   allyFeed: ActivityStreamItem[];
+  bcvRate?: number;
 }
 
 export function DashboardActivityStream({
   perspective,
   adminFeed,
   allyFeed,
+  bcvRate,
 }: DashboardActivityStreamProps) {
   const t = useTranslations("dashboard");
+  const { formatTime } = useTimeFormat();
 
   const feed = perspective === "ADMIN" ? adminFeed : allyFeed;
 
@@ -37,31 +41,40 @@ export function DashboardActivityStream({
           </span>
         </div>
 
-        <div className="divide-y divide-border/40">
-          {feed.map((item) => (
-            <div key={item.id} className="py-3 flex items-start gap-3 first:pt-0 last:pb-0">
+        {feed.length === 0 ? (
+          <div className="py-8 text-center text-xs text-muted-foreground">
+            {t("stream.emptyStream")}
+          </div>
+        ) : (
+          <div className="divide-y divide-border/40">
+            {feed.map((item) => (
               <div
-                style={{ backgroundColor: item.bg }}
-                className="size-8 sm:size-9 rounded-xl flex items-center justify-center text-sm shrink-0 shadow-2xs"
+                key={item.id}
+                className="py-3 flex items-start gap-3 first:pt-0 last:pb-0"
               >
-                <span>{item.icon}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">
-                    {item.title}
-                  </h4>
-                  <span className="text-[11px] text-muted-foreground shrink-0">
-                    {item.time}
-                  </span>
+                <div
+                  style={{ backgroundColor: item.bg }}
+                  className="size-8 sm:size-9 rounded-xl flex items-center justify-center text-sm shrink-0 shadow-2xs"
+                >
+                  <span>{item.icon}</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                  {item.desc}
-                </p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">
+                      {item.title}
+                    </h4>
+                    <span className="text-[11px] text-muted-foreground shrink-0">
+                      {formatTime(item.time)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                    {formatTime(item.desc)}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Right: Platform System Status & Treasury (1 col) */}
@@ -77,7 +90,9 @@ export function DashboardActivityStream({
                 {t("systemStatus.bcvSync")}
               </span>
               <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                {t("systemStatus.bcvValue")}
+                {bcvRate && bcvRate > 0
+                  ? `🟢 ${bcvRate.toFixed(2)} Bs`
+                  : t("systemStatus.bcvValue")}
               </span>
             </div>
 

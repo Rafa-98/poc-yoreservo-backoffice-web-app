@@ -60,14 +60,10 @@ export function VenueProvider({
   const isManagedLocked =
     user.role === "ALLY_VALIDATOR" && Boolean(user.managedVenueId);
 
-  // Initialize active venue ID
-  const [activeVenueId, setActiveVenueIdState] = useState<string>(() => {
-    if (isManagedLocked && user.managedVenueId) {
-      return user.managedVenueId;
-    }
-    const savedCookie = getCookie(COOKIE_NAME);
-    return savedCookie || "ALL";
-  });
+  // Initialize active venue ID deterministically for SSR hydration parity
+  const [activeVenueId, setActiveVenueIdState] = useState<string>(
+    isManagedLocked && user.managedVenueId ? user.managedVenueId : "ALL",
+  );
 
   const fetchVenues = useCallback(async () => {
     setIsLoading(true);
@@ -92,11 +88,16 @@ export function VenueProvider({
     }
   }, [fetchVenues, initialVenues.length]);
 
-  // If user is locked to a venue, keep it synced
+  // Restore saved venue cookie or sync locked venue after hydration
   useEffect(() => {
     if (isManagedLocked && user.managedVenueId) {
       setActiveVenueIdState(user.managedVenueId);
       setCookie(COOKIE_NAME, user.managedVenueId);
+      return;
+    }
+    const savedCookie = getCookie(COOKIE_NAME);
+    if (savedCookie) {
+      setActiveVenueIdState(savedCookie);
     }
   }, [isManagedLocked, user.managedVenueId]);
 

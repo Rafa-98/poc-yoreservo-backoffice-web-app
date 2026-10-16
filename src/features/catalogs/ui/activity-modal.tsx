@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import { createActivityAction } from "../actions/catalogs-actions";
@@ -23,9 +23,18 @@ export function ActivityModal({
 
   const [nameEs, setNameEs] = useState("");
   const [nameEn, setNameEn] = useState("");
-  const [imageUrl, setImageUrl] = useState("https://images.unsplash.com/photo-1554068865-24cecd4e34b8");
+  const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setNameEs("");
+      setNameEn("");
+      setImageUrl("");
+      setErrorMsg(null);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

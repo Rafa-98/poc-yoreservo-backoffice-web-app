@@ -1,10 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useTimeFormat } from "@/shared/lib/time-format";
 import { Button } from "@/shared/ui/button";
+import { getSpacesAction } from "@/features/venues/actions/venues-actions";
 import { createWalkInReservationAction } from "../actions/reservations-actions";
 import type { CreateWalkInReservationInput } from "../model/types";
+
+const WALKIN_TIME_OPTIONS = Array.from({ length: 35 }, (_, i) => {
+  const totalMins = 6 * 60 + i * 30;
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+});
 
 interface WalkInModalProps {
   isOpen: boolean;
@@ -22,6 +31,7 @@ export function WalkInModal({
   onSuccess,
 }: WalkInModalProps) {
   const t = useTranslations("reservations.modalWalkIn");
+  const { formatTime } = useTimeFormat();
 
   const [name, setName] = useState("");
   const [docType, setDocType] = useState<"V" | "E" | "J" | "G" | "P" | "C">("V");
@@ -30,19 +40,81 @@ export function WalkInModal({
   const [phoneOp, setPhoneOp] = useState("0412");
   const [phoneNum, setPhoneNum] = useState("");
 
+  const [allSpaces, setAllSpaces] = useState(spaces);
   const [selectedVenueId, setSelectedVenueId] = useState(venues[0]?.id || "");
-  const filteredSpaces = spaces.filter((s) => s.venueId === selectedVenueId);
-  const [selectedSpaceId, setSelectedSpaceId] = useState(filteredSpaces[0]?.id || spaces[0]?.id || "");
+  const filteredSpaces = allSpaces.filter((s) => s.venueId === selectedVenueId);
+  const [selectedSpaceId, setSelectedSpaceId] = useState(
+    filteredSpaces[0]?.id || "",
+  );
+  const [loadingSpaces, setLoadingSpaces] = useState(false);
 
   const todayStr = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(todayStr);
   const [startTime, setStartTime] = useState("17:00");
   const [duration, setDuration] = useState("90");
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "PAGO_MOVIL" | "POS">("CASH");
-  const [price, setPrice] = useState(30);
+
+  const computePriceForDuration = (ratePerHour: number, durationStr: string) => {
+    const mins = Number(durationStr) || 60;
+    return Math.round(ratePerHour * (mins / 60) * 100) / 100;
+  };
+
+  const [price, setPrice] = useState(() =>
+    computePriceForDuration(filteredSpaces[0]?.pricePerHour ?? 0, "90")
+  );
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    setAllSpaces((prev) => {
+      const existingIds = new Set(prev.map((p) => p.id));
+      const additions = spaces.filter((s) => !existingIds.has(s.id));
+      return additions.length > 0 ? [...prev, ...additions] : prev;
+    });
+  }, [spaces]);
+
+  useEffect(() => {
+    if (!isOpen || !selectedVenueId) return;
+    const venueSpaces = allSpaces.filter((s) => s.venueId === selectedVenueId);
+    if (venueSpaces.length > 0) {
+      if (!venueSpaces.some((s) => s.id === selectedSpaceId)) {
+        setSelectedSpaceId(venueSpaces[0].id);
+        setPrice(computePriceForDuration(venueSpaces[0].pricePerHour, duration));
+      }
+      return;
+    }
+
+    let active = true;
+    setLoadingSpaces(true);
+    getSpacesAction(selectedVenueId)
+      .then((res) => {
+        if (!active) return;
+        if (res.ok && res.data.length > 0) {
+          const loaded = res.data.map((sp) => ({
+            id: sp.id,
+            name: sp.spaceNumber,
+            venueId: sp.venueId,
+            pricePerHour: sp.pricePerHour,
+          }));
+          setAllSpaces((prev) => {
+            const existingIds = new Set(prev.map((p) => p.id));
+            return [...prev, ...loaded.filter((l) => !existingIds.has(l.id))];
+          });
+          setSelectedSpaceId(loaded[0].id);
+          setPrice(computePriceForDuration(loaded[0].pricePerHour, duration));
+        } else {
+          setSelectedSpaceId("");
+        }
+      })
+      .finally(() => {
+        if (active) setLoadingSpaces(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isOpen, selectedVenueId, allSpaces, selectedSpaceId, duration]);
 
   if (!isOpen) return null;
 
@@ -226,9 +298,13 @@ export function WalkInModal({
                 <select
                   value={selectedVenueId}
                   onChange={(e) => {
-                    setSelectedVenueId(e.target.value);
-                    const newSpaces = spaces.filter((s) => s.venueId === e.target.value);
-                    if (newSpaces[0]) setSelectedSpaceId(newSpaces[0].id);
+                    const nextVenueId = e.target.value;
+                    setSelectedVenueId(nextVenueId);
+                    const newSpaces = allSpaces.filter((s) => s.venueId === nextVenueId);
+                    if (newSpaces[0]) {
+                      setSelectedSpaceId(newSpaces[0].id);
+                      setPrice(computePriceForDuration(newSpaces[0].pricePerHour, duration));
+                    }
                   }}
                   className="form-select"
                   id="walkin-venue"
@@ -247,27 +323,20 @@ export function WalkInModal({
                 </label>
                 <select
                   value={selectedSpaceId}
+                  disabled={loadingSpaces}
                   onChange={(e) => {
                     setSelectedSpaceId(e.target.value);
-                    const s = spaces.find((sp) => sp.id === e.target.value);
-                    if (s) setPrice(s.pricePerHour);
+                    const s = allSpaces.find((sp) => sp.id === e.target.value);
+                    if (s) setPrice(computePriceForDuration(s.pricePerHour, duration));
                   }}
                   className="form-select"
                   id="walkin-court"
                 >
-                  {filteredSpaces.length > 0 ? (
-                    filteredSpaces.map((sp) => (
-                      <option key={sp.id} value={sp.id}>
-                        {sp.name} (${sp.pricePerHour}/h)
-                      </option>
-                    ))
-                  ) : (
-                    spaces.map((sp) => (
-                      <option key={sp.id} value={sp.id}>
-                        {sp.name} (${sp.pricePerHour}/h)
-                      </option>
-                    ))
-                  )}
+                  {filteredSpaces.map((sp) => (
+                    <option key={sp.id} value={sp.id}>
+                      {sp.name} (${sp.pricePerHour}/h)
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -292,14 +361,18 @@ export function WalkInModal({
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
                   {t("time")}
                 </label>
-                <input
-                  type="time"
-                  required
+                <select
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  className="form-input"
+                  className="form-select"
                   id="walkin-time"
-                />
+                >
+                  {WALKIN_TIME_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {formatTime(opt)}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -308,7 +381,12 @@ export function WalkInModal({
                 </label>
                 <select
                   value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
+                  onChange={(e) => {
+                    const nextDur = e.target.value;
+                    setDuration(nextDur);
+                    const s = allSpaces.find((sp) => sp.id === selectedSpaceId);
+                    if (s) setPrice(computePriceForDuration(s.pricePerHour, nextDur));
+                  }}
                   className="form-select"
                   id="walkin-duration"
                 >

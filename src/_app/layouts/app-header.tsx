@@ -6,7 +6,6 @@ import {
   CalendarPlus,
   ChevronDown,
   LogOut,
-  MapPin,
   Menu,
   QrCode,
   Shield,
@@ -17,8 +16,10 @@ import type { SessionUser } from "@/shared/auth";
 import { ROUTES } from "@/shared/config";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
 import { LanguageSwitcher } from "@/shared/ui/language-switcher";
+import { TimeFormatToggle } from "@/shared/lib";
 import { logoutAction } from "@/features/auth/actions/logout-action";
 import { VenueHeaderSelector } from "@/features/venues/ui/venue-header-selector";
+
 
 export interface AppHeaderProps {
   user: SessionUser;
@@ -88,11 +89,12 @@ export function AppHeader({
         {/* Interactive Multi-Branch Venue Selector (Decoupled v2.0) */}
         <VenueHeaderSelector />
 
-        {/* Active Role Indicator */}
+        {/* Static Authenticated Role Badge */}
         <div
-          className={`hidden md:inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${roleBadge.color}`}
+          className={`hidden sm:inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${roleBadge.color}`}
+          title={`${t("activeRole")}: ${roleBadge.label}`}
         >
-          <Shield className="size-3" />
+          <Shield className="size-3 shrink-0" />
           <span>{roleBadge.label}</span>
         </div>
       </div>
@@ -125,9 +127,11 @@ export function AppHeader({
           </Link>
         )}
 
-        {/* Theme and Language */}
+        {/* Time Format, Theme and Language */}
+        <TimeFormatToggle />
         <ThemeToggle />
         <LanguageSwitcher />
+
 
         {/* User Profile Dropdown */}
         <div className="relative ml-1 sm:ml-2">

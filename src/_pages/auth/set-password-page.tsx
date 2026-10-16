@@ -1,11 +1,29 @@
-import { Suspense } from "react";
+"use client";
+
+import { Suspense, useState } from "react";
 import { useTranslations } from "next-intl";
 import { AuthShellLayout } from "@/features/auth/ui/auth-shell-layout";
 import { SetPasswordForm } from "@/features/auth/ui/set-password-form";
+import type { InvitationDetails } from "@/features/auth/actions/set-password-action";
 import { ShieldAlert } from "lucide-react";
 
-export function SetPasswordPage() {
+interface SetPasswordPageProps {
+  initialInvitation?: InvitationDetails | null;
+}
+
+export function SetPasswordPage({ initialInvitation = null }: SetPasswordPageProps) {
   const t = useTranslations("auth");
+  const [invitation, setInvitation] = useState<InvitationDetails | null>(
+    initialInvitation
+  );
+
+  const assignedRole = invitation?.role || "—";
+  const assignedVenue =
+    invitation?.venueName ||
+    invitation?.organizationName ||
+    (invitation?.role?.startsWith("PLATFORM_")
+      ? "YoReservo (Plataforma Central)"
+      : "—");
 
   return (
     <AuthShellLayout
@@ -22,18 +40,26 @@ export function SetPasswordPage() {
             </div>
             <div>
               <div className="text-sm font-semibold text-white">
-                {t("inviteRoleTitle")}
+                {t("inviteRoleTitle", { role: assignedRole })}
               </div>
               <div className="text-xs font-medium text-accent">
-                {t("inviteVenueTitle")}
+                {t("inviteVenueTitle", { venue: assignedVenue })}
               </div>
+              {invitation?.email && (
+                <div className="text-[11px] text-white/70 mt-0.5">
+                  {invitation.email}
+                </div>
+              )}
             </div>
           </div>
         </div>
       }
     >
       <Suspense fallback={<div className="h-96 w-full animate-pulse rounded-2xl bg-surface" />}>
-        <SetPasswordForm />
+        <SetPasswordForm
+          initialInvitation={initialInvitation}
+          onInvitationLoaded={setInvitation}
+        />
       </Suspense>
     </AuthShellLayout>
   );

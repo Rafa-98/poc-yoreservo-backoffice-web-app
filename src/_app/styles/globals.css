@@ -535,3 +535,63 @@
   :where(.form-input::placeholder, .form-textarea::placeholder) {
     color: var(--faint-foreground);
   }
+
+/* ---------- Official PDF / Print Styles (Finiquito & Estado de Cuenta) ---------- */
+@page {
+  size: A4 portrait;
+  margin: 0mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    color: #141a13 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide everything outside the statement drawer when printing a settlement statement */
+  body:has(#statement-drawer-backdrop) * {
+    visibility: hidden;
+  }
+
+  body:has(#statement-drawer-backdrop) #statement-drawer-backdrop,
+  body:has(#statement-drawer-backdrop) #statement-drawer-panel,
+  body:has(#statement-drawer-backdrop) #statement-drawer-panel * {
+    visibility: visible;
+  }
+
+  #statement-drawer-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    padding: 18mm 20mm !important;
+    overflow: visible !important;
+  }
+
+  #statement-drawer-panel {
+    width: 100% !important;
+    max-width: 170mm !important;
+    margin: 0 auto !important;
+    height: auto !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+
+  .no-print,
+  #statement-drawer-panel .no-print,
+  #statement-drawer-panel .no-print * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
+

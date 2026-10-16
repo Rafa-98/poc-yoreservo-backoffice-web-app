@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Key, ShieldCheck, Check, Circle, ShieldAlert } from "lucide-react";
+import { Key, Check, Circle, ShieldAlert } from "lucide-react";
 import type { ChangePasswordInput } from "../model/types";
 
 interface ProfilePasswordFormProps {
@@ -170,25 +170,6 @@ export function ProfilePasswordForm({
             )}
           </div>
         )}
-      </div>
-
-      {/* 2FA Status Box */}
-      <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 dark:bg-blue-500/15 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h4 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
-            <ShieldCheck className="size-4 text-blue-500" />
-            <span>{t("security.twofaTitle")}</span>
-          </h4>
-          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-            {t("security.twofaDesc")}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="px-3.5 py-1.5 rounded-lg border border-border bg-surface text-foreground text-xs font-semibold hover:bg-surface-muted active:scale-95 transition-all shadow-2xs shrink-0 cursor-pointer"
-        >
-          {t("security.configure2fa")}
-        </button>
       </div>
 
       {/* Submit Button */}

@@ -1,26 +1,17 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { backendRequest } from "@/shared/api/index.server";
-import { ACCESS_COOKIE_NAME } from "@/shared/auth";
-import { requireSession } from "@/shared/auth/index.server";
+import { requireSessionWithToken } from "@/shared/auth/index.server";
 import { fail, ok, type ActionResult } from "@/shared/lib";
 import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
 import type { AgendaData, VenueRef } from "../model/types";
 
-async function getAuthToken(): Promise<string> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(ACCESS_COOKIE_NAME)?.value;
-  if (!token) throw new Error("Unauthorized");
-  return token;
-}
-
 export async function getVenuesListAction(): Promise<ActionResult<VenueRef[]>> {
+  const { accessToken } = await requireSessionWithToken(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
   try {
-    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
-    const accessToken = await getAuthToken();
-    const res = await backendRequest("/venues", { accessToken });
+    const res = await backendRequest("/backoffice/venues", { accessToken });
     if (!res.ok) {
       return fail("FAILED_TO_LOAD_VENUES");
     }
@@ -41,19 +32,17 @@ export async function getAgendaAction(
   venueId?: string,
   date?: string,
 ): Promise<ActionResult<AgendaData>> {
+  const { user, accessToken } = await requireSessionWithToken(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
   try {
-    const session = await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
-    const accessToken = await getAuthToken();
-
     // 1. Resolve venueId
     let resolvedVenueId = venueId;
     if (!resolvedVenueId) {
-      if (session.user.managedVenueId) {
-        resolvedVenueId = session.user.managedVenueId;
+      if (user.managedVenueId) {
+        resolvedVenueId = user.managedVenueId;
       } else {
-        const venuesRes = await backendRequest("/venues", { accessToken });
-        const list = (venuesRes.body as any[]) ?? [];
-        resolvedVenueId = list[0]?.id;
+        const cookieStore = await cookies();
+        const savedVenue = cookieStore.get("yoreservo_active_venue")?.value;
+        resolvedVenueId = savedVenue || "ALL";
       }
     }
 
@@ -66,15 +55,38 @@ export async function getAgendaAction(
       date || new Date().toISOString().split("T")[0];
 
     const res = await backendRequest(
-      `/backoffice/agenda?venueId=${resolvedVenueId}&date=${resolvedDate}`,
+      `/backoffice/agenda?venueId=${encodeURIComponent(resolvedVenueId)}&date=${resolvedDate}`,
       { accessToken },
     );
+
 
     if (!res.ok) {
       return fail("FAILED_TO_LOAD_AGENDA", undefined, res.correlationId);
     }
 
-    return ok(res.body as AgendaData);
+    const raw = res.body as AgendaData;
+    let bcvRate = raw.bcvRate && Number(raw.bcvRate) > 0 ? Number(raw.bcvRate) : undefined;
+    if (!bcvRate) {
+      try {
+        const ratesRes = await backendRequest("/backoffice/exchange-rates", {
+          accessToken,
+        });
+        if (ratesRes.ok && ratesRes.body) {
+          const activeRates = (ratesRes.body as any)?.activeRates ?? [];
+          const usdObj = activeRates.find((r: any) => r.currencyCode === "USD");
+          if (usdObj?.rate && Number(usdObj.rate) > 0) {
+            bcvRate = Number(usdObj.rate);
+          }
+        }
+      } catch {
+        // Ignore rate fetch error
+      }
+    }
+
+    return ok({
+      ...raw,
+      bcvRate,
+    });
   } catch (error) {
     console.error("[agenda] Get agenda error:", error);
     return fail("SERVICE_UNAVAILABLE");
@@ -97,9 +109,12 @@ export interface CreateWalkInInput {
 export async function createWalkInAction(
   input: CreateWalkInInput,
 ): Promise<ActionResult<{ id: string; shortCode: string }>> {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "ALLY_ADMIN",
+    "ALLY_VALIDATOR",
+  ]);
   try {
-    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
-    const accessToken = await getAuthToken();
     const res = await backendRequest("/backoffice/agenda/walk-in", {
       method: "POST",
       accessToken,
@@ -126,9 +141,12 @@ export interface CheckInInput {
 export async function checkInAction(
   input: CheckInInput,
 ): Promise<ActionResult<{ alreadyCheckedIn?: boolean; reservation: any }>> {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "ALLY_ADMIN",
+    "ALLY_VALIDATOR",
+  ]);
   try {
-    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
-    const accessToken = await getAuthToken();
     const res = await backendRequest("/backoffice/agenda/check-in", {
       method: "POST",
       accessToken,
@@ -166,9 +184,12 @@ export interface CreateBlockInput {
 export async function createBlockAction(
   input: CreateBlockInput,
 ): Promise<ActionResult<{ id: string }>> {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "ALLY_ADMIN",
+    "ALLY_VALIDATOR",
+  ]);
   try {
-    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
-    const accessToken = await getAuthToken();
     const res = await backendRequest(`/backoffice/spaces/${input.spaceId}/blocks`, {
       method: "POST",
       accessToken,
@@ -190,9 +211,12 @@ export async function createBlockAction(
 export async function deleteBlockAction(
   blockId: string,
 ): Promise<ActionResult<void>> {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "ALLY_ADMIN",
+    "ALLY_VALIDATOR",
+  ]);
   try {
-    await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
-    const accessToken = await getAuthToken();
     const res = await backendRequest(`/backoffice/spaces/blocks/${blockId}`, {
       method: "DELETE",
       accessToken,

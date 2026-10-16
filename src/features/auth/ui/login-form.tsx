@@ -13,10 +13,29 @@ import { loginAction } from "../actions/login-action";
 
 interface DemoRolePreset {
   id: string;
-  labelKey: string;
+  labelKey?: string;
+  customLabel?: string;
+  sublabel?: string;
   email: string;
   pass: string;
 }
+
+const PERSONAL_PRESETS: readonly DemoRolePreset[] = [
+  {
+    id: "personal_yoreservo",
+    customLabel: "👑 YoReservo Staff",
+    sublabel: "mendez_98_@hotmail.com",
+    email: "mendez_98_@hotmail.com",
+    pass: "Battlefield3",
+  },
+  {
+    id: "personal_ally",
+    customLabel: "⚽ Aliado San Agustín",
+    sublabel: "mendezsnow98@gmail.com",
+    email: "mendezsnow98@gmail.com",
+    pass: "Battlefield3",
+  },
+];
 
 const DEMO_PRESETS: readonly DemoRolePreset[] = [
   {
@@ -56,11 +75,11 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [email, setEmail] = useState("aliado@sanagustin.com");
-  const [password, setPassword] = useState("AliadoPass123");
+  const [email, setEmail] = useState("mendez_98_@hotmail.com");
+  const [password, setPassword] = useState("Battlefield3");
   const [remember, setRemember] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState("ally_admin");
+  const [selectedRole, setSelectedRole] = useState("personal_yoreservo");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -213,29 +232,66 @@ export function LoginForm() {
           {!isLoading && <ArrowRight className="size-4" />}
         </Button>
 
-        {/* Prototype Quick Role Simulator */}
-        <div className="mt-6 border-t border-dashed border-border pt-4">
-          <div className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-            {t("roleSimTitle")}
+        {/* Quick-Login Testing Accounts */}
+        <div className="mt-6 border-t border-dashed border-border pt-4 space-y-3">
+          <div>
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground">
+              ⚡ Cuentas Personales (Acceso Rápido):
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {PERSONAL_PRESETS.map((preset) => {
+                const isActive = selectedRole === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    id={`preset-${preset.id}`}
+                    onClick={() => handleRoleSelect(preset)}
+                    className={`rounded-xl border px-3 py-2 text-left transition-all cursor-pointer ${
+                      isActive
+                        ? "border-accent bg-accent/15 text-foreground shadow-sm ring-1 ring-accent/40"
+                        : "border-border bg-background text-muted-foreground hover:border-border-medium hover:text-foreground"
+                    }`}
+                  >
+                    <div className="text-xs font-bold text-foreground">
+                      {preset.customLabel}
+                    </div>
+                    <div className="text-[10px] font-mono text-muted-foreground truncate">
+                      {preset.sublabel}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            {DEMO_PRESETS.map((preset) => {
-              const isActive = selectedRole === preset.id;
-              return (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => handleRoleSelect(preset)}
-                  className={`rounded-lg border px-2.5 py-1.5 text-left text-xs font-semibold transition-all ${
-                    isActive
-                      ? "border-accent bg-accent/15 text-foreground shadow-sm"
-                      : "border-border bg-background text-muted-foreground hover:border-border-medium hover:text-foreground"
-                  }`}
-                >
-                  {t(preset.labelKey as any)}
-                </button>
-              );
-            })}
+
+          <div>
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              {t("roleSimTitle")}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {DEMO_PRESETS.map((preset) => {
+                const isActive = selectedRole === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    id={`preset-${preset.id}`}
+                    onClick={() => handleRoleSelect(preset)}
+                    className={`rounded-lg border px-2.5 py-1.5 text-left text-xs font-semibold transition-all cursor-pointer ${
+                      isActive
+                        ? "border-accent bg-accent/15 text-foreground shadow-sm"
+                        : "border-border bg-background text-muted-foreground hover:border-border-medium hover:text-foreground"
+                    }`}
+                  >
+                    <div>{t(preset.labelKey as any)}</div>
+                    <div className="text-[10px] font-mono font-normal text-muted-foreground truncate">
+                      {preset.email}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </form>

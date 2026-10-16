@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
-import { RoleSimulatorBar } from "@/features/users/ui/role-simulator-bar";
 import { UsersKpiStrip } from "@/features/users/ui/users-kpi-strip";
 import { UsersTable } from "@/features/users/ui/users-table";
 import { RbacMatrixTable } from "@/features/users/ui/rbac-matrix-table";
@@ -17,10 +16,10 @@ import {
   revokeAllSessionsAction,
   revokeSessionAction,
 } from "@/features/users/actions/users-actions";
+import { useActiveVenue } from "@/features/venues/context/venue-context";
 import type {
   ActiveSessionItem,
   UserItem,
-  UserRole,
   UsersKpi,
 } from "@/features/users/model/types";
 
@@ -41,8 +40,15 @@ export function UsersPage({
 }: UsersPageProps) {
   const t = useTranslations("users");
 
+  let activeVenueId = "ALL";
+  try {
+    const venueCtx = useActiveVenue();
+    activeVenueId = venueCtx.activeVenueId;
+  } catch {
+    // Fallback when rendered outside VenueProvider in isolated tests
+  }
+
   const [activeTab, setActiveTab] = useState<"directory" | "matrix" | "sessions">("directory");
-  const [simulatedRole, setSimulatedRole] = useState<UserRole | "ALL">("ALL");
 
   const [kpi, setKpi] = useState<UsersKpi>(initialKpi);
   const [users, setUsers] = useState<UserItem[]>(initialUsers);
@@ -52,11 +58,6 @@ export function UsersPage({
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
   const [resettingUser, setResettingUser] = useState<UserItem | null>(null);
-
-  // Filter users based on simulated role
-  const displayedUsers = simulatedRole === "ALL"
-    ? users
-    : users.filter((u) => u.role === simulatedRole);
 
   async function refreshUsers() {
     const res = await getUsersAction();
@@ -118,12 +119,6 @@ export function UsersPage({
         </Button>
       </header>
 
-      {/* ROLE SIMULATOR BAR */}
-      <RoleSimulatorBar
-        currentSimulatedRole={simulatedRole}
-        onSelectRole={setSimulatedRole}
-      />
-
       {/* SUBNAV TABS */}
       <nav className="flex gap-2 border-b border-border bg-surface px-6">
         <button
@@ -137,7 +132,7 @@ export function UsersPage({
           id="tab-btn-directory"
         >
           <span>👥</span>
-          <span>{t("tabs.directory")} ({displayedUsers.length})</span>
+          <span>{t("tabs.directory")} ({users.length})</span>
         </button>
 
         <button
@@ -175,8 +170,9 @@ export function UsersPage({
           <div className="space-y-6">
             <UsersKpiStrip kpi={kpi} />
             <UsersTable
-              users={displayedUsers}
+              users={users}
               venues={venues}
+              activeVenueId={activeVenueId}
               onEditUser={(u) => setEditingUser(u)}
               onResetPassword={(u) => setResettingUser(u)}
               onInviteClick={() => setIsInviteOpen(true)}

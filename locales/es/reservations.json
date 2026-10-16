@@ -11,6 +11,7 @@
   "kpis": {
     "totalBookings": "Total Reservas del Mes",
     "totalGrowth": "+18% vs mes anterior",
+    "totalConfirmedRatio": "{confirmed} de {total} confirmadas",
     "confirmedPaid": "Confirmadas & Pagadas",
     "confirmedDesc": "Vía Pago Móvil & Tarjeta",
     "walkInDesk": "Walk-in Mostrador (Caja)",
@@ -83,6 +84,7 @@
     "btnCheckedInDone": "✓ Check-in Realizado",
     "sectionPlayer": "👤 Datos del Jugador / Titular:",
     "playerDniMeta": "C.I: {dni} • Jugador Frecuente",
+    "playerDniOnly": "C.I: {dni}",
     "whatsappLabel": "WhatsApp",
     "waGreeting": "Hola {name}, te escribimos de YoReservo sobre tu reserva #{code}",
     "sectionCourt": "🏟️ Cancha & Turno Asignado:",

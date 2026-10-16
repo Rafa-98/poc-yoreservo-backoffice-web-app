@@ -26,7 +26,7 @@ export function SettlementsKpiStrip({ kpis, bcvRate }: SettlementsKpiStripProps)
             {t("kpiGmvTitle")}
           </span>
           <span className="rounded-full bg-status-available-bg border border-status-available-border px-2 py-0.5 text-[11px] font-bold text-status-available-fg">
-            ↑ +14.2%
+            {kpis.totalBatches} {t("batches")}
           </span>
         </div>
         <div className="mt-3">

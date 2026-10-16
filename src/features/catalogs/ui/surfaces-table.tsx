@@ -79,9 +79,15 @@ export function SurfacesTable({
                   {s.maintenanceProtocol}
                 </td>
                 <td className="px-4 py-4">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-500">
-                    {t("active")}
-                  </span>
+                  {s.status === "DISABLED" ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 border border-rose-500/30 text-rose-500">
+                      {t("inactive")}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-500">
+                      {t("active")}
+                    </span>
+                  )}
                 </td>
                 <td className="px-5 py-4 text-right">
                   <Button

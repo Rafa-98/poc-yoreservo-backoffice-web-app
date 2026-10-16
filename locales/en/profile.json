@@ -8,7 +8,6 @@
     "assignedVenue": "Assigned Venue",
     "assignedOrg": "Organization / Club",
     "memberSince": "Member Since",
-    "memberSinceDate": "January 15, 2026",
     "securityStatus": "Security Health",
     "securityBcryptActive": "✓ Active bcrypt password",
     "changePhoto": "Change Profile Picture"
@@ -37,10 +36,6 @@
     "prefLang": "Preferred Interface Language *",
     "langEs": "Español (Latinoamérica) — Default",
     "langEn": "English (United States)",
-    "notifTitle": "Alerts & Notifications Preferences",
-    "notifPm": "Instant alerts for incoming Pago Móvil payments pending review",
-    "notifPayout": "Fortnightly settlement closing and disbursement notifications",
-    "notifSec": "Security alerts upon new device sign-ins",
     "saveChanges": "Save Changes",
     "saving": "Saving..."
   },
@@ -59,9 +54,6 @@
     "reqSymbol": "At least one special character (@, $, !, %, *, ?, &)",
     "passwordsMatch": "✓ Passwords match",
     "passwordsMismatch": "✕ Passwords do not match",
-    "twofaTitle": "Two-Factor Authentication (2FA)",
-    "twofaDesc": "Enhance account security with temporary codes via Google Authenticator.",
-    "configure2fa": "Configure 2FA",
     "updatePass": "Update Password",
     "updating": "Updating..."
   },

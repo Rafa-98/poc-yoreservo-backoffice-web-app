@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
+import { uploadBackofficeFileAction } from "@/shared/api/upload-action";
 import type {
   CreateSpaceInput,
   SpaceItem,
@@ -30,6 +31,7 @@ export function CourtModal({
 }: CourtModalProps) {
   const t = useTranslations("venues.spaces");
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [spaceNumber, setSpaceNumber] = useState("");
@@ -38,6 +40,7 @@ export function CourtModal({
   const [surfaceType, setSurfaceType] = useState("");
   const [capacity, setCapacity] = useState<number>(10);
   const [isCovered, setIsCovered] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
 
   useEffect(() => {
     if (space) {
@@ -47,6 +50,7 @@ export function CourtModal({
       setSurfaceType(space.surfaceType || "");
       setCapacity(space.capacity || 10);
       setIsCovered(Boolean(space.isCovered));
+      setImageUrl(space.imageUrl || "");
     } else {
       setSpaceNumber("");
       setActivityCategoryId(categories[0]?.id || "");
@@ -54,6 +58,7 @@ export function CourtModal({
       setSurfaceType("");
       setCapacity(10);
       setIsCovered(false);
+      setImageUrl("");
     }
   }, [space, categories, isOpen]);
 
@@ -71,6 +76,26 @@ export function CourtModal({
       return `${actName} — ${catName}`;
     }
     return catName || t("defaultSport");
+  }
+
+  async function handleImageFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    setErrorMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("category", "SPACE_IMAGE");
+      const res = await uploadBackofficeFileAction(fd);
+      if (res.ok && res.data) {
+        setImageUrl(res.data.url);
+      } else if (!res.ok) {
+        setErrorMsg(res.error.code || t("errorUpdate"));
+      }
+    } finally {
+      setUploadingImage(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -93,6 +118,7 @@ export function CourtModal({
         surfaceType,
         capacity: Number(capacity),
         isCovered,
+        imageUrl: imageUrl.trim() || undefined,
       };
 
       const res = await updateSpaceAction(space.id, updateDto);
@@ -111,6 +137,7 @@ export function CourtModal({
         surfaceType,
         capacity: Number(capacity),
         isCovered,
+        imageUrl: imageUrl.trim() || undefined,
       };
 
       const res = await createSpaceAction(venueId, createDto);
@@ -274,13 +301,53 @@ export function CourtModal({
             </div>
           </div>
 
+          {/* COURT PHOTO UPLOAD & URL */}
+          <div className="form-group mb-4">
+            <label
+              className="form-label mb-1 block text-xs font-semibold text-foreground"
+              htmlFor="court-image-url"
+            >
+              📷 Foto de la Cancha (URL o Subir Imagen)
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                id="court-image-url"
+                className="input-field form-input flex-1 text-xs"
+                placeholder="https://..."
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+              />
+              <label className="btn btn-outline shrink-0 cursor-pointer px-3 py-2 text-xs">
+                <span>{uploadingImage ? "Subiendo..." : "📤 Subir Foto"}</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={handleImageFileChange}
+                  disabled={uploadingImage}
+                  id="court-image-file"
+                />
+              </label>
+            </div>
+            {imageUrl && (
+              <div className="mt-2 overflow-hidden rounded-xl border border-border bg-muted/40 p-1.5">
+                <img
+                  src={imageUrl}
+                  alt={spaceNumber || "Vista previa de la cancha"}
+                  className="h-28 w-full rounded-lg object-cover"
+                />
+              </div>
+            )}
+          </div>
+
           <div className="mt-6 flex justify-end gap-3">
             <Button
               type="button"
               variant="secondary"
               size="sm"
               onClick={onClose}
-              disabled={loading}
+              disabled={loading || uploadingImage}
               id="btn-cancel-court"
             >
               {t("cancel")}
@@ -289,7 +356,7 @@ export function CourtModal({
               type="submit"
               variant="primary"
               size="sm"
-              isLoading={loading}
+              isLoading={loading || uploadingImage}
               id="btn-save-court"
             >
               {t("save")}

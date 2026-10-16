@@ -3,7 +3,6 @@
 import React, { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
-import { ReservationsSubnav } from "@/features/reservations/ui/reservations-subnav";
 import { ReservationsKpiStrip } from "@/features/reservations/ui/reservations-kpi-strip";
 import { ReservationsFilterBar } from "@/features/reservations/ui/reservations-filter-bar";
 import { ReservationsTable } from "@/features/reservations/ui/reservations-table";
@@ -107,13 +106,29 @@ export function ReservationsPage({
 
       // 6. Date Filter
       if (filter.dateFilter && filter.dateFilter !== "all") {
-        const today = new Date().toISOString().split("T")[0];
-        const d = new Date();
+        const now = new Date();
+        const today = now.toISOString().split("T")[0];
+        const d = new Date(now);
         d.setDate(d.getDate() + 1);
         const tomorrow = d.toISOString().split("T")[0];
 
         if (filter.dateFilter === "today" && res.date !== today) return false;
         if (filter.dateFilter === "tomorrow" && res.date !== tomorrow) return false;
+        if (filter.dateFilter === "week") {
+          const day = now.getDay();
+          const diffToMon = (day + 6) % 7;
+          const mon = new Date(now);
+          mon.setDate(now.getDate() - diffToMon);
+          const sun = new Date(mon);
+          sun.setDate(mon.getDate() + 6);
+          const weekStart = mon.toISOString().split("T")[0];
+          const weekEnd = sun.toISOString().split("T")[0];
+          if (res.date < weekStart || res.date > weekEnd) return false;
+        }
+        if (filter.dateFilter === "month") {
+          const currentYearMonth = today.slice(0, 7);
+          if (!res.date.startsWith(currentYearMonth)) return false;
+        }
       }
 
       return true;
@@ -222,9 +237,6 @@ export function ReservationsPage({
           </Button>
         </div>
       </header>
-
-      {/* SUBNAV TABS */}
-      <ReservationsSubnav currentTab="ledger" />
 
       {/* MAIN CONTENT AREA */}
       <main className="p-6 space-y-6">

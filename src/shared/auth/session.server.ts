@@ -21,7 +21,7 @@ import {
   refreshCookieOptions,
   type AuthTokens,
 } from "./session-cookie";
-import { sessionUserSchema, type Session } from "./session-user";
+import { sessionUserSchema, type Session, type SessionUser } from "./session-user";
 
 /** Stores the tokens in HttpOnly cookies. Only callable from Server Actions / Route Handlers. */
 export async function createSession(tokens: AuthTokens): Promise<void> {
@@ -36,6 +36,14 @@ export async function createSession(tokens: AuthTokens): Promise<void> {
     tokens.refreshToken,
     refreshCookieOptions(tokens.refreshExpiresAt),
   );
+}
+
+export const setAuthCookies = createSession;
+
+/** The access token of the current browser, if any. */
+export async function getAccessToken(): Promise<string | null> {
+  const cookieStore = await cookies();
+  return cookieStore.get(ACCESS_COOKIE_NAME)?.value ?? null;
 }
 
 /**
@@ -98,11 +106,25 @@ export async function requireSession(allowedRoles?: readonly BackofficeRole[]): 
   return session;
 }
 
+/**
+ * Data Access Layer guard that returns both the authenticated SessionUser and the accessToken.
+ * Always call this OUTSIDE (before) any try/catch block in Server Actions so Next.js NEXT_REDIRECT is never swallowed.
+ */
+export async function requireSessionWithToken(
+  allowedRoles?: readonly BackofficeRole[],
+): Promise<{ user: SessionUser; accessToken: string }> {
+  const session = await requireSession(allowedRoles);
+  const accessToken = (await getAccessToken()) ?? "";
+  return { user: session.user, accessToken };
+}
+
 /** The refresh token of the current browser, if any. */
 export async function readRefreshToken(): Promise<string | null> {
   const cookieStore = await cookies();
   return cookieStore.get(REFRESH_COOKIE_NAME)?.value ?? null;
 }
+
+export const getRefreshToken = readRefreshToken;
 
 /** Removes both auth cookies. Only callable from Server Actions / Route Handlers. */
 export async function destroySession(): Promise<void> {

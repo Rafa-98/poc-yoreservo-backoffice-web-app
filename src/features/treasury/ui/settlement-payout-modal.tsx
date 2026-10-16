@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
+import { uploadBackofficeFileAction } from "@/shared/api/upload-action";
 import type { SettlementBatchItem, SettlementPayoutMethod } from "../model/types";
 import {
   disburseSettlementAction,
@@ -44,12 +45,15 @@ export function SettlementPayoutModal({
   onSuccess,
 }: SettlementPayoutModalProps) {
   const t = useTranslations("settlements");
+  const tOverrides = useTranslations("treasury.settlementsOverrides");
 
   const [payoutMethod, setPayoutMethod] = useState<SettlementPayoutMethod>("PAGO_MOVIL");
   const [originAccount, setOriginAccount] = useState("BANESCO_0134");
   const [transferRef, setTransferRef] = useState("");
   const [payoutDate, setPayoutDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -59,6 +63,8 @@ export function SettlementPayoutModal({
       setTransferRef(batch.payoutReferenceNumber || "");
       setPayoutMethod(batch.payoutMethod || (batch.direction === "ALLY_TO_PLATFORM" ? "PAGO_MOVIL" : "BANK_TRANSFER"));
       setNotes(batch.notes || "");
+      setFileName(null);
+      setReceiptUrl(batch.payoutReceiptUrl || null);
       setErrorMsg(null);
     }
   }, [batch]);
@@ -90,7 +96,7 @@ export function SettlementPayoutModal({
         : batch.organization?.payoutBank || "Banesco Banco Universal",
       originAccount,
       disbursementDate: payoutDate,
-      receiptUrl: fileName ? `https://assets.yoreservo.com/receipts/${fileName}` : undefined,
+      receiptUrl: receiptUrl || undefined,
       notes: notes.trim() || undefined,
     };
 
@@ -171,9 +177,25 @@ export function SettlementPayoutModal({
     }
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files && e.target.files[0]) {
-      setFileName(e.target.files[0].name);
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
+    setUploadingFile(true);
+    setErrorMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("category", "SETTLEMENT_RECEIPT");
+      const res = await uploadBackofficeFileAction(fd);
+      if (res.ok && res.data) {
+        setReceiptUrl(res.data.url);
+      } else if (!res.ok) {
+        setErrorMsg(res.error.code || t("payoutError"));
+        setFileName(null);
+      }
+    } finally {
+      setUploadingFile(false);
     }
   }
 
@@ -322,9 +344,9 @@ export function SettlementPayoutModal({
                 className="form-select text-xs"
                 id="modal-origin-account"
               >
-                <option value="BANESCO_0134">{t("originAccBanesco")}</option>
-                <option value="MERCANTIL_0105">{t("originAccMercantil")}</option>
-                <option value="ZELLE_CORP">{t("originAccZelle")}</option>
+                <option value="BANESCO_0134">{tOverrides("originAccBanesco")}</option>
+                <option value="MERCANTIL_0105">{tOverrides("originAccMercantil")}</option>
+                <option value="ZELLE_CORP">{tOverrides("originAccZelle")}</option>
               </select>
             </div>
 
@@ -368,7 +390,13 @@ export function SettlementPayoutModal({
               <label className="block border-2 border-dashed border-border hover:border-accent/60 rounded-xl p-4 text-center bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer">
                 <span className="text-2xl">📄</span>
                 <div className="text-xs font-bold text-foreground mt-1">
-                  {fileName ? `${t("lblSelectedFile")} ${fileName}` : t("uploadVoucherCta")}
+                  {uploadingFile
+                    ? t("btnProcessing")
+                    : fileName
+                    ? `✓ ${t("lblSelectedFile")} ${fileName}`
+                    : receiptUrl
+                    ? `✓ ${t("lblSelectedFile")} ${receiptUrl.split("/").pop()}`
+                    : t("uploadVoucherCta")}
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
                   {t("uploadVoucherFormats")}
@@ -406,7 +434,7 @@ export function SettlementPayoutModal({
               variant="secondary"
               size="sm"
               onClick={onClose}
-              disabled={loading}
+              disabled={loading || uploadingFile}
             >
               {t("btnCancel")}
             </Button>
@@ -415,12 +443,12 @@ export function SettlementPayoutModal({
               type="submit"
               variant="primary"
               size="sm"
-              disabled={loading}
+              disabled={loading || uploadingFile}
               id="btn-confirm-payout"
             >
               <span>✓</span>
               <span>
-                {loading
+                {loading || uploadingFile
                   ? t("btnProcessing")
                   : isInvoiceReport
                   ? t("btnReportInvoiceSubmit")

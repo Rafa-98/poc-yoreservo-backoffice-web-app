@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
+import { useActiveVenue } from "@/features/venues/context/venue-context";
 import type {
   SpaceItem,
   SportCategoryItem,
   VenueItem,
 } from "@/features/venues/model/types";
-import { VenuesSubnav } from "@/features/venues/ui/venues-subnav";
 import { CourtCardsGrid } from "@/features/venues/ui/court-cards-grid";
 import { CourtModal } from "@/features/venues/ui/court-modal";
 import { SafetyDisableModal } from "@/features/venues/ui/safety-disable-modal";
@@ -36,9 +36,19 @@ export function SpacesPage({
 }: SpacesPageProps) {
   const t = useTranslations("venues.top");
 
+  let activeVenueId = "ALL";
+  let setActiveVenueId: ((id: string) => void) | undefined;
+  try {
+    const venueCtx = useActiveVenue();
+    activeVenueId = venueCtx.activeVenueId;
+    setActiveVenueId = venueCtx.setActiveVenueId;
+  } catch {
+    // Fallback if rendered outside VenueProvider
+  }
+
   const [venues] = useState<VenueItem[]>(initialVenues);
   const [selectedVenueId, setSelectedVenueId] = useState<string>(
-    initialVenueId || initialVenues[0]?.id || ""
+    initialVenueId || activeVenueId || initialVenues[0]?.id || "ALL"
   );
   const [spaces, setSpaces] = useState<SpaceItem[]>(initialSpaces);
   const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
@@ -52,15 +62,21 @@ export function SpacesPage({
   const [safetyCourt, setSafetyCourt] = useState<SpaceItem | null>(null);
   const [activeBookingsCount, setActiveBookingsCount] = useState<number>(0);
 
-  const currentVenue = venues.find((v) => v.id === selectedVenueId) || venues[0];
+  const currentVenue =
+    selectedVenueId === "ALL"
+      ? null
+      : venues.find((v) => v.id === selectedVenueId) || venues[0];
 
   function showToast(message: string, isError = false) {
     setToast({ message, isError });
     setTimeout(() => setToast(null), 4000);
   }
 
-  async function handleSelectVenue(venueId: string) {
+  async function handleSelectVenue(venueId: string, syncContext = true) {
     setSelectedVenueId(venueId);
+    if (syncContext && setActiveVenueId && venueId && venueId !== activeVenueId) {
+      setActiveVenueId(venueId);
+    }
     const res = await getSpacesAction(venueId);
     if (res.ok && res.data) {
       setSpaces(res.data);
@@ -68,6 +84,17 @@ export function SpacesPage({
       showToast(t("errorLoadSpaces", { code: res.error.code }), true);
     }
   }
+
+  useEffect(() => {
+    if (
+      activeVenueId &&
+      activeVenueId !== selectedVenueId &&
+      (activeVenueId === "ALL" || venues.some((v) => v.id === activeVenueId))
+    ) {
+      handleSelectVenue(activeVenueId, false);
+    }
+  }, [activeVenueId, selectedVenueId, venues]);
+
 
   function handleOpenCreateCourt() {
     setEditingCourt(null);
@@ -159,12 +186,6 @@ export function SpacesPage({
         </div>
       </div>
 
-      {/* Subnav */}
-      <VenuesSubnav
-        venuesCount={venues.length}
-        spacesCount={spaces.length}
-      />
-
       {/* Toast feedback banner */}
       {toast && (
         <div className="mt-4 px-5">
@@ -204,11 +225,15 @@ export function SpacesPage({
       <CourtModal
         isOpen={isCourtModalOpen}
         onClose={() => setIsCourtModalOpen(false)}
-        venueId={selectedVenueId}
+        venueId={
+          editingCourt?.venueId ||
+          (selectedVenueId !== "ALL" ? selectedVenueId : venues[0]?.id || "")
+        }
         space={editingCourt}
         categories={categories}
         onSuccess={handleCourtSaved}
       />
+
 
       {/* Safety Deactivation Modal */}
       <SafetyDisableModal

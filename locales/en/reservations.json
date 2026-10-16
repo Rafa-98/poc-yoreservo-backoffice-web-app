@@ -11,6 +11,7 @@
   "kpis": {
     "totalBookings": "Total Monthly Bookings",
     "totalGrowth": "+18% vs last month",
+    "totalConfirmedRatio": "{confirmed} of {total} confirmed",
     "confirmedPaid": "Confirmed & Paid",
     "confirmedDesc": "Via Pago Móvil & Cards",
     "walkInDesk": "Front-desk Walk-ins",
@@ -83,6 +84,7 @@
     "btnCheckedInDone": "✓ Check-in Verified",
     "sectionPlayer": "👤 Player / Host Details:",
     "playerDniMeta": "ID: {dni} • Frequent Player",
+    "playerDniOnly": "ID: {dni}",
     "whatsappLabel": "WhatsApp",
     "waGreeting": "Hello {name}, we are contacting you from YoReservo regarding your booking #{code}",
     "sectionCourt": "🏟️ Assigned Court & Slot:",

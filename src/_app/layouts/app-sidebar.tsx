@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -11,6 +11,7 @@ import {
   Calendar,
   Clock,
   CreditCard,
+  Landmark,
   Layers,
   LayoutDashboard,
   LogOut,
@@ -25,10 +26,27 @@ import type { SessionUser } from "@/shared/auth";
 import { ROUTES, type BackofficeRole } from "@/shared/config";
 import { logoutAction } from "@/features/auth/actions/logout-action";
 
+const SidebarBadgeContext = createContext<number | undefined>(undefined);
+
+export function SidebarBadgeProvider({
+  pendingPaymentsCount,
+  children,
+}: {
+  pendingPaymentsCount?: number;
+  children: ReactNode;
+}) {
+  return (
+    <SidebarBadgeContext.Provider value={pendingPaymentsCount}>
+      {children}
+    </SidebarBadgeContext.Provider>
+  );
+}
+
 export interface AppSidebarProps {
   user: SessionUser;
   isOpen: boolean;
   onClose: () => void;
+  pendingPaymentsCount?: number;
 }
 
 interface NavItemDef {
@@ -97,7 +115,6 @@ const NAV_SECTIONS: readonly NavSectionDef[] = [
         labelKey: "navReconciliation",
         href: ROUTES.paymentsInbox,
         icon: <CreditCard className="size-4" />,
-        badge: "3",
         roles: [
           "PLATFORM_ADMIN",
           "PLATFORM_ACCOUNTING",
@@ -132,6 +149,17 @@ const NAV_SECTIONS: readonly NavSectionDef[] = [
   {
     titleKey: "navFacilities",
     items: [
+      {
+        labelKey: "navOrganization",
+        href: ROUTES.organization,
+        icon: <Landmark className="size-4" />,
+        roles: [
+          "PLATFORM_ADMIN",
+          "PLATFORM_ACCOUNTING",
+          "ALLY_ADMIN",
+          "ALLY_ACCOUNTING",
+        ],
+      },
       {
         labelKey: "navVenues",
         href: ROUTES.venues,
@@ -183,9 +211,16 @@ const NAV_SECTIONS: readonly NavSectionDef[] = [
   },
 ];
 
-export function AppSidebar({ user, isOpen, onClose }: AppSidebarProps) {
+export function AppSidebar({
+  user,
+  isOpen,
+  onClose,
+  pendingPaymentsCount,
+}: AppSidebarProps) {
   const t = useTranslations("shell");
   const pathname = usePathname();
+  const contextPendingCount = useContext(SidebarBadgeContext);
+  const resolvedPendingCount = pendingPaymentsCount ?? contextPendingCount;
 
   const initials = `${user.name?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() || "YO";
 
@@ -253,7 +288,15 @@ export function AppSidebar({ user, isOpen, onClose }: AppSidebarProps) {
                     const isActive =
                       pathname === item.href ||
                       (item.href !== ROUTES.dashboard &&
+                        item.href !== ROUTES.venues &&
                         pathname.startsWith(`${item.href}/`));
+
+                    const itemBadge =
+                      item.href === ROUTES.paymentsInbox
+                        ? resolvedPendingCount && resolvedPendingCount > 0
+                          ? String(resolvedPendingCount)
+                          : undefined
+                        : item.badge;
 
                     return (
                       <Link
@@ -279,9 +322,9 @@ export function AppSidebar({ user, isOpen, onClose }: AppSidebarProps) {
                           <span>{t(item.labelKey as any)}</span>
                         </div>
 
-                        {item.badge && (
+                        {itemBadge && (
                           <span className="rounded-full bg-accent px-1.5 py-0.2 font-mono text-[10px] font-extrabold text-accent-foreground">
-                            {item.badge}
+                            {itemBadge}
                           </span>
                         )}
                       </Link>

@@ -27,23 +27,6 @@ export function TaxonomyTree({
 
   return (
     <div className="space-y-6">
-      {/* EXPLANATORY ARCHITECTURE BANNER */}
-      <div className="rounded-2xl border border-accent/30 bg-accent/10 p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="text-sm font-bold text-foreground">
-              {t("bannerTitle")}
-            </div>
-            <div className="text-xs text-muted-foreground leading-relaxed max-w-4xl">
-              {t("bannerDesc")}
-            </div>
-          </div>
-          <span className="rounded-xl border border-border bg-surface px-3 py-1 text-xs font-bold text-foreground">
-            {t("parityBadge")}
-          </span>
-        </div>
-      </div>
-
       {/* ACTIVITY TYPES LIST */}
       {taxonomy.map((type) => {
         const typeName = getLocalizedName(type.name);
@@ -81,6 +64,7 @@ export function TaxonomyTree({
             <div className="divide-y divide-border">
               {type.activities.map((act) => {
                 const actName = getLocalizedName(act.name);
+                const isDisabled = act.status === "DISABLED";
                 return (
                   <div key={act.id} className="p-6 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-4">
@@ -96,9 +80,15 @@ export function TaxonomyTree({
                             <span className="text-xs text-muted-foreground">
                               [EN: {actName.en}]
                             </span>
-                            <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-semibold text-emerald-500">
-                              {t("active")}
-                            </span>
+                            {isDisabled ? (
+                              <span className="rounded-full bg-rose-500/15 border border-rose-500/30 px-2.5 py-0.5 text-xs font-semibold text-rose-500">
+                                {t("inactive")}
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-semibold text-emerald-500">
+                                {t("active")}
+                              </span>
+                            )}
                           </div>
                           <div className="text-xs text-muted-foreground mt-0.5">
                             {t("spacesCount", { count: act.totalSpaces || 0 })}

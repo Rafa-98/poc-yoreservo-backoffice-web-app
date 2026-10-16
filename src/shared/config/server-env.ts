@@ -31,7 +31,9 @@ const serverEnvSchema = z.object({
     .refine(isValidTimeZone, "must be a valid IANA time zone"),
 });
 
-export type ServerEnv = z.infer<typeof serverEnvSchema>;
+export type ServerEnv = z.infer<typeof serverEnvSchema> & {
+  BACKEND_API_URL: string;
+};
 
 let cachedEnv: ServerEnv | undefined;
 
@@ -40,7 +42,8 @@ export function getServerEnv(): ServerEnv {
   if (cachedEnv) return cachedEnv;
 
   const parsed = serverEnvSchema.safeParse({
-    API_BASE_URL: process.env.API_BASE_URL || undefined,
+    API_BASE_URL:
+      process.env.API_BASE_URL || process.env.BACKEND_API_URL || undefined,
     BUSINESS_TIME_ZONE: process.env.BUSINESS_TIME_ZONE || undefined,
   });
 
@@ -50,6 +53,9 @@ export function getServerEnv(): ServerEnv {
     );
   }
 
-  cachedEnv = parsed.data;
+  cachedEnv = {
+    ...parsed.data,
+    BACKEND_API_URL: parsed.data.API_BASE_URL,
+  };
   return cachedEnv;
 }

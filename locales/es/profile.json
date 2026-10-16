@@ -8,7 +8,6 @@
     "assignedVenue": "Sede Asignada",
     "assignedOrg": "Organización / Club",
     "memberSince": "Miembro Desde",
-    "memberSinceDate": "15 de Enero 2026",
     "securityStatus": "Estado de Seguridad",
     "securityBcryptActive": "✓ Contraseña bcrypt activa",
     "changePhoto": "Cambiar Foto de Perfil"
@@ -37,10 +36,6 @@
     "prefLang": "Idioma Preferido de la Interfaz *",
     "langEs": "Español (Latinoamérica) — Predeterminado",
     "langEn": "English (United States)",
-    "notifTitle": "Preferencias de Alertas & Notificaciones",
-    "notifPm": "Alertas inmediatas de nuevos pagos Pago Móvil por verificar",
-    "notifPayout": "Avisos de desembolso quincenal y cierres contables",
-    "notifSec": "Alertas de seguridad al iniciar sesión en un dispositivo nuevo",
     "saveChanges": "Guardar Cambios",
     "saving": "Guardando..."
   },
@@ -59,9 +54,6 @@
     "reqSymbol": "Al menos un carácter especial (@, $, !, %, *, ?, &)",
     "passwordsMatch": "✓ Las contraseñas coinciden",
     "passwordsMismatch": "✕ Las contraseñas no coinciden",
-    "twofaTitle": "Autenticación en Dos Pasos (2FA)",
-    "twofaDesc": "Protege tu cuenta agregando un código temporal de Google Authenticator.",
-    "configure2fa": "Configurar 2FA",
     "updatePass": "Actualizar Contraseña",
     "updating": "Actualizando..."
   },

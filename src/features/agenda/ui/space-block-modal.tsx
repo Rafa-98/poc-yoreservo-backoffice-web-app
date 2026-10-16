@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ShieldAlert, Trash2, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useTimeFormat } from "@/shared/lib";
 import { Button } from "@/shared/ui/button";
 import type { CourtBlock, CourtSpace } from "../model/types";
 import {
@@ -30,6 +31,7 @@ export function SpaceBlockModal({
   onRefresh,
 }: SpaceBlockModalProps) {
   const t = useTranslations("agenda");
+  const { formatTime } = useTimeFormat();
 
   const [reason, setReason] = useState(t("blockRain"));
   const [notes, setNotes] = useState("");
@@ -88,10 +90,11 @@ export function SpaceBlockModal({
                   {existingBlock ? t("blockDisabledTitle") : t("blockModalTitle")}
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  {court.spaceNumber} ({startTime} - {endTime})
+                  {court.spaceNumber} ({formatTime(startTime)} - {formatTime(endTime)})
                 </p>
               </div>
             </div>
+
 
             <button
               type="button"

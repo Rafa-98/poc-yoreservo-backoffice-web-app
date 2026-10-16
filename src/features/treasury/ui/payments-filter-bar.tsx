@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { TimeFormatToggle } from "@/shared/lib/time-format";
 
 interface PaymentsFilterBarProps {
   statusFilter: string;
@@ -83,6 +84,8 @@ export function PaymentsFilterBar({
 
       {/* SEARCH & BANK SELECTOR */}
       <div className="flex flex-wrap items-center gap-2.5">
+        <TimeFormatToggle size="xs" />
+
         <select
           id="bank-filter-select"
           className="input-field w-auto cursor-pointer rounded-[10px] border border-border bg-surface px-3 py-2 text-[13px] text-foreground"

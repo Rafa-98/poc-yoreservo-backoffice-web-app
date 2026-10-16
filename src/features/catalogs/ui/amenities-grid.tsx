@@ -59,7 +59,7 @@ export function AmenitiesGrid({
                 {a.description}
               </p>
               <div className="pt-1.5 text-[11.5px] font-bold text-accent-foreground dark:text-accent">
-                {t("activeInVenues", { count: a.activeVenuesCount || 1 })}
+                {t("activeInVenues", { count: a.activeVenuesCount ?? 0 })}
               </div>
             </div>
           </div>

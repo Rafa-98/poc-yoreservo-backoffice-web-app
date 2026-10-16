@@ -32,6 +32,64 @@ export function SettlementStatementDrawer({
       return;
     }
 
+    const styleId = "settlement-print-styles";
+    if (!document.getElementById(styleId)) {
+      const styleEl = document.createElement("style");
+      styleEl.id = styleId;
+      styleEl.textContent = `
+        @page {
+          size: A4 portrait;
+          margin: 0mm;
+        }
+        @media print {
+          html, body {
+            background: #ffffff !important;
+            color: #141a13 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          body * {
+            visibility: hidden;
+          }
+          #statement-drawer-backdrop,
+          #statement-drawer-panel,
+          #statement-drawer-panel * {
+            visibility: visible;
+          }
+          #statement-drawer-backdrop {
+            position: fixed !important;
+            inset: 0 !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: flex-start !important;
+            background: #ffffff !important;
+            backdrop-filter: none !important;
+            padding: 18mm 20mm !important;
+            overflow: visible !important;
+          }
+          #statement-drawer-panel {
+            width: 100% !important;
+            max-width: 170mm !important;
+            margin: 0 auto !important;
+            height: auto !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: #ffffff !important;
+            overflow: visible !important;
+          }
+          .no-print,
+          #statement-drawer-panel .no-print,
+          #statement-drawer-panel .no-print * {
+            display: none !important;
+            visibility: hidden !important;
+          }
+        }
+      `;
+      document.head.appendChild(styleEl);
+    }
+
     setLoading(true);
     getSettlementDetailAction(batch.id).then((res) => {
       setLoading(false);
@@ -60,17 +118,49 @@ export function SettlementStatementDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs transition-opacity"
+      className="fixed inset-0 z-50 flex justify-end print:justify-center print:items-start bg-black/60 print:bg-white backdrop-blur-xs print:backdrop-blur-none transition-opacity"
       onClick={onClose}
       id="statement-drawer-backdrop"
     >
       <div
-        className="w-full max-w-xl h-full bg-surface border-l border-border flex flex-col shadow-2xl animate-in slide-in-from-right duration-200"
+        className="w-full max-w-xl print:max-w-[170mm] print:mx-auto h-full print:h-auto bg-surface print:bg-white border-l border-border print:border-0 flex flex-col shadow-2xl print:shadow-none animate-in slide-in-from-right duration-200"
         onClick={(e) => e.stopPropagation()}
         id="statement-drawer-panel"
       >
+        {/* CORPORATE PRINT-ONLY HEADER */}
+        <div className="hidden print:flex items-center justify-between border-b-2 border-foreground pb-4 mb-2">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-foreground text-surface font-display text-lg font-black">
+              YR
+            </div>
+            <div>
+              <div className="font-display text-base font-extrabold tracking-tight text-foreground">
+                YoReservo C.A. • Tesorería & Liquidaciones
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                RIF: J-50123456-7 • Comprobante Oficial de Conciliación Financiera
+              </div>
+            </div>
+          </div>
+          <div className="text-right text-[11px] text-muted-foreground">
+            <div className="font-bold text-foreground">
+              {current.direction === "ALLY_TO_PLATFORM"
+                ? "FACTURA DE COMISIONES"
+                : "FINIQUITO DE LIQUIDACIÓN"}
+            </div>
+            <div>
+              Emitido:{" "}
+              {new Date().toLocaleDateString("es-VE", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })}
+            </div>
+          </div>
+        </div>
+
         {/* HEADER */}
-        <div className="flex items-center justify-between border-b border-border p-6 bg-surface">
+        <div className="flex items-center justify-between border-b border-border p-6 print:px-0 print:py-4 bg-surface">
           <div>
             <div className="flex items-center gap-3">
               <h3 className="font-display text-lg font-bold text-foreground">
@@ -95,14 +185,14 @@ export function SettlementStatementDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all cursor-pointer text-lg"
+            className="no-print print:hidden rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all cursor-pointer text-lg"
           >
             ✕
           </button>
         </div>
 
         {/* BODY */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto print:overflow-visible p-6 print:px-0 print:py-4 space-y-5">
           {/* Legal & Bank Info */}
           <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
             <div className="flex items-start justify-between">
@@ -249,7 +339,16 @@ export function SettlementStatementDrawer({
                             {item.reservation?.space?.spaceNumber}
                           </div>
                           <div className="text-[10px] text-muted-foreground">
-                            {item.reservation?.space?.activityCategory?.name || t("defaultSport")}
+                            {(() => {
+                              const rawName = item.reservation?.space?.activityCategory?.name as unknown;
+                              if (typeof rawName === "string" && rawName) return rawName;
+                              if (rawName && typeof rawName === "object") {
+                                const obj = rawName as Record<string, unknown>;
+                                if (typeof obj.es === "string") return obj.es;
+                                if (typeof obj.en === "string") return obj.en;
+                              }
+                              return t("defaultSport");
+                            })()}
                           </div>
                         </td>
 
@@ -277,10 +376,31 @@ export function SettlementStatementDrawer({
               </table>
             </div>
           </div>
+
+          {/* CORPORATE PRINT-ONLY AUDIT FOOTER */}
+          <div className="hidden print:flex items-center justify-between border-t border-border pt-6 mt-8 text-[11px] text-muted-foreground">
+            <div>
+              <div className="font-bold text-foreground">
+                Documento conciliado digitalmente por YoReservo C.A.
+              </div>
+              <div>
+                Tasa Oficial BCV de Referencia: Bs.{" "}
+                {bcvRate.toLocaleString("es-VE", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 4,
+                })}{" "}
+                / USD • Lote #{current.batchCode}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="font-bold text-foreground">Sello de Auditoría Financiera</div>
+              <div>Estado: {isDisbursed ? "LIQUIDADO / CONCILIADO" : "PENDIENTE DE EJECUCIÓN"}</div>
+            </div>
+          </div>
         </div>
 
-        {/* FOOTER */}
-        <div className="border-t border-border bg-muted/40 p-5 flex flex-wrap items-center justify-between gap-3">
+        {/* FOOTER (Interactive controls hidden when printing) */}
+        <div className="no-print print:hidden border-t border-border bg-muted/40 p-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-muted-foreground mr-1">
               {t("lblExportBankFile")}

@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import type { BackofficeRole } from "@/shared/config";
-import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
+import { DEFAULT_BCV_USD_RATE, useTimeFormat } from "@/shared/lib";
 import type { PaymentItem } from "../model/types";
 
 interface PaymentsTableProps {
@@ -40,6 +40,7 @@ export function PaymentsTable({
   isProcessingId,
 }: PaymentsTableProps) {
   const t = useTranslations("treasury.inbox.table");
+  const { formatTime } = useTimeFormat();
 
   if (payments.length === 0) {
     return (
@@ -207,11 +208,11 @@ export function PaymentsTable({
                 <td className="px-4.5 py-3.5">
                   {isPending ? (
                     <span className="badge badge-hold rounded-md bg-status-hold-bg px-2 py-0.5 text-[11px] font-semibold text-status-hold-fg">
-                      {p.paymentDate || t("pendingRecent")}
+                      {formatTime(p.paymentDate) || t("pendingRecent")}
                     </span>
                   ) : (
                     <span className="text-xs text-muted-foreground">
-                      {p.paymentDate || "—"}
+                      {formatTime(p.paymentDate) || "—"}
                     </span>
                   )}
                 </td>

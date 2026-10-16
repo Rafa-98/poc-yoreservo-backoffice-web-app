@@ -108,6 +108,7 @@ export function OrgEditModal({
     setLoading(true);
 
     const input: UpdateOrganizationInput = {
+      organizationId: organization.id || undefined,
       tradeName,
       legalName,
       rif,
@@ -127,7 +128,7 @@ export function OrgEditModal({
         : {}),
     };
 
-    const res = await updateOrganizationAction(input);
+    const res = await updateOrganizationAction(input, organization.id);
     setLoading(false);
 
     if (res.ok && res.data) {

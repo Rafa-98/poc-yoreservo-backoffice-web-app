@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { MessageSquare, Plus, ShieldAlert } from "lucide-react";
+import { useTimeFormat } from "@/shared/lib";
 import type { CourtBlock, CourtReservation, CourtSpace } from "../model/types";
 
 export interface AgendaMatrixProps {
@@ -37,6 +38,7 @@ export function AgendaMatrix({
   onBlockClick,
 }: AgendaMatrixProps) {
   const t = useTranslations("agenda");
+  const { formatTime } = useTimeFormat();
 
   const getShiftEnd = (start: string) => {
     const [h] = start.split(":").map(Number);
@@ -50,12 +52,12 @@ export function AgendaMatrix({
         {/* HEADER ROW */}
         <div className="flex border-b border-border bg-muted/60 text-xs font-bold text-foreground">
           {/* Time Column Header */}
-          <div className="w-20 shrink-0 border-r border-border p-3.5 text-center text-muted-foreground uppercase tracking-wider">
+          <div className="w-24 shrink-0 border-r border-border p-3.5 text-center text-muted-foreground uppercase tracking-wider">
             {t("thTime")}
           </div>
 
           {/* Court Columns Headers */}
-          <div className="grid flex-1 grid-flow-col auto-cols-fr divide-x divide-border">
+          <div className="grid flex-1 grid-flow-col auto-cols-[minmax(155px,1fr)] divide-x divide-border">
             {spaces.map((space) => {
               const categoryName =
                 typeof space.category === "object"
@@ -63,7 +65,12 @@ export function AgendaMatrix({
                   : space.category || t("defaultSport");
 
               return (
-                <div key={space.id} className="p-3.5 text-left">
+                <div key={space.id} className="min-w-[155px] p-3.5 text-left">
+                  {space.venueName && (
+                    <div className="mb-0.5 truncate text-[10px] font-bold uppercase tracking-wider text-accent-foreground/80">
+                      {space.venueName}
+                    </div>
+                  )}
                   <div className="font-display text-sm font-bold text-foreground truncate">
                     {space.spaceNumber}
                   </div>
@@ -88,22 +95,31 @@ export function AgendaMatrix({
             return (
               <div key={hour} className="flex min-h-[72px]">
                 {/* Fixed Hour Cell */}
-                <div className="flex w-20 shrink-0 items-center justify-center border-r border-border bg-muted/20 font-mono text-xs font-semibold text-muted-foreground">
-                  {hour}
+                <div className="flex w-24 shrink-0 items-center justify-center border-r border-border bg-muted/20 font-mono text-xs font-semibold text-muted-foreground whitespace-nowrap px-1">
+                  {formatTime(hour)}
                 </div>
 
                 {/* Court Cells */}
-                <div className="grid flex-1 grid-flow-col auto-cols-fr divide-x divide-border p-1.5 gap-1.5">
+                <div className="grid flex-1 grid-flow-col auto-cols-[minmax(155px,1fr)] divide-x divide-border p-1.5 gap-1.5">
                   {spaces.map((space) => {
-                    // Check if reservation exists for this hour
+
+                    // Check if reservation covers this hour (including multi-hour bookings)
                     const reservation = space.reservations.find((r) => {
-                      return r.startTime === hour;
+                      return r.startTime <= hour && r.endTime > hour;
                     });
 
-                    // Check if maintenance block exists
+                    // Check if maintenance block covers this hour (including multi-hour blocks)
                     const block = space.blocks.find((b) => {
-                      return b.startTime === hour;
+                      return b.startTime <= hour && b.endTime > hour;
                     });
+
+                    // Check if hour is within court's configured operating shifts
+                    const isWithinOperatingShift =
+                      Array.isArray(space.shifts) &&
+                      space.shifts.length > 0 &&
+                      space.shifts.some(
+                        (s) => s.openTime <= hour && s.closeTime > hour
+                      );
 
                     if (block) {
                       return (
@@ -184,6 +200,19 @@ export function AgendaMatrix({
                       );
                     }
 
+                    if (!isWithinOperatingShift) {
+                      return (
+                        <div
+                          key={`${space.id}-${hour}`}
+                          className="flex h-full flex-col items-center justify-center rounded-xl border border-border/50 bg-muted/40 p-2 text-muted-foreground/60 select-none cursor-not-allowed"
+                        >
+                          <span className="text-[11px] font-semibold uppercase tracking-wider">
+                            {t("slotClosed")}
+                          </span>
+                        </div>
+                      );
+                    }
+
                     // Available Slot
                     return (
                       <div
@@ -192,9 +221,10 @@ export function AgendaMatrix({
                         className="group flex h-full flex-col justify-between rounded-xl border border-dashed border-status-available-border bg-status-available-bg/60 p-2 text-status-available-fg cursor-pointer transition-all hover:bg-status-available-bg hover:shadow-xs active:scale-[0.99]"
                         title={t("slotBookTitle", {
                           court: space.spaceNumber,
-                          start: hour,
-                          end: nextHour,
+                          start: formatTime(hour),
+                          end: formatTime(nextHour),
                         })}
+
                       >
                         <div className="flex items-center gap-1 text-xs font-semibold">
                           <Plus className="size-3.5 transition-transform group-hover:rotate-90 duration-150" />

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
+import { TimeFormatToggle, useTimeFormat } from "@/shared/lib/time-format";
 import { Button } from "@/shared/ui/button";
 import type { ActiveSessionItem } from "../model/types";
 
@@ -17,6 +18,7 @@ export function ActiveSessionsTable({
   onRevokeAllSessions,
 }: ActiveSessionsTableProps) {
   const t = useTranslations("users.sessions");
+  const { formatTime } = useTimeFormat();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [revokingAll, setRevokingAll] = useState(false);
 
@@ -53,16 +55,19 @@ export function ActiveSessionsTable({
           </p>
         </div>
 
-        <Button
-          type="button"
-          variant="destructive"
-          size="sm"
-          onClick={handleRevokeAll}
-          isLoading={revokingAll}
-          id="btn-revoke-all-sessions"
-        >
-          ⚠️ {t("btnRevokeAll")}
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <TimeFormatToggle size="xs" />
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={handleRevokeAll}
+            isLoading={revokingAll}
+            id="btn-revoke-all-sessions"
+          >
+            ⚠️ {t("btnRevokeAll")}
+          </Button>
+        </div>
       </div>
 
       {/* SESSIONS TABLE */}
@@ -105,7 +110,9 @@ export function ActiveSessionsTable({
                     <code>{s.deviceIp}</code>
                   </td>
                   <td className="px-4 py-3.5 text-xs text-muted-foreground">
-                    {new Date(s.createdAt).toLocaleString()}
+                    {formatTime(
+                      `${new Date(s.createdAt).toLocaleDateString()} ${new Date(s.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}`,
+                    )}
                   </td>
                   <td className="px-4 py-3.5 text-xs text-muted-foreground">
                     {new Date(s.expiresAt).toLocaleDateString()}

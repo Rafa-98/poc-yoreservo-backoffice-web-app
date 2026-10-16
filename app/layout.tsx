@@ -5,7 +5,6 @@ import { fontDisplay, fontSans } from "@/_app/fonts";
 import { Providers } from "@/_app/providers";
 import "@/_app/styles/globals.css";
 import { SITE } from "@/shared/config";
-import { themeInitScript } from "@/shared/lib/theme";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("meta");
@@ -37,16 +36,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getLocale();
 
   return (
-    // `suppressHydrationWarning`: `themeInitScript` sets data-theme before React hydrates.
     <html
       lang={locale}
       data-scroll-behavior="smooth"
       className={`${fontSans.variable} ${fontDisplay.variable}`}
       suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-      </head>
       <body>
         <NextIntlClientProvider>
           <Providers>{children}</Providers>

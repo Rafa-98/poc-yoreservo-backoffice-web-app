@@ -2,8 +2,16 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
+import { useTimeFormat } from "@/shared/lib/time-format";
 import type { DaySchedule } from "../model/types";
 import { ScheduleTimelineRibbon } from "./schedule-timeline-ribbon";
+
+const SCHEDULE_TIME_OPTIONS = Array.from({ length: 49 }, (_, i) => {
+  const totalMins = i * 30;
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+});
 
 interface DayScheduleCardProps {
   day: DaySchedule;
@@ -17,11 +25,18 @@ export function DayScheduleCard({
   onChange,
 }: DayScheduleCardProps) {
   const t = useTranslations("venues.schedules");
+  const { formatTime } = useTimeFormat();
 
   function toggleOpen() {
+    const nextOpen = !day.isOpen;
     onChange({
       ...day,
-      isOpen: !day.isOpen,
+      isOpen: nextOpen,
+      shift1: {
+        openTime: day.shift1?.openTime || "07:00",
+        closeTime: day.shift1?.closeTime || "22:00",
+        isEnabled: nextOpen,
+      },
     });
   }
 
@@ -123,24 +138,34 @@ export function DayScheduleCard({
                 <label className="text-[11px] font-semibold text-muted-foreground uppercase">
                   {t("openLabel")}
                 </label>
-                <input
-                  type="time"
-                  className="input-field form-input px-2.5 py-2 text-[13px] font-semibold"
+                <select
+                  className="input-field form-select px-2.5 py-2 text-[13px] font-semibold"
                   value={day.shift1?.openTime || "07:00"}
                   onChange={(e) => updateShift1("openTime", e.target.value)}
-                />
+                >
+                  {SCHEDULE_TIME_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {formatTime(opt)}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex flex-col gap-1">
                 <label className="text-[11px] font-semibold text-muted-foreground uppercase">
                   {t("closeLabel")}
                 </label>
-                <input
-                  type="time"
-                  className="input-field form-input px-2.5 py-2 text-[13px] font-semibold"
+                <select
+                  className="input-field form-select px-2.5 py-2 text-[13px] font-semibold"
                   value={day.shift1?.closeTime || "12:00"}
                   onChange={(e) => updateShift1("closeTime", e.target.value)}
-                />
+                >
+                  {SCHEDULE_TIME_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {formatTime(opt)}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
@@ -169,26 +194,36 @@ export function DayScheduleCard({
                 <label className="text-[11px] font-semibold text-muted-foreground uppercase">
                   {t("openLabel")}
                 </label>
-                <input
-                  type="time"
-                  className="input-field form-input px-2.5 py-2 text-[13px] font-semibold"
+                <select
+                  className="input-field form-select px-2.5 py-2 text-[13px] font-semibold"
                   disabled={!day.shift2?.isEnabled}
                   value={day.shift2?.openTime || "16:00"}
                   onChange={(e) => updateShift2("openTime", e.target.value)}
-                />
+                >
+                  {SCHEDULE_TIME_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {formatTime(opt)}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex flex-col gap-1">
                 <label className="text-[11px] font-semibold text-muted-foreground uppercase">
                   {t("closeLabel")}
                 </label>
-                <input
-                  type="time"
-                  className="input-field form-input px-2.5 py-2 text-[13px] font-semibold"
+                <select
+                  className="input-field form-select px-2.5 py-2 text-[13px] font-semibold"
                   disabled={!day.shift2?.isEnabled}
                   value={day.shift2?.closeTime || "23:00"}
                   onChange={(e) => updateShift2("closeTime", e.target.value)}
-                />
+                >
+                  {SCHEDULE_TIME_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {formatTime(opt)}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>

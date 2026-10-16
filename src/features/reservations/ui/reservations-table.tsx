@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
+import { useTimeFormat } from "@/shared/lib/time-format";
 import type { ReservationItem } from "../model/types";
 
 interface ReservationsTableProps {
@@ -16,6 +17,7 @@ export function ReservationsTable({
   onCancelReservation,
 }: ReservationsTableProps) {
   const t = useTranslations("reservations.table");
+  const { formatTime } = useTimeFormat();
 
   function copyCode(code: string) {
     navigator.clipboard.writeText(code);
@@ -131,9 +133,9 @@ export function ReservationsTable({
 
                     {/* 4. Schedule & Duration */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      <div className="font-bold text-foreground">{res.dateDisplay}</div>
+                      <div className="font-bold text-foreground">{formatTime(res.dateDisplay)}</div>
                       <div className="text-[11px] font-semibold text-accent">
-                        {res.timeSlot} ({res.duration})
+                        {formatTime(res.timeSlot)} ({res.duration})
                       </div>
                     </td>
 

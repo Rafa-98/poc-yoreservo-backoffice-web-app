@@ -17,6 +17,8 @@ export interface ReservationItem {
   origin: 'app' | 'walk-in';
   clientName: string;
   dni: string;
+  clientDni?: string;
+  isFrequentPlayer?: boolean;
   phone: string;
   venueId: string;
   venue: string;
@@ -44,6 +46,7 @@ export interface ReservationKpis {
   walkinCount: number;
   volumeUsd: number;
   volumeVes: number;
+  confirmedGrowthPct?: string;
 }
 
 export interface ReservationFilter {

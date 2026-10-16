@@ -10,6 +10,7 @@ export type RefreshResult =
 
 const inFlightRefreshes = new Map<string, Promise<RefreshResult>>();
 const RESULT_REUSE_WINDOW_MS = 30_000;
+const MAX_IN_FLIGHT_REFRESHES = 500;
 
 async function performRefresh(refreshToken: string): Promise<RefreshResult> {
   try {
@@ -45,16 +46,33 @@ async function performRefresh(refreshToken: string): Promise<RefreshResult> {
 }
 
 /** Exchanges a refresh token for a new token pair. Never throws. */
-export function refreshTokens(refreshToken: string): Promise<RefreshResult> {
-  const existing = inFlightRefreshes.get(refreshToken);
-  if (existing) return existing;
+export function refreshTokens(
+  refreshToken: string,
+  force = false,
+): Promise<RefreshResult> {
+  if (force) {
+    inFlightRefreshes.delete(refreshToken);
+  } else {
+    const existing = inFlightRefreshes.get(refreshToken);
+    if (existing) return existing;
+  }
+
+  if (inFlightRefreshes.size >= MAX_IN_FLIGHT_REFRESHES) {
+    const oldestKey = inFlightRefreshes.keys().next().value;
+    if (oldestKey !== undefined) {
+      inFlightRefreshes.delete(oldestKey);
+    }
+  }
 
   const refresh = performRefresh(refreshToken);
   inFlightRefreshes.set(refreshToken, refresh);
 
   void refresh.then((result) => {
-    const keepFor = result.kind === "unavailable" ? 0 : RESULT_REUSE_WINDOW_MS;
-    setTimeout(() => inFlightRefreshes.delete(refreshToken), keepFor);
+    if (!result || result.kind === "unavailable") {
+      inFlightRefreshes.delete(refreshToken);
+      return;
+    }
+    setTimeout(() => inFlightRefreshes.delete(refreshToken), RESULT_REUSE_WINDOW_MS);
   });
 
   return refresh;

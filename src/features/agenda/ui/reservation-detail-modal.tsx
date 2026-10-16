@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useTimeFormat } from "@/shared/lib";
 import { Button } from "@/shared/ui/button";
 import type { CourtReservation, CourtSpace } from "../model/types";
 import { checkInAction } from "../actions/agenda-actions";
@@ -32,6 +33,7 @@ export function ReservationDetailModal({
   onRefresh,
 }: ReservationDetailModalProps) {
   const t = useTranslations("agenda");
+  const { formatTime } = useTimeFormat();
   const [isCheckingIn, setIsCheckingIn] = useState(false);
 
   if (!isOpen || !reservation || !court) return null;
@@ -141,9 +143,10 @@ export function ReservationDetailModal({
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">{t("detailTime")}:</span>
                 <strong className="font-mono font-semibold text-foreground">
-                  {reservation.startTime} - {reservation.endTime}
+                  {formatTime(reservation.startTime)} - {formatTime(reservation.endTime)}
                 </strong>
               </div>
+
               <div className="flex justify-between items-center border-t border-border pt-2 font-bold text-sm">
                 <span className="text-muted-foreground">{t("detailAmount")}:</span>
                 <span className="text-link">

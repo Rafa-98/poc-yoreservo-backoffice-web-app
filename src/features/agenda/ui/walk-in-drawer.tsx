@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
+import { DEFAULT_BCV_USD_RATE, useTimeFormat } from "@/shared/lib";
 import { Button } from "@/shared/ui/button";
 import { Alert } from "@/shared/ui/alert";
 import type { CourtSpace } from "../model/types";
@@ -29,6 +29,7 @@ export function WalkInDrawer({
   bcvRate = DEFAULT_BCV_USD_RATE,
 }: WalkInDrawerProps) {
   const t = useTranslations("agenda");
+  const { formatTime } = useTimeFormat();
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -125,10 +126,11 @@ export function WalkInDrawer({
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">{t("labelTime")}:</span>
               <strong className="font-semibold text-foreground font-mono">
-                {startTime} - {endTime} ({selectedDate})
+                {formatTime(startTime)} - {formatTime(endTime)} ({selectedDate})
               </strong>
             </div>
           </div>
+
 
           {/* Customer Name */}
           <div className="space-y-1.5">

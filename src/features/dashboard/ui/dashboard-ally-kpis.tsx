@@ -17,7 +17,19 @@ export function DashboardAllyKpis({
 }: DashboardAllyKpisProps) {
   const t = useTranslations("dashboard");
 
-  const todayNet = allyKpis?.todayNetRevenue ?? 665.0;
+  const todayNet = allyKpis?.todayNetRevenue ?? 0;
+  const occupiedSlots = allyKpis?.occupiedSlots ?? 0;
+  const totalSlots = allyKpis?.totalSlots ?? 0;
+  const availableWalkInSlots = allyKpis?.availableWalkInSlots ?? 0;
+  const occupancyPeakText =
+    allyKpis?.occupancyPeakPct ||
+    (allyKpis?.occupancyPct !== undefined
+      ? `${allyKpis.occupancyPct.toFixed(1)}%`
+      : "0.0%");
+  const netSharePct = allyKpis?.netSharePct ?? 95;
+  const checkedInMatches = allyKpis?.checkedInMatches ?? 0;
+  const playersOnCourt = allyKpis?.playersOnCourt ?? 0;
+
   const formatBs = (val: number) =>
     `≈ Bs. ${(val * bcvRate).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -31,23 +43,21 @@ export function DashboardAllyKpis({
           </span>
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
             <TrendingUp className="size-3" />
-            <span>{t("kpis.allyOccupancyBadge")}</span>
+            <span>
+              {t("kpis.allyOccupancyBadgeDynamic", { pct: occupancyPeakText })}
+            </span>
           </span>
         </div>
         <div className="font-display text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
-          {allyKpis?.occupiedSlots !== undefined && allyKpis?.totalSlots !== undefined
-            ? t("kpis.allyOccupancyDynamicCount", {
-                occupied: allyKpis.occupiedSlots,
-                total: allyKpis.totalSlots,
-              })
-            : t("kpis.allyOccupancyCount")}
+          {t("kpis.allyOccupancyDynamicCount", {
+            occupied: occupiedSlots,
+            total: totalSlots,
+          })}
         </div>
         <div className="mt-1 text-xs text-muted-foreground">
-          {allyKpis?.availableWalkInSlots !== undefined
-            ? t("kpis.allyOccupancyDynamicSub", {
-                count: allyKpis.availableWalkInSlots,
-              })
-            : t("kpis.allyOccupancySub")}
+          {t("kpis.allyOccupancyDynamicSub", {
+            count: availableWalkInSlots,
+          })}
         </div>
       </div>
 
@@ -58,7 +68,7 @@ export function DashboardAllyKpis({
             {t("kpis.allyRev")}
           </span>
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-accent/20 text-accent-foreground border border-accent/40">
-            {t("kpis.allyRevBadge")}
+            {t("kpis.allyRevBadgeDynamic", { pct: netSharePct })}
           </span>
         </div>
         <div className="font-display text-2xl sm:text-3xl font-extrabold text-foreground">
@@ -80,18 +90,14 @@ export function DashboardAllyKpis({
           </span>
         </div>
         <div className="font-display text-2xl sm:text-3xl font-extrabold text-foreground">
-          {allyKpis?.checkedInMatches !== undefined
-            ? t("kpis.allyCheckinDynamicCount", {
-                count: allyKpis.checkedInMatches,
-              })
-            : t("kpis.allyCheckinCount")}
+          {t("kpis.allyCheckinDynamicCount", {
+            count: checkedInMatches,
+          })}
         </div>
         <div className="mt-1 text-xs text-muted-foreground">
-          {allyKpis?.playersOnCourt !== undefined
-            ? t("kpis.allyCheckinDynamicSub", {
-                count: allyKpis.playersOnCourt,
-              })
-            : t("kpis.allyCheckinSub")}
+          {t("kpis.allyCheckinDynamicSub", {
+            count: playersOnCourt,
+          })}
         </div>
       </div>
 
@@ -103,14 +109,16 @@ export function DashboardAllyKpis({
           </span>
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400">
             <Clock className="size-3" />
-            <span>{allyKpis?.nextMatchCourt || t("kpis.court1Badge")}</span>
+            <span>{allyKpis?.nextMatchCourt || "—"}</span>
           </span>
         </div>
         <div className="font-display text-2xl sm:text-3xl font-extrabold text-foreground">
-          {allyKpis?.nextMatchTime || t("kpis.allyNextTime")}
+          {allyKpis?.nextMatchTime || t("kpis.noUpcomingMatch")}
         </div>
         <div className="mt-1 text-xs text-muted-foreground">
-          {allyKpis?.nextMatchDesc || t("kpis.allyNextDesc")}
+          {allyKpis?.nextMatchDesc ||
+            allyKpis?.nextCheckInText ||
+            t("kpis.noUpcomingDesc")}
         </div>
       </div>
     </div>

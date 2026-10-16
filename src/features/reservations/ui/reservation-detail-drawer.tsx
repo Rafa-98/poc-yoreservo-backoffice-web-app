@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
+import { useTimeFormat } from "@/shared/lib/time-format";
 import { Button } from "@/shared/ui/button";
 import { checkInReservationAction } from "../actions/reservations-actions";
 import type { ReservationItem } from "../model/types";
@@ -22,6 +23,7 @@ export function ReservationDetailDrawer({
   onOpenCancel,
 }: ReservationDetailDrawerProps) {
   const t = useTranslations("reservations.drawer");
+  const { formatTime } = useTimeFormat();
   const [checkingIn, setCheckingIn] = useState(false);
 
   if (!isOpen || !reservation) return null;
@@ -67,7 +69,7 @@ export function ReservationDetailDrawer({
               </div>
               <div className="text-xs text-muted-foreground mt-0.5">
                 {t("issuedAt", {
-                  date: reservation.dateDisplay,
+                  date: formatTime(reservation.dateDisplay),
                   origin:
                     reservation.origin === "walk-in"
                       ? t("originWalkIn")
@@ -98,7 +100,13 @@ export function ReservationDetailDrawer({
                   ? t("checkInDescDone", {
                       validator: reservation.checkedInBy || t("defaultValidator"),
                       date: reservation.validatedAt
-                        ? new Date(reservation.validatedAt).toLocaleTimeString()
+                        ? formatTime(
+                            new Date(reservation.validatedAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: false,
+                            }),
+                          )
                         : t("today"),
                     })
                   : t("checkInDesc")}
@@ -134,7 +142,9 @@ export function ReservationDetailDrawer({
                   {reservation.clientName}
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  {t("playerDniMeta", { dni: reservation.dni })}
+                  {reservation.isFrequentPlayer
+                    ? t("playerDniMeta", { dni: reservation.dni })
+                    : t("playerDniOnly", { dni: reservation.dni })}
                 </div>
               </div>
               <a
@@ -167,12 +177,12 @@ export function ReservationDetailDrawer({
               </div>
               <div>
                 <div className="text-muted-foreground">{t("dateLabel")}</div>
-                <div className="font-bold text-foreground mt-0.5">{reservation.dateDisplay}</div>
+                <div className="font-bold text-foreground mt-0.5">{formatTime(reservation.dateDisplay)}</div>
               </div>
               <div>
                 <div className="text-muted-foreground">{t("scheduleLabel")}</div>
                 <div className="font-bold text-accent mt-0.5">
-                  {reservation.timeSlot} ({reservation.duration})
+                  {formatTime(reservation.timeSlot)} ({reservation.duration})
                 </div>
               </div>
             </div>

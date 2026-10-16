@@ -2,50 +2,30 @@
 
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
-import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import type {
   LocationNode,
-  OrganizationData,
-  PaymentCollectionMode,
   VenueItem,
 } from "@/features/venues/model/types";
-import {
-  getVenuesListAction,
-  updateOrganizationAction,
-} from "@/features/venues/actions/venues-actions";
-import { VenuesSubnav } from "@/features/venues/ui/venues-subnav";
-import { OrgMasterCard } from "@/features/venues/ui/org-master-card";
-import { OrgEditModal } from "@/features/venues/ui/org-edit-modal";
+import { getVenuesListAction } from "@/features/venues/actions/venues-actions";
 import { VenueCardGrid } from "@/features/venues/ui/venue-card-grid";
 import { VenueModal } from "@/features/venues/ui/venue-modal";
 
 interface VenuesPageProps {
-  initialOrg: OrganizationData;
   initialVenues: VenueItem[];
   locationsTree: LocationNode[];
-  bcvRate?: number;
-  bcvEurRate?: number;
-  userRole?: string;
 }
 
 export function VenuesPage({
-  initialOrg,
   initialVenues,
   locationsTree,
-  bcvRate = DEFAULT_BCV_USD_RATE,
-  bcvEurRate = DEFAULT_BCV_EUR_RATE,
-  userRole,
 }: VenuesPageProps) {
   const t = useTranslations("venues.top");
-  const tOrg = useTranslations("venues.org");
-  const [org, setOrg] = useState<OrganizationData>(initialOrg);
   const [venues, setVenues] = useState<VenueItem[]>(initialVenues);
 
   // Toast feedback state
   const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
 
   // Modals state
-  const [isOrgModalOpen, setIsOrgModalOpen] = useState(false);
   const [isVenueModalOpen, setIsVenueModalOpen] = useState(false);
   const [editingVenue, setEditingVenue] = useState<VenueItem | null>(null);
 
@@ -84,45 +64,6 @@ export function VenuesPage({
     }
   }
 
-  function handleOrgSaved(updated: OrganizationData) {
-    setOrg((prev) => ({
-      ...updated,
-      venuesCount: updated.venuesCount || prev.venuesCount || venues.length,
-      spacesCount: updated.spacesCount || prev.spacesCount,
-    }));
-    showToast(t("toastOrgSaved"), false);
-  }
-
-  async function handleQuickSwitchMode(mode: PaymentCollectionMode) {
-    const bank = org.payoutBank || org.bankName || "";
-    const phone = org.pagoMovilPhone || org.contactPhone || "";
-    if (mode === "ALLY_DIRECT" && (!bank.trim() || !phone.trim())) {
-      showToast(tOrg("errorDirectModeBankPhone"), true);
-      setIsOrgModalOpen(true);
-      return;
-    }
-
-    const res = await updateOrganizationAction({
-      paymentCollectionMode: mode,
-      payoutBank: bank || undefined,
-      bankName: bank || undefined,
-      contactPhone: phone || undefined,
-      pagoMovilPhone: phone || undefined,
-    });
-
-    if (res.ok && res.data) {
-      const updated = res.data;
-      setOrg((prev) => ({
-        ...updated,
-        venuesCount: updated.venuesCount || prev.venuesCount || venues.length,
-        spacesCount: updated.spacesCount || prev.spacesCount,
-      }));
-      showToast(t("toastOrgSaved"), false);
-    } else if (!res.ok) {
-      showToast(res.error.code || tOrg("errorUpdate"), true);
-    }
-  }
-
   return (
     <div className="venues-page pb-10">
       {/* Top Header */}
@@ -137,16 +78,9 @@ export function VenuesPage({
         </div>
       </div>
 
-      {/* Subnav */}
-      <VenuesSubnav
-        venuesCount={venues.length}
-        spacesCount={org.spacesCount}
-        onOpenOrgModal={() => setIsOrgModalOpen(true)}
-      />
-
       {/* Toast feedback banner */}
       {toast && (
-        <div className="mt-4 px-5">
+        <div className="mt-2 px-5">
           <div
             className={`flex items-center justify-between rounded-xl border px-4 py-3 text-[13.5px] font-semibold ${
               toast.isError
@@ -166,30 +100,11 @@ export function VenuesPage({
         </div>
       )}
 
-      {/* Organization Master Card */}
-      <OrgMasterCard
-        organization={org}
-        bcvRate={bcvRate}
-        bcvEurRate={bcvEurRate}
-        onOpenEditModal={() => setIsOrgModalOpen(true)}
-        onQuickSwitchMode={handleQuickSwitchMode}
-        userRole={userRole}
-      />
-
       {/* Venues Grid */}
       <VenueCardGrid
         venues={venues}
         onOpenCreateVenue={handleOpenCreateVenue}
         onOpenEditVenue={handleOpenEditVenue}
-      />
-
-      {/* Organization Edit Modal */}
-      <OrgEditModal
-        isOpen={isOrgModalOpen}
-        onClose={() => setIsOrgModalOpen(false)}
-        organization={org}
-        onSuccess={handleOrgSaved}
-        userRole={userRole}
       />
 
       {/* Venue Add / Edit Modal */}

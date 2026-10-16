@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { TimeFormatToggle, useTimeFormat } from "@/shared/lib/time-format";
 import type { ExchangeRateItem } from "../model/types";
 
 interface RateHistoryTableProps {
@@ -10,6 +11,7 @@ interface RateHistoryTableProps {
 
 export function RateHistoryTable({ rates }: RateHistoryTableProps) {
   const t = useTranslations("treasury.rate.ledger");
+  const { formatTime } = useTimeFormat();
   const [exportNotice, setExportNotice] = useState(false);
 
   const handleExport = () => {
@@ -55,6 +57,7 @@ export function RateHistoryTable({ rates }: RateHistoryTableProps) {
         </div>
 
         <div className="flex items-center gap-2.5">
+          <TimeFormatToggle size="xs" />
           {exportNotice && (
             <span className="text-xs font-semibold text-status-available-fg">
               ✓ {t("exportSuccess")}
@@ -123,7 +126,7 @@ export function RateHistoryTable({ rates }: RateHistoryTableProps) {
                         {r.valueDate || "—"}
                       </div>
                       <div className="text-[11px] text-muted-foreground">
-                        {r.createdAt ? r.createdAt.slice(11, 19) : "—"}
+                        {r.createdAt ? formatTime(r.createdAt.slice(11, 16)) : "—"}
                       </div>
                     </td>
 

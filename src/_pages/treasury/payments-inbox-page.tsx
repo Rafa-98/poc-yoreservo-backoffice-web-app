@@ -12,6 +12,7 @@ import { PaymentsFilterBar } from "@/features/treasury/ui/payments-filter-bar";
 import { PaymentsTable } from "@/features/treasury/ui/payments-table";
 import { VoucherDrawer } from "@/features/treasury/ui/voucher-drawer";
 import { PaymentRejectModal } from "@/features/treasury/ui/payment-reject-modal";
+import { useActiveVenue } from "@/features/venues/context/venue-context";
 
 import type { BackofficeRole } from "@/shared/config";
 
@@ -25,6 +26,7 @@ export function PaymentsInboxPage({
   userRole = "PLATFORM_ADMIN",
 }: PaymentsInboxPageProps) {
   const t = useTranslations("treasury.inbox");
+  const { activeVenueId } = useActiveVenue();
 
   const [items, setItems] = useState<PaymentItem[]>(initialData.items);
   const [kpis, setKpis] = useState(initialData.kpis);
@@ -40,9 +42,15 @@ export function PaymentsInboxPage({
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
   const [reasonModalPayment, setReasonModalPayment] = useState<PaymentItem | null>(null);
 
+  // Venue-scoped payments
+  const venueScopedItems = useMemo(() => {
+    if (!activeVenueId || activeVenueId === "ALL") return items;
+    return items.filter((p) => p.reservation?.space?.venue?.id === activeVenueId);
+  }, [items, activeVenueId]);
+
   // Filtered payments
   const filteredItems = useMemo(() => {
-    return items.filter((p) => {
+    return venueScopedItems.filter((p) => {
       // 1. Status Filter
       if (statusFilter !== "ALL") {
         if (statusFilter === "PENDING" && p.status !== "PENDING") return false;
@@ -71,23 +79,23 @@ export function PaymentsInboxPage({
 
       return true;
     });
-  }, [items, statusFilter, bankFilter, searchQuery]);
+  }, [venueScopedItems, statusFilter, bankFilter, searchQuery]);
 
   // Counts for filter chips
   const counts = useMemo(() => {
-    const all = items.length;
+    const all = venueScopedItems.length;
     let pending = 0;
     let verified = 0;
     let rejected = 0;
 
-    for (const item of items) {
+    for (const item of venueScopedItems) {
       if (item.status === "PENDING") pending++;
       else if (item.status === "VERIFIED") verified++;
       else if (item.status === "REJECTED" || item.status === "FAILED") rejected++;
     }
 
     return { all, pending, verified, rejected };
-  }, [items]);
+  }, [venueScopedItems]);
 
   // Actions
   const handleApprove = async (paymentId: string) => {

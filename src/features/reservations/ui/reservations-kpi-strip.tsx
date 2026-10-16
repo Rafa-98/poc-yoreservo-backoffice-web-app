@@ -33,7 +33,11 @@ export function ReservationsKpiStrip({ kpis, bcvRate }: ReservationsKpiStripProp
           {kpis.totalBookings}
         </div>
         <div className="mt-1 text-xs font-semibold text-accent">
-          {t("totalGrowth")}
+          {kpis.confirmedGrowthPct ||
+            t("totalConfirmedRatio", {
+              confirmed: kpis.confirmedCount,
+              total: kpis.totalBookings,
+            })}
         </div>
       </div>
 

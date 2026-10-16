@@ -70,6 +70,7 @@ export interface TreasuryKpis {
   verifiedTodayCount: number;
   rejectedCount: number;
   averageSpeedMin: string;
+  approvalRatePct?: number;
 }
 
 export interface PaymentsInboxData {
@@ -90,6 +91,8 @@ export interface ExchangeRateItem {
   sourceDetails?: string | null;
   createdAt: string;
   creator?: VerifierRef | null;
+  variationPct?: string;
+  previousRate?: number;
 }
 
 export interface SecondaryCurrency {

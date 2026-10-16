@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import type { BackofficeRole } from "@/shared/config";
-import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
+import { DEFAULT_BCV_USD_RATE, useTimeFormat } from "@/shared/lib";
 import type { PaymentItem } from "../model/types";
 import { canUserReconcilePayment } from "./payments-table";
 
@@ -27,6 +27,7 @@ export function VoucherDrawer({
   isProcessing = false,
 }: VoucherDrawerProps) {
   const t = useTranslations("treasury.inbox.voucher");
+  const { formatTime } = useTimeFormat();
   const [isZoomed, setIsZoomed] = useState(false);
 
   if (!isOpen || !payment) return null;
@@ -74,9 +75,10 @@ export function VoucherDrawer({
 
   const rateValue = effectiveRate.toFixed(2);
 
-  const formattedPaymentDate =
+  const formattedPaymentDate = formatTime(
     payment.paymentDate ||
-    (payment.createdAt ? payment.createdAt.slice(0, 10) : "—");
+      (payment.createdAt ? payment.createdAt.slice(0, 10) : "—"),
+  );
 
   const payerDocumentDisplay = payment.payerIdDocument
     ? payment.payerDocumentType
@@ -252,7 +254,7 @@ export function VoucherDrawer({
             <div className="text-[15px] font-bold text-foreground">
               #{payment.reservation?.shortCode} —{" "}
               {payment.reservation?.space?.spaceNumber} (
-              {payment.reservation?.startTime} - {payment.reservation?.endTime})
+              {formatTime(payment.reservation?.startTime)} - {formatTime(payment.reservation?.endTime)})
             </div>
             <div className="mt-0.5 text-xs text-muted-foreground">
               {payment.reservation?.space?.venue?.name}

@@ -27,17 +27,19 @@ export default async function Page() {
         activeUsd: null,
         activeEur: null,
         history: [],
-        lastSync: new Date().toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" }),
-        secondaryCurrencies: [
-          { currency: "CNY", symbol: "¥", rate: "131,03 Bs." },
-          { currency: "TRY", symbol: "₺", rate: "17,77 Bs." },
-          { currency: "RUB", symbol: "₽", rate: "10,34 Bs." },
-        ],
+        lastSync: "—",
+        secondaryCurrencies: [],
       };
 
   const operatorName = session?.user?.name
     ? `${session.user.name} (${session.user.role})`
     : "YoReservo Tesorería (Backoffice)";
 
-  return <ExchangeRatePage initialData={initialData} operatorName={operatorName} />;
+  return (
+    <ExchangeRatePage
+      initialData={initialData}
+      operatorName={operatorName}
+      userRole={session.user.role}
+    />
+  );
 }

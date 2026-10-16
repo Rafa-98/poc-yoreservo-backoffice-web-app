@@ -12,7 +12,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { ROUTES } from "@/shared/config";
+import { getDefaultRouteForRole, isBackofficeRole, ROUTES } from "@/shared/config";
 import { Button } from "@/shared/ui/button";
 import { Alert } from "@/shared/ui/alert";
 import {
@@ -21,7 +21,15 @@ import {
   type InvitationDetails,
 } from "../actions/set-password-action";
 
-export function SetPasswordForm() {
+interface SetPasswordFormProps {
+  initialInvitation?: InvitationDetails | null;
+  onInvitationLoaded?: (invitation: InvitationDetails | null) => void;
+}
+
+export function SetPasswordForm({
+  initialInvitation = null,
+  onInvitationLoaded,
+}: SetPasswordFormProps = {}) {
   const t = useTranslations("auth");
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -30,11 +38,13 @@ export function SetPasswordForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [name, setName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [name, setName] = useState(initialInvitation?.name || "");
+  const [lastName, setLastName] = useState(initialInvitation?.lastName || "");
 
-  const [isValidating, setIsValidating] = useState(true);
-  const [invitation, setInvitation] = useState<InvitationDetails | null>(null);
+  const [isValidating, setIsValidating] = useState(!initialInvitation);
+  const [invitation, setInvitation] = useState<InvitationDetails | null>(
+    initialInvitation
+  );
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,6 +70,7 @@ export function SetPasswordForm() {
         setValidationError(t("errorInvalidToken"));
       } else {
         setInvitation(res.data);
+        onInvitationLoaded?.(res.data);
         if (res.data.name) setName(res.data.name);
         if (res.data.lastName) setLastName(res.data.lastName);
       }
@@ -70,7 +81,7 @@ export function SetPasswordForm() {
     return () => {
       isMounted = false;
     };
-  }, [token, t]);
+  }, [token, t, onInvitationLoaded]);
 
   // Checklist validation criteria
   const hasMinLength = password.length >= 8;
@@ -109,9 +120,15 @@ export function SetPasswordForm() {
       return;
     }
 
+    const resolvedRole = res.data.role || invitation?.role;
+    const targetRoute =
+      resolvedRole && isBackofficeRole(resolvedRole)
+        ? getDefaultRouteForRole(resolvedRole)
+        : ROUTES.login;
+
     setIsSuccess(true);
     setTimeout(() => {
-      router.push(ROUTES.dashboard);
+      router.push(targetRoute);
       router.refresh();
     }, 1500);
   };

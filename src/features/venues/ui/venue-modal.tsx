@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
+import { uploadBackofficeFileAction } from "@/shared/api/upload-action";
 import type { CreateVenueInput, LocationNode, UpdateVenueInput, VenueItem } from "../model/types";
 import { createVenueAction, updateVenueAction } from "../actions/venues-actions";
 
@@ -23,12 +24,14 @@ export function VenueModal({
 }: VenueModalProps) {
   const t = useTranslations("venues.venues");
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [name, setName] = useState("");
   const [rif, setRif] = useState("");
   const [address, setAddress] = useState("");
   const [status, setStatus] = useState<"ACTIVE" | "PENDING_VERIFICATION">("ACTIVE");
+  const [imageUrl, setImageUrl] = useState("");
 
   // Phone components
   const [countryCode, setCountryCode] = useState("+58");
@@ -40,12 +43,113 @@ export function VenueModal({
   const [selectedCityId, setSelectedCityId] = useState<string>("");
   const [selectedHoodId, setSelectedHoodId] = useState<string>("");
 
+  function getLocationNodeName(node: LocationNode): string {
+    if (typeof node.name === "string") return node.name;
+    return node.name?.es || node.name?.en || "";
+  }
+
+  function resolveInitialLocationIds(
+    targetVenue: VenueItem | null,
+    tree: LocationNode[]
+  ): { stateId: string; cityId: string; hoodId: string } {
+    const firstState = tree?.[0];
+    const firstCity = firstState?.children?.[0];
+    const firstHood = firstCity?.children?.[0];
+    const fallback = {
+      stateId: firstState?.id || "",
+      cityId: firstCity?.id || "",
+      hoodId: firstHood?.id || "",
+    };
+
+    if (!targetVenue || !tree || tree.length === 0) {
+      return fallback;
+    }
+
+    const targetHoodId =
+      targetVenue.neighborhoodId ||
+      targetVenue.locationId ||
+      targetVenue.location?.id ||
+      "";
+    const targetCityId =
+      targetVenue.cityId ||
+      targetVenue.location?.parent?.id ||
+      targetVenue.location?.parentId ||
+      "";
+    const targetStateId =
+      targetVenue.stateId ||
+      targetVenue.location?.parent?.parent?.id ||
+      targetVenue.location?.parent?.parentId ||
+      "";
+    const targetCityName = (targetVenue.city || "").toLowerCase().trim();
+
+    // 1. Direct match if stateId, cityId, neighborhoodId are all known and valid in tree
+    if (targetStateId) {
+      const matchedState = tree.find((s) => s.id === targetStateId);
+      if (matchedState) {
+        const matchedCity =
+          matchedState.children?.find((c) => c.id === targetCityId) ||
+          matchedState.children?.[0];
+        const matchedHood =
+          matchedCity?.children?.find((h) => h.id === targetHoodId) ||
+          matchedCity?.children?.[0];
+        return {
+          stateId: matchedState.id,
+          cityId: matchedCity?.id || "",
+          hoodId: matchedHood?.id || "",
+        };
+      }
+    }
+
+    // 2. Search tree by neighborhoodId, cityId, or city name
+    for (const st of tree) {
+      for (const ct of st.children || []) {
+        for (const hd of ct.children || []) {
+          if (targetHoodId && hd.id === targetHoodId) {
+            return { stateId: st.id, cityId: ct.id, hoodId: hd.id };
+          }
+        }
+        if (
+          (targetCityId && ct.id === targetCityId) ||
+          (targetHoodId && ct.id === targetHoodId) ||
+          (targetCityName &&
+            getLocationNodeName(ct).toLowerCase().trim() === targetCityName)
+        ) {
+          return {
+            stateId: st.id,
+            cityId: ct.id,
+            hoodId: ct.children?.[0]?.id || "",
+          };
+        }
+      }
+      if (targetHoodId && st.id === targetHoodId) {
+        const ct = st.children?.[0];
+        return {
+          stateId: st.id,
+          cityId: ct?.id || "",
+          hoodId: ct?.children?.[0]?.id || "",
+        };
+      }
+    }
+
+    // 3. If venue has explicit IDs even if tree is flat/partial
+    if (targetStateId || targetCityId || targetHoodId) {
+      return {
+        stateId: targetStateId || fallback.stateId,
+        cityId: targetCityId || fallback.cityId,
+        hoodId: targetHoodId || fallback.hoodId,
+      };
+    }
+
+    return fallback;
+  }
+
   useEffect(() => {
     if (venue) {
       setName(venue.name || "");
       setRif(venue.rif || "");
       setAddress(venue.address || "");
       setStatus(venue.status === "PENDING_VERIFICATION" ? "PENDING_VERIFICATION" : "ACTIVE");
+      setImageUrl(venue.imageUrl || "");
 
       if (venue.contactPhone) {
         const parts = venue.contactPhone.split(" ");
@@ -64,48 +168,59 @@ export function VenueModal({
       setRif("");
       setAddress("");
       setStatus("ACTIVE");
+      setImageUrl("");
       setCountryCode("+58");
       setOperator("0212");
       setPhoneNum("");
     }
-  }, [venue, isOpen]);
 
-  // Set default state/city/hood on locationsTree load
-  useEffect(() => {
-    if (locationsTree && locationsTree.length > 0) {
-      if (!selectedStateId) {
-        setSelectedStateId(locationsTree[0].id);
-      }
-    }
-  }, [locationsTree, selectedStateId]);
+    const resolved = resolveInitialLocationIds(venue, locationsTree);
+    setSelectedStateId(resolved.stateId);
+    setSelectedCityId(resolved.cityId);
+    setSelectedHoodId(resolved.hoodId);
+  }, [venue, isOpen, locationsTree]);
 
   const currentState = locationsTree?.find((s) => s.id === selectedStateId);
   const cities = currentState?.children || [];
-
-  useEffect(() => {
-    if (cities.length > 0) {
-      if (!selectedCityId || !cities.some((c) => c.id === selectedCityId)) {
-        setSelectedCityId(cities[0].id);
-      }
-    } else {
-      setSelectedCityId("");
-    }
-  }, [cities, selectedCityId]);
-
   const currentCity = cities.find((c) => c.id === selectedCityId);
   const hoods = currentCity?.children || [];
 
-  useEffect(() => {
-    if (hoods.length > 0) {
-      if (!selectedHoodId || !hoods.some((h) => h.id === selectedHoodId)) {
-        setSelectedHoodId(hoods[0].id);
-      }
-    } else {
-      setSelectedHoodId("");
-    }
-  }, [hoods, selectedHoodId]);
+  function handleStateChange(newStateId: string) {
+    setSelectedStateId(newStateId);
+    const st = locationsTree?.find((s) => s.id === newStateId);
+    const firstCity = st?.children?.[0];
+    setSelectedCityId(firstCity?.id || "");
+    setSelectedHoodId(firstCity?.children?.[0]?.id || "");
+  }
+
+  function handleCityChange(newCityId: string) {
+    setSelectedCityId(newCityId);
+    const ct = cities.find((c) => c.id === newCityId);
+    const firstHood = ct?.children?.[0];
+    setSelectedHoodId(firstHood?.id || "");
+  }
 
   if (!isOpen) return null;
+
+  async function handleImageFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    setErrorMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("category", "VENUE_IMAGE");
+      const res = await uploadBackofficeFileAction(fd);
+      if (res.ok && res.data) {
+        setImageUrl(res.data.url);
+      } else if (!res.ok) {
+        setErrorMsg(res.error.code || t("errorUpdate"));
+      }
+    } finally {
+      setUploadingImage(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -123,6 +238,7 @@ export function VenueModal({
         contactPhone: formattedPhone,
         locationId: chosenLocationId,
         status,
+        imageUrl: imageUrl.trim() || undefined,
       };
 
       const res = await updateVenueAction(venue.id, updateDto);
@@ -141,6 +257,7 @@ export function VenueModal({
         contactPhone: formattedPhone,
         locationId: chosenLocationId,
         status,
+        imageUrl: imageUrl.trim() || undefined,
       };
 
       const res = await createVenueAction(createDto);
@@ -266,7 +383,7 @@ export function VenueModal({
                   id="geo-state"
                   className="input-field form-select px-2.5 py-2 text-[12.5px]"
                   value={selectedStateId}
-                  onChange={(e) => setSelectedStateId(e.target.value)}
+                  onChange={(e) => handleStateChange(e.target.value)}
                 >
                   {locationsTree?.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -284,7 +401,7 @@ export function VenueModal({
                   id="geo-city"
                   className="input-field form-select px-2.5 py-2 text-[12.5px]"
                   value={selectedCityId}
-                  onChange={(e) => setSelectedCityId(e.target.value)}
+                  onChange={(e) => handleCityChange(e.target.value)}
                   disabled={cities.length === 0}
                 >
                   {cities.map((c) => (
@@ -334,7 +451,7 @@ export function VenueModal({
             />
           </div>
 
-          <div className="form-group mb-4">
+          <div className="form-group mb-3.5">
             <label className="form-label mb-1 block text-xs font-semibold text-foreground">
               {t("phone")}
             </label>
@@ -381,13 +498,53 @@ export function VenueModal({
             </div>
           </div>
 
+          {/* VENUE PHOTO UPLOAD & URL */}
+          <div className="form-group mb-4">
+            <label
+              className="form-label mb-1 block text-xs font-semibold text-foreground"
+              htmlFor="venue-image-url"
+            >
+              📷 Foto de la Sede (URL o Subir Imagen)
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                id="venue-image-url"
+                className="input-field form-input flex-1 text-xs"
+                placeholder="https://..."
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+              />
+              <label className="btn btn-outline shrink-0 cursor-pointer px-3 py-2 text-xs">
+                <span>{uploadingImage ? "Subiendo..." : "📤 Subir Foto"}</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={handleImageFileChange}
+                  disabled={uploadingImage}
+                  id="venue-image-file"
+                />
+              </label>
+            </div>
+            {imageUrl && (
+              <div className="mt-2 overflow-hidden rounded-xl border border-border bg-muted/40 p-1.5">
+                <img
+                  src={imageUrl}
+                  alt={name || "Vista previa de la sede"}
+                  className="h-32 w-full rounded-lg object-cover"
+                />
+              </div>
+            )}
+          </div>
+
           <div className="mt-6 flex justify-end gap-3">
             <Button
               type="button"
               variant="secondary"
               size="sm"
               onClick={onClose}
-              disabled={loading}
+              disabled={loading || uploadingImage}
               id="btn-cancel-venue"
             >
               {t("cancel")}
@@ -396,7 +553,7 @@ export function VenueModal({
               type="submit"
               variant="primary"
               size="sm"
-              isLoading={loading}
+              isLoading={loading || uploadingImage}
               id="btn-save-venue"
             >
               {t("save")}

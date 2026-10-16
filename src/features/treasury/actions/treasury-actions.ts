@@ -1,10 +1,8 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { backendRequest } from "@/shared/api/index.server";
-import { ACCESS_COOKIE_NAME } from "@/shared/auth";
-import { requireSession } from "@/shared/auth/index.server";
+import { requireSessionWithToken } from "@/shared/auth/index.server";
 import { ROUTES } from "@/shared/config";
 import {
   DEFAULT_BCV_EUR_RATE,
@@ -24,13 +22,6 @@ import type {
   SettlementsKpis,
   TreasuryKpis,
 } from "../model/types";
-
-async function getAuthToken(): Promise<string> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(ACCESS_COOKIE_NAME)?.value;
-  if (!token) throw new Error("Unauthorized");
-  return token;
-}
 
 function formatSettlementPeriod(
   periodStartDate?: string | null,
@@ -69,16 +60,15 @@ export async function getPaymentsInboxAction(filters?: {
   status?: string;
   paymentMethod?: string;
   search?: string;
+  venueId?: string;
 }): Promise<ActionResult<PaymentsInboxData>> {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "PLATFORM_ACCOUNTING",
+    "ALLY_ADMIN",
+    "ALLY_ACCOUNTING",
+  ]);
   try {
-    await requireSession([
-      "PLATFORM_ADMIN",
-      "PLATFORM_ACCOUNTING",
-      "ALLY_ADMIN",
-      "ALLY_ACCOUNTING",
-    ]);
-    const accessToken = await getAuthToken();
-
     const query = new URLSearchParams();
     if (filters?.status && filters.status !== "ALL") {
       query.set("status", filters.status);
@@ -88,6 +78,9 @@ export async function getPaymentsInboxAction(filters?: {
     }
     if (filters?.search && filters.search.trim()) {
       query.set("search", filters.search.trim());
+    }
+    if (filters?.venueId && filters.venueId !== "ALL") {
+      query.set("venueId", filters.venueId);
     }
 
     const endpoint = `/backoffice/treasury/payments${
@@ -99,7 +92,11 @@ export async function getPaymentsInboxAction(filters?: {
       return fail("FAILED_TO_LOAD_PAYMENTS");
     }
 
-    const data = res.body as { total: number; items: any[] };
+    const data = res.body as {
+      total: number;
+      items: any[];
+      kpis?: Partial<TreasuryKpis>;
+    };
     const rawItems = data?.items ?? [];
 
     const items: PaymentItem[] = rawItems.map((p) => {
@@ -136,57 +133,60 @@ export async function getPaymentsInboxAction(filters?: {
         currency: p.currency ?? "USD",
         exchangeRate: rate,
         paymentMethod: p.paymentMethod ?? "PAGO_MOVIL",
-      paymentDate: p.paymentDate ? String(p.paymentDate).slice(0, 10) : "",
-      status: p.status,
-      rejectionReason: p.rejectionReason ?? null,
-      receiptUrl: p.receiptUrl ?? null,
-      verifiedBy: p.verifiedBy ?? null,
-      verifiedAt: p.verifiedAt ? String(p.verifiedAt) : null,
-      createdAt: p.createdAt ? String(p.createdAt) : "",
-      collectionMode:
-        p.collectionMode === "ALLY_DIRECT" ? "ALLY_DIRECT" : "PLATFORM_CUSTODY",
-      isDuplicateReference: Boolean(p.isDuplicateReference),
-      reservation: {
-        id: p.reservation?.id ?? "",
-        shortCode: p.reservation?.shortCode ?? "---",
-        status: p.reservation?.status ?? "",
-        reservationDate: p.reservation?.reservationDate
-          ? String(p.reservation.reservationDate).slice(0, 10)
-          : "",
-        startTime: p.reservation?.startTime ? String(p.reservation.startTime).slice(11, 16) : "",
-        endTime: p.reservation?.endTime ? String(p.reservation.endTime).slice(11, 16) : "",
-        client: {
-          id: p.reservation?.client?.id ?? "",
-          name: p.reservation?.client?.name ?? "Cliente",
-          lastName: p.reservation?.client?.lastName ?? "",
-          email: p.reservation?.client?.email ?? "",
-          phone: p.reservation?.client?.phone ?? "",
-        },
-        space: {
-          id: p.reservation?.space?.id ?? "",
-          spaceNumber: p.reservation?.space?.spaceNumber ?? "Cancha",
-          venue: {
-            id: p.reservation?.space?.venue?.id ?? "",
-            name: p.reservation?.space?.venue?.name ?? "Recinto",
+        paymentDate: p.paymentDate ? String(p.paymentDate).slice(0, 10) : "",
+        status: p.status,
+        rejectionReason: p.rejectionReason ?? null,
+        receiptUrl: p.receiptUrl ?? null,
+        verifiedBy: p.verifiedBy ?? null,
+        verifiedAt: p.verifiedAt ? String(p.verifiedAt) : null,
+        createdAt: p.createdAt ? String(p.createdAt) : "",
+        collectionMode:
+          p.collectionMode === "ALLY_DIRECT" ? "ALLY_DIRECT" : "PLATFORM_CUSTODY",
+        isDuplicateReference: Boolean(p.isDuplicateReference),
+        reservation: {
+          id: p.reservation?.id ?? "",
+          shortCode: p.reservation?.shortCode ?? "---",
+          status: p.reservation?.status ?? "",
+          reservationDate: p.reservation?.reservationDate
+            ? String(p.reservation.reservationDate).slice(0, 10)
+            : "",
+          startTime: p.reservation?.startTime ? String(p.reservation.startTime).slice(11, 16) : "",
+          endTime: p.reservation?.endTime ? String(p.reservation.endTime).slice(11, 16) : "",
+          client: {
+            id: p.reservation?.client?.id ?? "",
+            name: p.reservation?.client?.name ?? "Cliente",
+            lastName: p.reservation?.client?.lastName ?? "",
+            email: p.reservation?.client?.email ?? "",
+            phone: p.reservation?.client?.phone ?? "",
+          },
+          space: {
+            id: p.reservation?.space?.id ?? "",
+            spaceNumber: p.reservation?.space?.spaceNumber ?? "Cancha",
+            venue: {
+              id: p.reservation?.space?.venue?.id ?? "",
+              name: p.reservation?.space?.venue?.name ?? "Recinto",
+            },
           },
         },
-      },
-      verifier: p.verifier
-        ? {
-            id: p.verifier.id,
-            name: p.verifier.name,
-            lastName: p.verifier.lastName,
-          }
-        : null,
+        verifier: p.verifier
+          ? {
+              id: p.verifier.id,
+              name: p.verifier.name,
+              lastName: p.verifier.lastName,
+            }
+          : null,
       };
     });
 
-    // Calculate live KPIs
+    // Calculate live KPIs from real payment items
+    const todayIso = new Date().toISOString().slice(0, 10);
     let pendingCount = 0;
     let pendingAmountBs = 0;
     let pendingAmountUsd = 0;
     let verifiedTodayCount = 0;
+    let totalVerifiedCount = 0;
     let rejectedCount = 0;
+    const verificationMinutes: number[] = [];
 
     for (const item of items) {
       if (item.status === "PENDING") {
@@ -194,19 +194,47 @@ export async function getPaymentsInboxAction(filters?: {
         pendingAmountBs += item.amountVes ?? item.amount * item.exchangeRate;
         pendingAmountUsd += item.amountReference ?? item.amount;
       } else if (item.status === "VERIFIED") {
-        verifiedTodayCount++;
+        totalVerifiedCount++;
+        const verifiedDateStr = item.verifiedAt
+          ? item.verifiedAt.slice(0, 10)
+          : item.paymentDate;
+        if (verifiedDateStr === todayIso) {
+          verifiedTodayCount++;
+        }
       } else if (item.status === "REJECTED" || item.status === "FAILED") {
         rejectedCount++;
       }
+
+      if (item.verifiedAt && item.createdAt) {
+        const diffMin =
+          (new Date(item.verifiedAt).getTime() - new Date(item.createdAt).getTime()) /
+          60000;
+        if (Number.isFinite(diffMin) && diffMin >= 0 && diffMin <= 1440) {
+          verificationMinutes.push(diffMin);
+        }
+      }
     }
 
+    const totalDecided = totalVerifiedCount + rejectedCount;
+    const computedApprovalRatePct =
+      totalDecided > 0 ? Math.round((totalVerifiedCount / totalDecided) * 100) : 100;
+
+    const computedAverageSpeed =
+      verificationMinutes.length > 0
+        ? `${(
+            verificationMinutes.reduce((acc, v) => acc + v, 0) /
+            verificationMinutes.length
+          ).toFixed(1)} min`
+        : "—";
+
     const kpis: TreasuryKpis = {
-      pendingCount,
-      pendingAmountBs,
-      pendingAmountUsd,
-      verifiedTodayCount,
-      rejectedCount,
-      averageSpeedMin: "4.2 min",
+      pendingCount: data?.kpis?.pendingCount ?? pendingCount,
+      pendingAmountBs: data?.kpis?.pendingAmountBs ?? pendingAmountBs,
+      pendingAmountUsd: data?.kpis?.pendingAmountUsd ?? pendingAmountUsd,
+      verifiedTodayCount: data?.kpis?.verifiedTodayCount ?? verifiedTodayCount,
+      rejectedCount: data?.kpis?.rejectedCount ?? rejectedCount,
+      averageSpeedMin: data?.kpis?.averageSpeedMin || computedAverageSpeed,
+      approvalRatePct: data?.kpis?.approvalRatePct ?? computedApprovalRatePct,
     };
 
     return ok({
@@ -221,15 +249,13 @@ export async function getPaymentsInboxAction(filters?: {
 }
 
 export async function verifyPaymentAction(paymentId: string): Promise<ActionResult<void>> {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "PLATFORM_ACCOUNTING",
+    "ALLY_ADMIN",
+    "ALLY_ACCOUNTING",
+  ]);
   try {
-    await requireSession([
-      "PLATFORM_ADMIN",
-      "PLATFORM_ACCOUNTING",
-      "ALLY_ADMIN",
-      "ALLY_ACCOUNTING",
-    ]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest(`/backoffice/treasury/payments/${paymentId}/verify`, {
       method: "PATCH",
       accessToken,
@@ -256,15 +282,13 @@ export async function rejectPaymentAction(
   action: "RETRY" | "CANCEL" = "RETRY",
   notes?: string,
 ): Promise<ActionResult<void>> {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "PLATFORM_ACCOUNTING",
+    "ALLY_ADMIN",
+    "ALLY_ACCOUNTING",
+  ]);
   try {
-    await requireSession([
-      "PLATFORM_ADMIN",
-      "PLATFORM_ACCOUNTING",
-      "ALLY_ADMIN",
-      "ALLY_ACCOUNTING",
-    ]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest(`/backoffice/treasury/payments/${paymentId}/reject`, {
       method: "PATCH",
       accessToken,
@@ -285,15 +309,13 @@ export async function rejectPaymentAction(
 }
 
 export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRateData>> {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "PLATFORM_ACCOUNTING",
+    "ALLY_ADMIN",
+    "ALLY_ACCOUNTING",
+  ]);
   try {
-    await requireSession([
-      "PLATFORM_ADMIN",
-      "PLATFORM_ACCOUNTING",
-      "ALLY_ADMIN",
-      "ALLY_ACCOUNTING",
-    ]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/treasury/exchange-rates", {
       accessToken,
     });
@@ -306,6 +328,7 @@ export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRat
       activeRates: any[];
       history: any[];
       lastSync?: string;
+      secondaryCurrencies?: Array<{ currency: string; symbol: string; rate: string }>;
     };
 
     const mapRate = (r: any): ExchangeRateItem => ({
@@ -336,11 +359,67 @@ export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRat
     const activeUsd = activeList.find((r) => r.currencyCode === "USD") ?? null;
     const activeEur = activeList.find((r) => r.currencyCode === "EUR") ?? null;
 
-    const secondaryCurrencies = [
-      { currency: "CNY", symbol: "¥", rate: "131,03 Bs." },
-      { currency: "TRY", symbol: "₺", rate: "17,77 Bs." },
-      { currency: "RUB", symbol: "₽", rate: "10,34 Bs." },
-    ];
+    // Attach previous rate and variation % from history ledger
+    if (activeUsd) {
+      const prevUsd = historyList.find(
+        (h) => h.currencyCode === "USD" && h.id !== activeUsd.id,
+      );
+      if (prevUsd && prevUsd.rate > 0) {
+        activeUsd.previousRate = prevUsd.rate;
+        const diffPct = ((activeUsd.rate - prevUsd.rate) / prevUsd.rate) * 100;
+        activeUsd.variationPct = `${diffPct >= 0 ? "+" : ""}${diffPct.toFixed(2)}%`;
+      }
+    }
+
+    if (activeEur) {
+      const prevEur = historyList.find(
+        (h) => h.currencyCode === "EUR" && h.id !== activeEur.id,
+      );
+      if (prevEur && prevEur.rate > 0) {
+        activeEur.previousRate = prevEur.rate;
+        const diffPct = ((activeEur.rate - prevEur.rate) / prevEur.rate) * 100;
+        activeEur.variationPct = `${diffPct >= 0 ? "+" : ""}${diffPct.toFixed(2)}%`;
+      }
+    }
+
+    // Build secondary ticker items from real active USD/EUR rates or backend response (no fake CNY/TRY/RUB)
+    const secondaryCurrencies = Array.isArray(data?.secondaryCurrencies)
+      ? data.secondaryCurrencies
+      : [
+          ...(activeUsd
+            ? [
+                {
+                  currency: "USD / VES",
+                  symbol: "$",
+                  rate: `${activeUsd.rate.toLocaleString("es-VE", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 4,
+                  })} Bs.${activeUsd.variationPct ? ` (${activeUsd.variationPct})` : ""}`,
+                },
+              ]
+            : []),
+          ...(activeEur
+            ? [
+                {
+                  currency: "EUR / VES",
+                  symbol: "€",
+                  rate: `${activeEur.rate.toLocaleString("es-VE", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 4,
+                  })} Bs.${activeEur.variationPct ? ` (${activeEur.variationPct})` : ""}`,
+                },
+              ]
+            : []),
+          ...(activeUsd && activeEur && activeUsd.rate > 0
+            ? [
+                {
+                  currency: "EUR / USD",
+                  symbol: "€/$",
+                  rate: (activeEur.rate / activeUsd.rate).toFixed(4),
+                },
+              ]
+            : []),
+        ];
 
     const latestCreatedAt = activeUsd?.createdAt || activeEur?.createdAt;
     const formattedSyncTime =
@@ -350,7 +429,7 @@ export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRat
             hour: "2-digit",
             minute: "2-digit",
           })
-        : "09:00 AM");
+        : "—");
 
     return ok({
       activeUsd,
@@ -368,10 +447,8 @@ export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRat
 export async function overrideExchangeRateAction(
   dto: ManualRateOverrideInput,
 ): Promise<ActionResult<void>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/treasury/exchange-rates/override", {
       method: "POST",
       accessToken,
@@ -403,17 +480,16 @@ export async function getSettlementsAction(filters?: {
     items: SettlementBatchItem[];
     total: number;
     kpis: SettlementsKpis;
+    organizations: Array<{ id: string; name: string }>;
   }>
 > {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "PLATFORM_ACCOUNTING",
+    "ALLY_ADMIN",
+    "ALLY_ACCOUNTING",
+  ]);
   try {
-    await requireSession([
-      "PLATFORM_ADMIN",
-      "PLATFORM_ACCOUNTING",
-      "ALLY_ADMIN",
-      "ALLY_ACCOUNTING",
-    ]);
-    const accessToken = await getAuthToken();
-
     const query = new URLSearchParams();
     if (filters?.organizationId && filters.organizationId !== "ALL") {
       query.set("organizationId", filters.organizationId);
@@ -426,7 +502,11 @@ export async function getSettlementsAction(filters?: {
       query.toString() ? `?${query.toString()}` : ""
     }`;
 
-    const res = await backendRequest(endpoint, { accessToken });
+    const [res, venuesRes] = await Promise.all([
+      backendRequest(endpoint, { accessToken }),
+      backendRequest("/backoffice/venues", { accessToken }).catch(() => null),
+    ]);
+
     if (!res.ok) {
       return fail("FAILED_TO_LOAD_SETTLEMENTS");
     }
@@ -435,6 +515,7 @@ export async function getSettlementsAction(filters?: {
       total: number;
       items: any[];
       cycleDeadline?: string;
+      organizations?: Array<{ id: string; name?: string; tradeName?: string }>;
     };
     const rawItems = data?.items ?? [];
 
@@ -445,6 +526,36 @@ export async function getSettlementsAction(filters?: {
     let disbursedAmount = 0;
     let disbursedCount = 0;
     let totalReservations = 0;
+
+    const orgMap = new Map<string, { id: string; name: string }>();
+
+    if (Array.isArray(data?.organizations)) {
+      for (const org of data.organizations) {
+        if (org?.id) {
+          orgMap.set(org.id, {
+            id: org.id,
+            name: org.tradeName || org.name || "Organización Aliada",
+          });
+        }
+      }
+    }
+
+    if (venuesRes?.ok && venuesRes.body) {
+      const venuesBody = venuesRes.body as any;
+      const rawVenues: any[] = Array.isArray(venuesBody)
+        ? venuesBody
+        : Array.isArray(venuesBody.items)
+          ? venuesBody.items
+          : [];
+      for (const v of rawVenues) {
+        const orgId = v.organizationId || v.organization?.id;
+        const orgName =
+          v.organization?.tradeName || v.organization?.legalName || v.organizationName;
+        if (orgId && orgName && !orgMap.has(orgId)) {
+          orgMap.set(orgId, { id: String(orgId), name: String(orgName) });
+        }
+      }
+    }
 
     const items: SettlementBatchItem[] = rawItems.map((b) => {
       const gross = Number(b.grossAmount ?? 0);
@@ -464,13 +575,19 @@ export async function getSettlementsAction(filters?: {
         pendingCount++;
       }
 
+      const orgId = b.organization?.id ?? b.organizationId;
+      const orgTradeName = b.organization?.tradeName ?? "Organización Aliada";
+      if (orgId && !orgMap.has(orgId)) {
+        orgMap.set(orgId, { id: String(orgId), name: String(orgTradeName) });
+      }
+
       return {
         id: b.id,
         batchCode: b.batchCode,
         organizationId: b.organizationId,
         organization: {
-          id: b.organization?.id ?? b.organizationId,
-          tradeName: b.organization?.tradeName ?? "Organización Aliada",
+          id: orgId,
+          tradeName: orgTradeName,
           legalName: b.organization?.legalName ?? "Razón Social",
           rif: b.organization?.rif ?? "J-00000000-0",
           payoutBank: b.organization?.payoutBank ?? null,
@@ -550,6 +667,7 @@ export async function getSettlementsAction(filters?: {
       items,
       total: data?.total ?? items.length,
       kpis,
+      organizations: Array.from(orgMap.values()),
     });
   } catch (e) {
     console.error("[treasury] getSettlementsAction failed:", e);
@@ -560,15 +678,13 @@ export async function getSettlementsAction(filters?: {
 export async function getSettlementDetailAction(
   id: string,
 ): Promise<ActionResult<SettlementBatchItem>> {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "PLATFORM_ACCOUNTING",
+    "ALLY_ADMIN",
+    "ALLY_ACCOUNTING",
+  ]);
   try {
-    await requireSession([
-      "PLATFORM_ADMIN",
-      "PLATFORM_ACCOUNTING",
-      "ALLY_ADMIN",
-      "ALLY_ACCOUNTING",
-    ]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest(`/backoffice/settlements/${id}`, {
       accessToken,
     });
@@ -634,62 +750,92 @@ export async function getSettlementDetailAction(
         : null,
       notes: b.notes ?? null,
       createdAt: b.createdAt ? String(b.createdAt) : "",
-      items: (b.items ?? []).map((it: any) => ({
-        id: it.id,
-        settlementBatchId: it.settlementBatchId,
-        reservationId: it.reservationId,
-        paymentId: it.paymentId ?? null,
-        courtSubtotal: Number(it.courtSubtotal ?? 0),
-        serviceFee: Number(it.serviceFee ?? 0),
-        netAllyAmount: Number(it.netAllyAmount ?? 0),
-        createdAt: it.createdAt ? String(it.createdAt) : "",
-        reservation: it.reservation
-          ? {
-              id: it.reservation.id,
-              shortCode: it.reservation.shortCode ?? "---",
-              reservationDate: it.reservation.reservationDate
-                ? String(it.reservation.reservationDate).slice(0, 10)
-                : "",
-              startTime: it.reservation.startTime
-                ? String(it.reservation.startTime).slice(11, 16)
-                : "",
-              endTime: it.reservation.endTime
-                ? String(it.reservation.endTime).slice(11, 16)
-                : "",
-              client: it.reservation.client
-                ? {
-                    id: it.reservation.client.id,
-                    name: it.reservation.client.name,
-                    lastName: it.reservation.client.lastName,
-                  }
-                : undefined,
-              space: it.reservation.space
-                ? {
-                    id: it.reservation.space.id,
-                    spaceNumber: it.reservation.space.spaceNumber,
-                    activityCategory: it.reservation.space.activityCategory
-                      ? {
-                          name: it.reservation.space.activityCategory.name,
-                          activity: it.reservation.space.activityCategory.activity
-                            ? {
-                                name: it.reservation.space.activityCategory.activity.name,
-                              }
-                            : undefined,
-                        }
-                      : undefined,
-                  }
-                : undefined,
-            }
-          : undefined,
-        payment: it.payment
-          ? {
-              id: it.payment.id,
-              paymentMethod: it.payment.paymentMethod,
-              referenceNumber: it.payment.referenceNumber ?? null,
-              amount: Number(it.payment.amount ?? 0),
-            }
-          : null,
-      })),
+      items: (b.items ?? []).map((it: any) => {
+        const resolveName = (val: unknown, fallback = ""): string => {
+          if (!val) return fallback;
+          if (typeof val === "string") return val;
+          if (typeof val === "object") {
+            const obj = val as Record<string, unknown>;
+            if (typeof obj.es === "string") return obj.es;
+            if (typeof obj.en === "string") return obj.en;
+            const first = Object.values(obj).find((v) => typeof v === "string");
+            if (typeof first === "string") return first;
+          }
+          return fallback;
+        };
+
+        const rawServiceFee = Number(it.serviceFee ?? 0);
+        const rawAllyComm = Number(it.allyCommission ?? 0);
+        const effectiveFee =
+          it.totalPlatformFee !== null && it.totalPlatformFee !== undefined
+            ? Number(it.totalPlatformFee)
+            : rawServiceFee + rawAllyComm;
+
+        return {
+          id: it.id,
+          settlementBatchId: it.settlementBatchId,
+          reservationId: it.reservationId,
+          paymentId: it.paymentId ?? null,
+          courtSubtotal: Number(it.courtSubtotal ?? 0),
+          serviceFee: effectiveFee,
+          netAllyAmount: Number(it.netAllyAmount ?? 0),
+          createdAt: it.createdAt ? String(it.createdAt) : "",
+          reservation: it.reservation
+            ? {
+                id: it.reservation.id,
+                shortCode: it.reservation.shortCode ?? "---",
+                reservationDate: it.reservation.reservationDate
+                  ? String(it.reservation.reservationDate).slice(0, 10)
+                  : "",
+                startTime: it.reservation.startTime
+                  ? String(it.reservation.startTime).slice(11, 16)
+                  : "",
+                endTime: it.reservation.endTime
+                  ? String(it.reservation.endTime).slice(11, 16)
+                  : "",
+                client: it.reservation.client
+                  ? {
+                      id: it.reservation.client.id,
+                      name: resolveName(it.reservation.client.name, "Cliente"),
+                      lastName: resolveName(it.reservation.client.lastName, ""),
+                    }
+                  : it.reservation.customerName
+                    ? {
+                        id: "walk-in",
+                        name: String(it.reservation.customerName),
+                        lastName: "",
+                      }
+                    : undefined,
+                space: it.reservation.space
+                  ? {
+                      id: it.reservation.space.id,
+                      spaceNumber: resolveName(it.reservation.space.spaceNumber, "Cancha"),
+                      activityCategory: it.reservation.space.activityCategory
+                        ? {
+                            name: resolveName(it.reservation.space.activityCategory.name),
+                            activity: it.reservation.space.activityCategory.activity
+                              ? {
+                                  name: resolveName(
+                                    it.reservation.space.activityCategory.activity.name,
+                                  ),
+                                }
+                              : undefined,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+              }
+            : undefined,
+          payment: it.payment
+            ? {
+                id: it.payment.id,
+                paymentMethod: it.payment.paymentMethod,
+                referenceNumber: it.payment.referenceNumber ?? null,
+                amount: Number(it.payment.amount ?? 0),
+              }
+            : null,
+        };
+      }),
     };
 
     return ok(item);
@@ -703,10 +849,8 @@ export async function disburseSettlementAction(
   id: string,
   dto: DisburseSettlementInput,
 ): Promise<ActionResult<void>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest(`/backoffice/settlements/${id}/disburse`, {
       method: "POST",
       accessToken,
@@ -736,15 +880,13 @@ export async function reportInvoicePaymentAction(
   id: string,
   dto: DisburseSettlementInput,
 ): Promise<ActionResult<void>> {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "PLATFORM_ACCOUNTING",
+    "ALLY_ADMIN",
+    "ALLY_ACCOUNTING",
+  ]);
   try {
-    await requireSession([
-      "PLATFORM_ADMIN",
-      "PLATFORM_ACCOUNTING",
-      "ALLY_ADMIN",
-      "ALLY_ACCOUNTING",
-    ]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest(`/backoffice/settlements/${id}/report-payment`, {
       method: "POST",
       accessToken,
@@ -773,10 +915,8 @@ export async function reportInvoicePaymentAction(
 export async function syncBcvExchangeRatesAction(): Promise<
   ActionResult<{ message: string; usdRate?: number; eurRate?: number }>
 > {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/treasury/exchange-rates/sync", {
       method: "POST",
       accessToken,
@@ -802,10 +942,8 @@ export async function generateSettlementBatchAction(input: {
   periodEndDate: string;
   venueId?: string;
 }): Promise<ActionResult<any>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING"]);
   try {
-    await requireSession(["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING"]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest("/backoffice/settlements/generate", {
       method: "POST",
       accessToken,
@@ -829,15 +967,13 @@ export async function exportSettlementBankingFileAction(
   id: string,
   format: "BDV" | "BANESCO" | "PAGO_MOVIL" | "CSV" = "CSV",
 ): Promise<ActionResult<{ filename: string; mimeType: string; content: string }>> {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "PLATFORM_ACCOUNTING",
+    "ALLY_ADMIN",
+    "ALLY_ACCOUNTING",
+  ]);
   try {
-    await requireSession([
-      "PLATFORM_ADMIN",
-      "PLATFORM_ACCOUNTING",
-      "ALLY_ADMIN",
-      "ALLY_ACCOUNTING",
-    ]);
-    const accessToken = await getAuthToken();
-
     const res = await backendRequest(`/backoffice/settlements/${id}/export?format=${format}`, {
       accessToken,
     });
