@@ -16,6 +16,7 @@ import type { SessionUser } from "@/shared/auth";
 import { ROUTES } from "@/shared/config";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
 import { LanguageSwitcher } from "@/shared/ui/language-switcher";
+import { PwaInstallButton } from "@/shared/ui/pwa-register";
 import { TimeFormatToggle } from "@/shared/lib";
 import { logoutAction } from "@/features/auth/actions/logout-action";
 import { VenueHeaderSelector } from "@/features/venues/ui/venue-header-selector";
@@ -126,6 +127,9 @@ export function AppHeader({
             <span className="hidden sm:inline">{t("btnNewWalkin")}</span>
           </Link>
         )}
+
+        {/* PWA One-Click Install CTA */}
+        <PwaInstallButton />
 
         {/* Time Format, Theme and Language */}
         <TimeFormatToggle />

@@ -24,6 +24,7 @@ import type {
 } from "@/features/agenda/model/types";
 
 import { useActiveVenue } from "@/features/venues/context/venue-context";
+import { todayInTimezone } from "@/shared/lib";
 
 export interface AgendaPageProps {
   initialAgenda: AgendaData | null;
@@ -36,7 +37,9 @@ export function AgendaPage({ initialAgenda, initialVenues }: AgendaPageProps) {
   const { activeVenueId: globalVenueId, setActiveVenueId: setGlobalVenueId } = useActiveVenue();
 
   // Active state
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = todayInTimezone(
+    initialAgenda?.timezone || initialAgenda?.venue?.timezone || "America/Caracas",
+  );
   const [selectedDate, setSelectedDate] = useState(
     initialAgenda?.date || todayStr,
   );
@@ -235,6 +238,7 @@ export function AgendaPage({ initialAgenda, initialVenues }: AgendaPageProps) {
         onSportChange={setSelectedSport}
         sportsList={sportsList}
         totalCourtsCount={allSpaces.length}
+        venueTimezone={agenda?.timezone || agenda?.venue?.timezone || "America/Caracas"}
       />
 
       {/* Main Multi-Court Grid Matrix */}

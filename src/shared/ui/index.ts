@@ -10,3 +10,8 @@ export {
 } from "./status-badge";
 export { StatusScreen } from "./status-screen";
 export { ThemeToggle } from "./theme-toggle";
+export {
+  PwaInstallButton,
+  PwaRegister,
+  triggerPwaInstall,
+} from "./pwa-register";

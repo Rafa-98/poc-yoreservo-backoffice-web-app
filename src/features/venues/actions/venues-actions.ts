@@ -99,6 +99,7 @@ function mapVenueItem(v: any): VenueItem {
     address: String(v?.address ?? ""),
     contactPhone: String(v?.contactPhone ?? ""),
     contactEmail: v?.contactEmail ? String(v.contactEmail) : undefined,
+    timezone: v?.timezone ? String(v.timezone) : "America/Caracas",
     status: v?.status ?? "ACTIVE",
     imageUrl: v?.imageUrl ?? null,
     locationLat: Number(v?.locationLat ?? 0),

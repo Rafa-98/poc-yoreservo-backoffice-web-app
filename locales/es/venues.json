@@ -105,6 +105,7 @@
     "statusLabel": "Estatus Operativo *",
     "statusOptionActive": "● Activo en App",
     "statusOptionReview": "⏳ En Verificación / Auditoría",
+    "timezoneLabel": "Zona Horaria de la Sede (IANA) *",
     "geoTitle": "Ubicación Geográfica (Modelo Location)",
     "state": "Estado *",
     "city": "Ciudad *",

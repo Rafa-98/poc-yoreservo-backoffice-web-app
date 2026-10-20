@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useTimeFormat } from "@/shared/lib/time-format";
+import { todayInTimezone } from "@/shared/lib";
 import { Button } from "@/shared/ui/button";
 import { getSpacesAction } from "@/features/venues/actions/venues-actions";
 import { createWalkInReservationAction } from "../actions/reservations-actions";
@@ -48,7 +49,7 @@ export function WalkInModal({
   );
   const [loadingSpaces, setLoadingSpaces] = useState(false);
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = todayInTimezone("America/Caracas");
   const [date, setDate] = useState(todayStr);
   const [startTime, setStartTime] = useState("17:00");
   const [duration, setDuration] = useState("90");

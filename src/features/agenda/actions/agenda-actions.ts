@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { backendRequest } from "@/shared/api/index.server";
 import { requireSessionWithToken } from "@/shared/auth/index.server";
-import { fail, ok, type ActionResult } from "@/shared/lib";
+import {
+  fail,
+  getTimezoneOffsetLabel,
+  ok,
+  todayInTimezone,
+  type ActionResult,
+} from "@/shared/lib";
 import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
 import type { AgendaData, VenueRef } from "../model/types";
 
@@ -52,7 +58,7 @@ export async function getAgendaAction(
 
     // 2. Resolve date YYYY-MM-DD
     const resolvedDate =
-      date || new Date().toISOString().split("T")[0];
+      date || todayInTimezone("America/Caracas");
 
     const res = await backendRequest(
       `/backoffice/agenda?venueId=${encodeURIComponent(resolvedVenueId)}&date=${resolvedDate}`,
@@ -65,6 +71,10 @@ export async function getAgendaAction(
     }
 
     const raw = res.body as AgendaData;
+    const resolvedTimezone = raw.timezone || raw.venue?.timezone || "America/Caracas";
+    const resolvedTimezoneOffset =
+      raw.timezoneOffset || getTimezoneOffsetLabel(resolvedTimezone);
+
     let bcvRate = raw.bcvRate && Number(raw.bcvRate) > 0 ? Number(raw.bcvRate) : undefined;
     if (!bcvRate) {
       try {
@@ -85,6 +95,8 @@ export async function getAgendaAction(
 
     return ok({
       ...raw,
+      timezone: resolvedTimezone,
+      timezoneOffset: resolvedTimezoneOffset,
       bcvRate,
     });
   } catch (error) {

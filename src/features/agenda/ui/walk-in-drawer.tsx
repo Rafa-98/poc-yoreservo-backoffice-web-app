@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { DEFAULT_BCV_USD_RATE, useTimeFormat } from "@/shared/lib";
+import { DEFAULT_BCV_USD_RATE, todayInTimezone, useTimeFormat } from "@/shared/lib";
 import { Button } from "@/shared/ui/button";
 import { Alert } from "@/shared/ui/alert";
 import type { CourtSpace } from "../model/types";
@@ -41,6 +41,7 @@ export function WalkInDrawer({
 
   if (!isOpen || !court) return null;
 
+  const effectiveDate = selectedDate || todayInTimezone("America/Caracas");
   const [h] = startTime.split(":").map(Number);
   const endTime = `${String(h + 1).padStart(2, "0")}:00`;
   const price = court.pricePerHour;
@@ -53,7 +54,7 @@ export function WalkInDrawer({
 
     const res = await createWalkInAction({
       spaceId: court.id,
-      reservationDate: selectedDate,
+      reservationDate: effectiveDate,
       startTime,
       endTime,
       customerName,

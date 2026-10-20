@@ -76,6 +76,8 @@ export interface AgendaData {
   venue: VenueRef;
   date: string;
   dayOfWeek: number;
+  timezone?: string;
+  timezoneOffset?: string;
   bcvRate?: number;
   kpis?: AgendaKpis;
   spaces: CourtSpace[];

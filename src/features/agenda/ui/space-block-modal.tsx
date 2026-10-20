@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ShieldAlert, Trash2, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useTimeFormat } from "@/shared/lib";
+import { todayInTimezone, useTimeFormat } from "@/shared/lib";
 import { Button } from "@/shared/ui/button";
 import type { CourtBlock, CourtSpace } from "../model/types";
 import {
@@ -39,6 +39,7 @@ export function SpaceBlockModal({
 
   if (!isOpen || !court) return null;
 
+  const effectiveDate = selectedDate || todayInTimezone("America/Caracas");
   const [h] = startTime.split(":").map(Number);
   const endTime = `${String(h + 1).padStart(2, "0")}:00`;
 
@@ -48,7 +49,7 @@ export function SpaceBlockModal({
 
     await createBlockAction({
       spaceId: court.id,
-      blockDate: selectedDate,
+      blockDate: effectiveDate,
       startTime,
       endTime,
       reason,

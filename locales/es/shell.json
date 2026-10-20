@@ -36,5 +36,9 @@
   "roleAccounting": "Contabilidad",
   "activeRole": "Rol activo",
   "openMenu": "Abrir menú",
-  "closeMenu": "Cerrar menú"
+  "closeMenu": "Cerrar menú",
+  "btnInstallApp": "📲 Instalar App",
+  "pwaBannerTitle": "Instalar YR BackOffice",
+  "pwaBannerDesc": "Acceso directo en tu dispositivo con modo pantalla completa.",
+  "pwaDismiss": "Ahora no"
 }

@@ -118,5 +118,8 @@
   "blockNotesPlaceholder": "Detalles adicionales sobre el cierre...",
   "blockCreatedBy": "Registrado por: {name}",
   "btnConfirmBlock": "Confirmar Bloqueo de Turno",
-  "btnUnblock": "Desbloquear Turno"
+  "btnUnblock": "Desbloquear Turno",
+  "timezoneBadgeTitle": "Zona horaria oficial de la sede ({timezone} · {offset})",
+  "timezoneDiffWarning": "Horario oficial de la sede ({timezone}). Tu navegador está en {browserTz}.",
+  "timezoneAnchoredHint": "Horas en horario de sede"
 }

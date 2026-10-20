@@ -118,5 +118,8 @@
   "blockNotesPlaceholder": "Additional details about the closure...",
   "blockCreatedBy": "Recorded by: {name}",
   "btnConfirmBlock": "Confirm Slot Block",
-  "btnUnblock": "Unblock Slot"
+  "btnUnblock": "Unblock Slot",
+  "timezoneBadgeTitle": "Venue official timezone ({timezone} · {offset})",
+  "timezoneDiffWarning": "Venue local time ({timezone}). Your browser is in {browserTz}.",
+  "timezoneAnchoredHint": "Hours in venue time"
 }

@@ -17,6 +17,7 @@ import type {
 } from "@/features/reservations/model/types";
 
 import { useActiveVenue } from "@/features/venues/context/venue-context";
+import { addDaysToIsoDate, todayInTimezone } from "@/shared/lib";
 
 interface ReservationsPageProps {
   initialReservations: ReservationItem[];
@@ -106,23 +107,18 @@ export function ReservationsPage({
 
       // 6. Date Filter
       if (filter.dateFilter && filter.dateFilter !== "all") {
-        const now = new Date();
-        const today = now.toISOString().split("T")[0];
-        const d = new Date(now);
-        d.setDate(d.getDate() + 1);
-        const tomorrow = d.toISOString().split("T")[0];
+        const today = todayInTimezone("America/Caracas");
+        const tomorrow = addDaysToIsoDate(today, 1);
 
         if (filter.dateFilter === "today" && res.date !== today) return false;
         if (filter.dateFilter === "tomorrow" && res.date !== tomorrow) return false;
         if (filter.dateFilter === "week") {
-          const day = now.getDay();
+          const [ty, tm, td] = today.split("-").map(Number);
+          const todayUtc = new Date(Date.UTC(ty, tm - 1, td));
+          const day = todayUtc.getUTCDay();
           const diffToMon = (day + 6) % 7;
-          const mon = new Date(now);
-          mon.setDate(now.getDate() - diffToMon);
-          const sun = new Date(mon);
-          sun.setDate(mon.getDate() + 6);
-          const weekStart = mon.toISOString().split("T")[0];
-          const weekEnd = sun.toISOString().split("T")[0];
+          const weekStart = addDaysToIsoDate(today, -diffToMon);
+          const weekEnd = addDaysToIsoDate(weekStart, 6);
           if (res.date < weekStart || res.date > weekEnd) return false;
         }
         if (filter.dateFilter === "month") {
@@ -191,7 +187,7 @@ export function ReservationsPage({
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `reservas_yoreservo_${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute("download", `reservas_yoreservo_${todayInTimezone("America/Caracas")}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

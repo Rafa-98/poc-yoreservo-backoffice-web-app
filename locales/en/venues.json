@@ -105,6 +105,7 @@
     "statusLabel": "Operational Status *",
     "statusOptionActive": "● Active in App",
     "statusOptionReview": "⏳ Under Audit / Verification",
+    "timezoneLabel": "Venue Timezone (IANA) *",
     "geoTitle": "Geographic Hierarchy (Location Model)",
     "state": "State *",
     "city": "City *",

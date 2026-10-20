@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
+import { COMMON_IANA_TIMEZONES, DEFAULT_VENUE_TIMEZONE } from "@/shared/lib";
 import { uploadBackofficeFileAction } from "@/shared/api/upload-action";
 import type { CreateVenueInput, LocationNode, UpdateVenueInput, VenueItem } from "../model/types";
 import { createVenueAction, updateVenueAction } from "../actions/venues-actions";
@@ -30,6 +31,7 @@ export function VenueModal({
   const [name, setName] = useState("");
   const [rif, setRif] = useState("");
   const [address, setAddress] = useState("");
+  const [timezone, setTimezone] = useState<string>(DEFAULT_VENUE_TIMEZONE);
   const [status, setStatus] = useState<"ACTIVE" | "PENDING_VERIFICATION">("ACTIVE");
   const [imageUrl, setImageUrl] = useState("");
 
@@ -148,6 +150,7 @@ export function VenueModal({
       setName(venue.name || "");
       setRif(venue.rif || "");
       setAddress(venue.address || "");
+      setTimezone(venue.timezone || DEFAULT_VENUE_TIMEZONE);
       setStatus(venue.status === "PENDING_VERIFICATION" ? "PENDING_VERIFICATION" : "ACTIVE");
       setImageUrl(venue.imageUrl || "");
 
@@ -167,6 +170,7 @@ export function VenueModal({
       setName("");
       setRif("");
       setAddress("");
+      setTimezone(DEFAULT_VENUE_TIMEZONE);
       setStatus("ACTIVE");
       setImageUrl("");
       setCountryCode("+58");
@@ -237,6 +241,7 @@ export function VenueModal({
         address,
         contactPhone: formattedPhone,
         locationId: chosenLocationId,
+        timezone,
         status,
         imageUrl: imageUrl.trim() || undefined,
       };
@@ -256,6 +261,7 @@ export function VenueModal({
         address,
         contactPhone: formattedPhone,
         locationId: chosenLocationId,
+        timezone,
         status,
         imageUrl: imageUrl.trim() || undefined,
       };
@@ -366,6 +372,30 @@ export function VenueModal({
                 <option value="PENDING_VERIFICATION">{t("statusOptionReview")}</option>
               </select>
             </div>
+          </div>
+
+          <div className="form-group mb-3.5">
+            <label
+              className="form-label mb-1 block text-xs font-semibold text-foreground"
+              htmlFor="venue-timezone-select"
+            >
+              🌎 {t("timezoneLabel")}
+            </label>
+            <select
+              id="venue-timezone-select"
+              className="input-field form-select"
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+            >
+              {!COMMON_IANA_TIMEZONES.some((tz) => tz.value === timezone) && (
+                <option value={timezone}>{timezone}</option>
+              )}
+              {COMMON_IANA_TIMEZONES.map((tz) => (
+                <option key={tz.value} value={tz.value}>
+                  {tz.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* CASCADING GEOGRAPHY SELECTOR */}

@@ -5,6 +5,7 @@ import { fontDisplay, fontSans } from "@/_app/fonts";
 import { Providers } from "@/_app/providers";
 import "@/_app/styles/globals.css";
 import { SITE } from "@/shared/config";
+import { PwaRegister } from "@/shared/ui/pwa-register";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("meta");
@@ -16,6 +17,21 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description: t("description"),
     applicationName: `${SITE.name} ${SITE.surface}`,
+    manifest: "/manifest.webmanifest",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black-translucent",
+      title: "YR BackOffice",
+    },
+    icons: {
+      icon: [
+        { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+        { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+      ],
+      apple: [
+        { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      ],
+    },
     // Internal operations panel: never indexed.
     robots: { index: false, follow: false },
   };
@@ -24,12 +40,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
   // The app ships its own light and dark themes (see shared/lib/theme).
   colorScheme: "light dark",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f8faf7" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b100b" },
-  ],
+  themeColor: "#1F290F",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
@@ -44,7 +58,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body>
         <NextIntlClientProvider>
-          <Providers>{children}</Providers>
+          <Providers>
+            {children}
+            <PwaRegister />
+          </Providers>
         </NextIntlClientProvider>
       </body>
     </html>

@@ -1,8 +1,16 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { TimeFormatToggle } from "@/shared/lib";
+import {
+  addDaysToIsoDate,
+  DEFAULT_VENUE_TIMEZONE,
+  getBrowserTimezone,
+  getTimezoneOffsetLabel,
+  isTimezoneDifferentFromBrowser,
+  TimeFormatToggle,
+  todayInTimezone,
+} from "@/shared/lib";
 
 export interface AgendaControlsBarProps {
   selectedDate: string;
@@ -11,6 +19,7 @@ export interface AgendaControlsBarProps {
   onSportChange: (sport: string) => void;
   sportsList: { key: string; label: string; count: number }[];
   totalCourtsCount: number;
+  venueTimezone?: string;
 }
 
 export function AgendaControlsBar({
@@ -20,22 +29,28 @@ export function AgendaControlsBar({
   onSportChange,
   sportsList,
   totalCourtsCount,
+  venueTimezone = DEFAULT_VENUE_TIMEZONE,
 }: AgendaControlsBarProps) {
   const t = useTranslations("agenda");
+  const [mounted, setMounted] = useState(false);
 
-  const today = new Date();
-  const todayStr = today.toISOString().split("T")[0];
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const tomorrow = new Date();
-  tomorrow.setDate(today.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split("T")[0];
+  const todayStr = todayInTimezone(venueTimezone);
+  const tomorrowStr = addDaysToIsoDate(todayStr, 1);
+  const dayAfterStr = addDaysToIsoDate(todayStr, 2);
 
-  const dayAfter = new Date();
-  dayAfter.setDate(today.getDate() + 2);
-  const dayAfterStr = dayAfter.toISOString().split("T")[0];
+  const offsetLabel = getTimezoneOffsetLabel(venueTimezone);
+  const isDifferentTz = mounted && isTimezoneDifferentFromBrowser(venueTimezone);
+  const browserTz = mounted ? getBrowserTimezone() : DEFAULT_VENUE_TIMEZONE;
 
-  const formatDateDisplay = (dateObj: Date) => {
-    return dateObj.toLocaleDateString("es-ES", {
+  const formatIsoDateDisplay = (isoDate: string) => {
+    const [y, m, d] = isoDate.split("-").map(Number);
+    if (!y || !m || !d) return isoDate;
+    const localDate = new Date(y, m - 1, d);
+    return localDate.toLocaleDateString("es-ES", {
       day: "numeric",
       month: "short",
     });
@@ -56,7 +71,7 @@ export function AgendaControlsBar({
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t("dateToday")} ({formatDateDisplay(today)})
+              {t("dateToday")} ({formatIsoDateDisplay(todayStr)})
             </button>
             <button
               type="button"
@@ -67,7 +82,7 @@ export function AgendaControlsBar({
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t("dateTomorrow")} ({formatDateDisplay(tomorrow)})
+              {t("dateTomorrow")} ({formatIsoDateDisplay(tomorrowStr)})
             </button>
             <button
               type="button"
@@ -78,7 +93,7 @@ export function AgendaControlsBar({
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {formatDateDisplay(dayAfter)}
+              {formatIsoDateDisplay(dayAfterStr)}
             </button>
           </div>
 
@@ -94,6 +109,33 @@ export function AgendaControlsBar({
 
           {/* AM/PM | 24h Selector */}
           <TimeFormatToggle />
+
+          {/* Venue Timezone Badge */}
+          <div
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground"
+            title={t("timezoneBadgeTitle", {
+              timezone: venueTimezone,
+              offset: offsetLabel,
+            })}
+          >
+            <span>🌎</span>
+            <span className="font-mono text-foreground">{venueTimezone}</span>
+            <span>·</span>
+            <span className="font-mono">{offsetLabel}</span>
+          </div>
+
+          {isDifferentTz && (
+            <div
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-400"
+              title={t("timezoneDiffWarning", {
+                timezone: venueTimezone,
+                browserTz,
+              })}
+            >
+              <span>🕒</span>
+              <span>{t("timezoneAnchoredHint")}</span>
+            </div>
+          )}
         </div>
 
         {/* Live Legend Chips */}

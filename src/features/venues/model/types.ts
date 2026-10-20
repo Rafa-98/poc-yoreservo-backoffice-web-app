@@ -109,6 +109,7 @@ export interface VenueItem {
   address: string;
   contactPhone: string;
   contactEmail?: string;
+  timezone?: string;
   status: "ACTIVE" | "INACTIVE" | "PENDING_VERIFICATION";
   imageUrl: string | null;
   locationLat: number;
@@ -131,6 +132,7 @@ export interface CreateVenueInput {
   locationId: string;
   address: string;
   contactPhone: string;
+  timezone?: string;
   status?: "ACTIVE" | "INACTIVE" | "PENDING_VERIFICATION";
   imageUrl?: string;
   locationLat?: number;
@@ -144,6 +146,7 @@ export interface UpdateVenueInput {
   locationId?: string;
   address?: string;
   contactPhone?: string;
+  timezone?: string;
   status?: "ACTIVE" | "INACTIVE" | "PENDING_VERIFICATION";
   imageUrl?: string;
   amenities?: string[];
