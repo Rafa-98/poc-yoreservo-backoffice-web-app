@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
-import { TimeFormatToggle, useTimeFormat } from "@/shared/lib/time-format";
+import { useTimeFormat } from "@/shared/lib/time-format";
 import { Button } from "@/shared/ui/button";
 import type { ActiveSessionItem } from "../model/types";
 
@@ -56,7 +56,6 @@ export function ActiveSessionsTable({
         </div>
 
         <div className="flex items-center gap-2.5">
-          <TimeFormatToggle size="xs" />
           <Button
             type="button"
             variant="destructive"

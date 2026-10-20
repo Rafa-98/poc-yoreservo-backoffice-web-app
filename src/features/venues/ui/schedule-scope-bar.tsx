@@ -2,7 +2,6 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { TimeFormatToggle } from "@/shared/lib";
 import type { SpaceItem, VenueItem } from "../model/types";
 
 interface ScheduleScopeBarProps {
@@ -124,7 +123,6 @@ export function ScheduleScopeBar({
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <TimeFormatToggle />
           {onApplyStandardTemplate && (
             <button
               type="button"

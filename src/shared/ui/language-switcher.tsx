@@ -59,12 +59,12 @@ export function LanguageSwitcher({ className }: { className?: string }) {
         aria-controls={open ? menuId : undefined}
         aria-busy={isPending || undefined}
         className={cn(
-          "inline-flex h-11 items-center gap-1.5 rounded-full border border-border bg-surface/70 px-3.5 text-sm font-semibold text-foreground backdrop-blur transition-all",
+          "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-surface px-2.5 text-xs font-bold text-foreground shadow-2xs transition-all",
           "hover:bg-muted active:scale-95",
           isPending && "opacity-70",
         )}
       >
-        <Globe aria-hidden="true" className="size-5" />
+        <Globe aria-hidden="true" className="size-3.5 text-muted-foreground" />
         <span aria-hidden="true" className="uppercase">
           {activeLocale}
         </span>

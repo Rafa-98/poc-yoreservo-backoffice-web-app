@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Laptop, Smartphone, Ban, ShieldCheck } from "lucide-react";
-import { TimeFormatToggle, useTimeFormat } from "@/shared/lib/time-format";
+import { useTimeFormat } from "@/shared/lib/time-format";
 import type { ProfileSessionItem } from "../model/types";
 
 interface ProfileSessionsListProps {
@@ -37,7 +37,6 @@ export function ProfileSessionsList({
         </div>
 
         <div className="flex items-center gap-2.5 self-start sm:self-auto">
-          <TimeFormatToggle size="xs" />
           {otherSessionsCount > 0 && (
             <button
               type="button"

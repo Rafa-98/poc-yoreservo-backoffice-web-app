@@ -1,23 +1,28 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ROUTES } from "@/shared/config";
-import type { VenueItem } from "../model/types";
+import type { LocationNode, VenueItem } from "../model/types";
+import { BackofficeLocationSelect } from "./backoffice-location-select";
 
 interface VenueCardGridProps {
   venues: VenueItem[];
+  locationsTree?: LocationNode[];
   onOpenEditVenue: (venue: VenueItem) => void;
   onOpenCreateVenue: () => void;
 }
 
 export function VenueCardGrid({
   venues,
+  locationsTree = [],
   onOpenEditVenue,
   onOpenCreateVenue,
 }: VenueCardGridProps) {
   const t = useTranslations("venues.venues");
+  const [selectedLocationId, setSelectedLocationId] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   function getLocationString(venue: VenueItem): string {
     const loc = venue.location;
@@ -41,6 +46,71 @@ export function VenueCardGrid({
     }
     return `📍 ${hood || t("defaultLocation")}`;
   }
+
+  const filteredVenues = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+
+    // Collect descendant city/neighborhood IDs if selectedLocationId is in locationsTree
+    const matchingLocationIds = new Set<string>();
+    if (selectedLocationId) {
+      matchingLocationIds.add(selectedLocationId);
+      for (const st of locationsTree) {
+        if (st.id === selectedLocationId) {
+          for (const ct of st.children ?? []) {
+            matchingLocationIds.add(ct.id);
+            for (const hd of ct.children ?? []) {
+              matchingLocationIds.add(hd.id);
+            }
+          }
+        } else {
+          for (const ct of st.children ?? []) {
+            if (ct.id === selectedLocationId) {
+              for (const hd of ct.children ?? []) {
+                matchingLocationIds.add(hd.id);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return venues.filter((venue) => {
+      if (selectedLocationId) {
+        const vStateId =
+          venue.stateId ||
+          venue.location?.parent?.parent?.id ||
+          venue.location?.parent?.parentLocationId ||
+          venue.location?.parent?.parentId ||
+          "";
+        const vCityId =
+          venue.cityId ||
+          venue.location?.parent?.id ||
+          venue.location?.parentLocationId ||
+          venue.location?.parentId ||
+          "";
+        const vHoodId =
+          venue.neighborhoodId || venue.locationId || venue.location?.id || "";
+
+        const matchesLoc =
+          matchingLocationIds.has(vStateId) ||
+          matchingLocationIds.has(vCityId) ||
+          matchingLocationIds.has(vHoodId);
+        if (!matchesLoc) return false;
+      }
+
+      if (q) {
+        const locStr = getLocationString(venue).toLowerCase();
+        const matchesQuery =
+          venue.name.toLowerCase().includes(q) ||
+          venue.address.toLowerCase().includes(q) ||
+          (venue.rif && venue.rif.toLowerCase().includes(q)) ||
+          locStr.includes(q);
+        if (!matchesQuery) return false;
+      }
+
+      return true;
+    });
+  }, [venues, selectedLocationId, searchQuery, locationsTree]);
 
   function getVenueMetadataChips(venue: VenueItem): string[] {
     if (venue.amenities && venue.amenities.length > 0) {
@@ -69,11 +139,42 @@ export function VenueCardGrid({
 
   return (
     <section className="py-6">
-      <div className="flex items-center justify-between px-5 pb-4">
-        <div className="text-sm font-medium text-muted-foreground">
-          {venues.length === 1
-            ? t("registeredCountOne")
-            : t("registeredCountMany", { count: venues.length })}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 pb-4">
+        <div className="flex flex-wrap items-center gap-3">
+          {locationsTree.length > 0 && (
+            <BackofficeLocationSelect
+              locationsTree={locationsTree}
+              value={selectedLocationId}
+              onChange={setSelectedLocationId}
+              allLabel="Todos los estados"
+              placeholder="Escribe estado o ciudad..."
+            />
+          )}
+          <div className="relative min-w-[220px]">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="🔍 Buscar sede, dirección o RIF..."
+              aria-label="Buscar sede"
+              className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground hover:text-foreground"
+                aria-label="Limpiar búsqueda"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          <div className="text-sm font-medium text-muted-foreground">
+            {filteredVenues.length === 1
+              ? t("registeredCountOne")
+              : t("registeredCountMany", { count: filteredVenues.length })}
+          </div>
         </div>
         <button
           type="button"
@@ -87,7 +188,7 @@ export function VenueCardGrid({
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] gap-6 px-5 pb-8">
-        {venues.map((venue) => {
+        {filteredVenues.map((venue) => {
           const isActive = venue.status === "ACTIVE";
           const sportsText =
             venue.sports && venue.sports.length > 0

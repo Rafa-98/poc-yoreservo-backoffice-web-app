@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { TimeFormatToggle, useTimeFormat } from "@/shared/lib/time-format";
+import { useTimeFormat } from "@/shared/lib/time-format";
 import type { ExchangeRateItem } from "../model/types";
 
 interface RateHistoryTableProps {
@@ -57,7 +57,6 @@ export function RateHistoryTable({ rates }: RateHistoryTableProps) {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <TimeFormatToggle size="xs" />
           {exportNotice && (
             <span className="text-xs font-semibold text-status-available-fg">
               ✓ {t("exportSuccess")}

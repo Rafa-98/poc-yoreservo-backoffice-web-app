@@ -63,13 +63,32 @@ export function VenueHeaderSelector() {
     };
   }, [isOpen]);
 
+  function getVenueLocationLabel(venue: (typeof venues)[number]): string {
+    const loc = venue.location;
+    if (!loc) return venue.city || "";
+    const city = loc.parent
+      ? typeof loc.parent.name === "object"
+        ? loc.parent.name?.es || loc.parent.name?.en
+        : loc.parent.name
+      : venue.city || "";
+    const state = loc.parent?.parent
+      ? typeof loc.parent.parent.name === "object"
+        ? loc.parent.parent.name?.es || loc.parent.parent.name?.en
+        : loc.parent.parent.name
+      : "";
+    if (state && city) return `${state} · ${city}`;
+    return state || city || "";
+  }
+
   const filteredVenues = venues.filter((venue) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
+    const locLabel = getVenueLocationLabel(venue).toLowerCase();
     return (
       venue.name.toLowerCase().includes(q) ||
       venue.address.toLowerCase().includes(q) ||
-      venue.rif.toLowerCase().includes(q)
+      venue.rif.toLowerCase().includes(q) ||
+      locLabel.includes(q)
     );
   });
 
@@ -84,53 +103,54 @@ export function VenueHeaderSelector() {
           if (!isManagedLocked) setIsOpen(!isOpen);
         }}
         disabled={isManagedLocked || isLoading}
-        className={`group flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-1.5 text-xs sm:text-sm font-semibold text-foreground shadow-xs transition-all duration-200 ${
+        className={`group inline-flex h-9 shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl border border-border bg-surface px-3 text-xs font-semibold text-foreground shadow-2xs transition-all duration-200 ${
           isManagedLocked
             ? "cursor-default opacity-90"
-            : "hover:border-accent/50 hover:bg-muted/60 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+            : "hover:border-accent/50 hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/30"
         }`}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label={t("venueSelectorTitle")}
         id="header-venue-selector-trigger"
       >
-        <div className="flex size-5 items-center justify-center rounded-lg bg-accent/20 text-accent">
+        <div className="flex size-5 shrink-0 items-center justify-center rounded-md bg-accent/20 text-accent-foreground">
           {isManagedLocked ? (
-            <Lock className="size-3 text-accent" />
+            <Lock className="size-3" />
           ) : isAllSelected ? (
-            <Globe className="size-3 text-accent" />
+            <Globe className="size-3" />
           ) : (
-            <MapPin className="size-3 text-accent" />
+            <MapPin className="size-3" />
           )}
         </div>
 
-        <div className="flex flex-col text-left">
-          <div className="flex items-center gap-1.5">
-            <span className="max-w-[130px] sm:max-w-[210px] md:max-w-[260px] truncate font-bold text-foreground">
-              {isLoading
-                ? t("allVenues")
-                : isAllSelected
-                ? t("allVenuesConsolidated")
-                : activeVenue?.name || t("allVenues")}
+        <div className="flex items-center gap-1.5 text-left">
+          <span className="hidden md:inline text-[11px] font-medium text-muted-foreground">
+            Sede:
+          </span>
+          <span className="max-w-[140px] sm:max-w-[200px] lg:max-w-[240px] truncate font-bold text-foreground">
+            {isLoading
+              ? t("allVenues")
+              : isAllSelected
+              ? t("allVenuesConsolidated")
+              : activeVenue?.name || t("allVenues")}
+          </span>
+
+          {isAllSelected && venues.length > 0 && (
+            <span className="hidden sm:inline-flex items-center rounded-full bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold text-accent-foreground">
+              {venues.length}
             </span>
+          )}
 
-            {isAllSelected && venues.length > 0 && (
-              <span className="hidden sm:inline-flex items-center rounded-full bg-accent/20 px-1.5 py-0.2 text-[10px] font-bold text-accent-foreground">
-                {venues.length}
-              </span>
-            )}
-
-            {isManagedLocked && (
-              <span className="hidden sm:inline-flex items-center rounded-full bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.2 text-[10px] font-bold text-blue-700 dark:text-blue-300">
-                {t("assignedVenueLocked")}
-              </span>
-            )}
-          </div>
+          {isManagedLocked && (
+            <span className="hidden sm:inline-flex items-center rounded-full bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-300">
+              {t("assignedVenueLocked")}
+            </span>
+          )}
         </div>
 
         {!isManagedLocked && (
           <ChevronDown
-            className={`size-3.5 text-muted-foreground transition-transform duration-200 ${
+            className={`size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 ${
               isOpen ? "rotate-180 text-foreground" : "group-hover:text-foreground"
             }`}
           />
@@ -157,7 +177,7 @@ export function VenueHeaderSelector() {
             </div>
 
             {/* Search Input */}
-            {venues.length > 3 && (
+            {venues.length > 0 && (
               <div className="relative mt-2">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
                 <input

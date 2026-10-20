@@ -8,7 +8,6 @@ import {
   getBrowserTimezone,
   getTimezoneOffsetLabel,
   isTimezoneDifferentFromBrowser,
-  TimeFormatToggle,
   todayInTimezone,
 } from "@/shared/lib";
 
@@ -106,9 +105,6 @@ export function AgendaControlsBar({
               className="h-9 rounded-xl border border-border bg-surface px-3 py-1 text-xs font-semibold text-foreground focus:border-accent focus:outline-none cursor-pointer"
             />
           </div>
-
-          {/* AM/PM | 24h Selector */}
-          <TimeFormatToggle />
 
           {/* Venue Timezone Badge */}
           <div

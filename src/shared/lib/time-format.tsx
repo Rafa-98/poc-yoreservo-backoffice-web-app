@@ -139,17 +139,17 @@ export function TimeFormatToggle({
 
   return (
     <div
-      className={`inline-flex items-center rounded-xl border border-border bg-surface p-0.5 font-bold shadow-2xs select-none ${className}`}
+      className={`inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-xl border border-border bg-surface p-1 font-bold shadow-2xs select-none ${className}`}
       role="group"
       aria-label="Formato de hora (AM/PM o 24h)"
     >
-      <span className="pl-2 pr-1 text-muted-foreground flex items-center">
-        <Clock className="size-3" />
+      <span className="pl-1.5 pr-1 text-muted-foreground flex items-center">
+        <Clock className="size-3.5" />
       </span>
       <button
         type="button"
         onClick={() => setTimeFormat("12h")}
-        className={`rounded-lg ${btnPadding} transition-all cursor-pointer ${
+        className={`h-7 rounded-lg ${btnPadding} flex items-center transition-all cursor-pointer ${
           timeFormat === "12h"
             ? "bg-accent text-accent-foreground font-extrabold shadow-2xs"
             : "text-muted-foreground hover:text-foreground"
@@ -161,7 +161,7 @@ export function TimeFormatToggle({
       <button
         type="button"
         onClick={() => setTimeFormat("24h")}
-        className={`rounded-lg ${btnPadding} transition-all cursor-pointer ${
+        className={`h-7 rounded-lg ${btnPadding} flex items-center transition-all cursor-pointer ${
           timeFormat === "24h"
             ? "bg-accent text-accent-foreground font-extrabold shadow-2xs"
             : "text-muted-foreground hover:text-foreground"

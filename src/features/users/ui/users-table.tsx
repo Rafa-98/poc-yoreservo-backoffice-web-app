@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { TimeFormatToggle, useTimeFormat } from "@/shared/lib/time-format";
+import { useTimeFormat } from "@/shared/lib/time-format";
 import { Button } from "@/shared/ui/button";
 import type { UserItem, UserRole } from "../model/types";
 
@@ -186,8 +186,6 @@ export function UsersTable({
         </div>
 
         <div className="flex items-center gap-2">
-          <TimeFormatToggle size="xs" />
-
           {(searchTerm || selectedRole !== "all" || selectedVenue !== "all" || selectedStatus !== "all") && (
             <Button
               type="button"

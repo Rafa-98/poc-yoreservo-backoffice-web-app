@@ -103,6 +103,7 @@ export function VenuesPage({
       {/* Venues Grid */}
       <VenueCardGrid
         venues={venues}
+        locationsTree={locationsTree}
         onOpenCreateVenue={handleOpenCreateVenue}
         onOpenEditVenue={handleOpenEditVenue}
       />

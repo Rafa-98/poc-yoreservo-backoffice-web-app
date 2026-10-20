@@ -1,7 +1,6 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { TimeFormatToggle } from "@/shared/lib/time-format";
 import type { AllyKpisData, RolePerspective, TimeframeKey } from "../model/types";
 
 interface DashboardTimeframeBarProps {
@@ -86,9 +85,8 @@ export function DashboardTimeframeBar({
         </div>
       </div>
 
-      {/* Timeframe Chips & TimeFormatToggle */}
+      {/* Timeframe Chips */}
       <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-        <TimeFormatToggle size="xs" />
         <div className="flex items-center gap-1.5 bg-surface-muted p-1 rounded-xl border border-border">
           <button
             type="button"

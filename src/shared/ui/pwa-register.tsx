@@ -68,11 +68,40 @@ export function PwaInstallButton() {
     <button
       type="button"
       onClick={() => void triggerPwaInstall()}
-      className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/15 px-3 py-2 text-xs font-bold text-accent-foreground shadow-xs hover:bg-accent/25 active:scale-95 transition-all"
+      className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-accent/40 bg-accent/15 px-3 text-xs font-bold text-accent-foreground shadow-xs hover:bg-accent/25 active:scale-95 transition-all"
       title={t("pwaBannerTitle")}
     >
       <Download className="size-3.5 shrink-0" />
-      <span className="hidden md:inline">{t("btnInstallApp")}</span>
+      <span className="hidden xl:inline">{t("btnInstallApp")}</span>
+    </button>
+  );
+}
+
+/**
+ * Dropdown menu item rendered inside the user profile menu in `AppHeader`
+ * when PWA installation is available, keeping the top bar uncluttered.
+ */
+export function PwaInstallMenuItem({ onAfterClick }: { onAfterClick?: () => void }) {
+  const t = useTranslations("shell");
+  const promptEvent = useSyncExternalStore(
+    subscribeInstallPrompt,
+    getInstallPromptSnapshot,
+    getServerSnapshot,
+  );
+
+  if (!promptEvent) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        onAfterClick?.();
+        void triggerPwaInstall();
+      }}
+      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-muted transition-colors"
+    >
+      <Download className="size-4 text-muted-foreground shrink-0" />
+      <span>{t("btnInstallApp")}</span>
     </button>
   );
 }
