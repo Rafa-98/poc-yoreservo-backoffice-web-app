@@ -64,7 +64,13 @@ export interface OrganizationData {
   spacesCount: number;
   paymentMethodConfigs?: PaymentMethodConfigItem[];
   platformPaymentMethodConfigs?: PaymentMethodConfigItem[];
+  platformConfig?: PlatformConfigData;
   organizations?: OrganizationSummaryItem[];
+}
+
+export interface PlatformConfigData {
+  supportWhatsapp: string;
+  supportEmail: string;
 }
 
 export interface CreateOrganizationInput {

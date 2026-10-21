@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
-import { AlertCircle, CheckCircle2, Info, LogOut } from "lucide-react";
+import { AlertCircle, CheckCircle2, Info, Loader2, LogOut } from "lucide-react";
 import { logoutAction } from "@/features/auth/actions/logout-action";
 import type {
   ChangePasswordInput,
@@ -33,6 +33,7 @@ export function ProfilePage({ initialData }: ProfilePageProps) {
   const [profile, setProfile] = useState<UserProfileData>(initialData);
   const [activeTab, setActiveTab] = useState<ProfileTab>("general");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoggingOut, startLogoutTransition] = useTransition();
   const [isRevokeModalOpen, setIsRevokeModalOpen] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
@@ -138,15 +139,23 @@ export function ProfilePage({ initialData }: ProfilePageProps) {
         </div>
 
         {/* Sign Out Action Button */}
-        <form action={logoutAction} className="self-start sm:self-auto">
-          <button
-            type="submit"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-surface text-foreground text-xs sm:text-sm font-semibold hover:bg-surface-muted hover:text-red-500 active:scale-98 transition-all shadow-2xs cursor-pointer"
-          >
+        <button
+          type="button"
+          disabled={isLoggingOut}
+          onClick={() => {
+            startLogoutTransition(async () => {
+              await logoutAction();
+            });
+          }}
+          className="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-surface text-foreground text-xs sm:text-sm font-semibold hover:bg-surface-muted hover:text-red-500 active:scale-98 transition-all shadow-2xs disabled:opacity-50 cursor-pointer"
+        >
+          {isLoggingOut ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
             <LogOut className="size-4" />
-            <span>{t("signOut")}</span>
-          </button>
-        </form>
+          )}
+          <span>{t("signOut")}</span>
+        </button>
       </div>
 
       {/* Main 2-Column Layout */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, Loader2, X } from "lucide-react";
 
 interface ProfileRevokeModalProps {
   isOpen: boolean;
@@ -65,9 +65,10 @@ export function ProfileRevokeModal({
             type="button"
             onClick={onConfirm}
             disabled={isSubmitting}
-            className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700 active:scale-95 transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700 active:scale-95 transition-all shadow-xs disabled:opacity-50 cursor-pointer"
           >
-            {isSubmitting ? t("general.saving") : t("sessions.modalConfirm")}
+            {isSubmitting && <Loader2 className="size-3.5 animate-spin" />}
+            <span>{isSubmitting ? t("general.saving") : t("sessions.modalConfirm")}</span>
           </button>
         </div>
       </div>

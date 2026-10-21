@@ -97,6 +97,7 @@ export function SchedulesPage({
 
   const [applyToAllVenueSpaces, setApplyToAllVenueSpaces] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isLoadingSchedules, setIsLoadingSchedules] = useState<boolean>(false);
   const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
 
   // Initialize 7 days from backend data or empty unconfigured state
@@ -129,23 +130,28 @@ export function SchedulesPage({
     if (syncContext && setActiveVenueId && venueId && venueId !== activeVenueId) {
       setActiveVenueId(venueId);
     }
-    const spacesRes = await getSpacesAction(venueId);
-    if (!spacesRes.ok) {
-      showToast(topT("errorLoadSpaces", { code: spacesRes.error.code }), true);
-      setSpaces([]);
-      setSelectedSpaceId("");
-      setDays(normalizeDays(null));
-      return;
-    }
-    if (spacesRes.data && spacesRes.data.length > 0) {
-      setSpaces(spacesRes.data);
-      const firstSpaceId = spacesRes.data[0].id;
-      setSelectedSpaceId(firstSpaceId);
-      await loadSpaceSchedules(firstSpaceId);
-    } else {
-      setSpaces([]);
-      setSelectedSpaceId("");
-      setDays(normalizeDays(null));
+    setIsLoadingSchedules(true);
+    try {
+      const spacesRes = await getSpacesAction(venueId);
+      if (!spacesRes.ok) {
+        showToast(topT("errorLoadSpaces", { code: spacesRes.error.code }), true);
+        setSpaces([]);
+        setSelectedSpaceId("");
+        setDays(normalizeDays(null));
+        return;
+      }
+      if (spacesRes.data && spacesRes.data.length > 0) {
+        setSpaces(spacesRes.data);
+        const firstSpaceId = spacesRes.data[0].id;
+        setSelectedSpaceId(firstSpaceId);
+        await loadSpaceSchedules(firstSpaceId);
+      } else {
+        setSpaces([]);
+        setSelectedSpaceId("");
+        setDays(normalizeDays(null));
+      }
+    } finally {
+      setIsLoadingSchedules(false);
     }
   }
 
@@ -162,7 +168,12 @@ export function SchedulesPage({
 
   async function handleSelectSpace(spaceId: string) {
     setSelectedSpaceId(spaceId);
-    await loadSpaceSchedules(spaceId);
+    setIsLoadingSchedules(true);
+    try {
+      await loadSpaceSchedules(spaceId);
+    } finally {
+      setIsLoadingSchedules(false);
+    }
   }
 
   async function loadSpaceSchedules(spaceId: string) {
@@ -319,6 +330,7 @@ export function SchedulesPage({
           onCopyMondayToWeek={handleCopyMondayToWeek}
           onSaveSchedules={handleSaveSchedules}
           isSaving={isSaving}
+          isLoading={isLoadingSchedules}
         />
       </div>
 

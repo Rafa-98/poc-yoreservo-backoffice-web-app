@@ -19,6 +19,8 @@ import { OrgMasterCard } from "@/features/venues/ui/org-master-card";
 import { OrgEditModal } from "@/features/venues/ui/org-edit-modal";
 import { CreateOrganizationModal } from "@/features/venues/ui/org-create-modal";
 import { PaymentMethodsConfigCard } from "@/features/venues/ui/payment-methods-config-card";
+import { PlatformSupportConfigCard } from "@/features/venues/ui/platform-support-config-card";
+import { Spinner } from "@/shared/ui";
 
 interface OrganizationPageProps {
   initialOrg: OrganizationData;
@@ -44,6 +46,7 @@ export function OrganizationPage({
   const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
   const [isOrgModalOpen, setIsOrgModalOpen] = useState(false);
   const [isCreateOrgModalOpen, setIsCreateOrgModalOpen] = useState(false);
+  const [pendingOrgActionId, setPendingOrgActionId] = useState<string | null>(null);
 
   const isPlatformAdmin = userRole === "PLATFORM_ADMIN";
   const organizations = org.organizations ?? initialOrg.organizations ?? [];
@@ -58,14 +61,23 @@ export function OrganizationPage({
 
   async function handleSelectOrganization(orgId: string) {
     if (!orgId || orgId === org.id) return;
-    const res = await getOrganizationAction(orgId);
-    if (res.ok && res.data) {
-      setOrg((prev) => ({
-        ...res.data,
-        organizations: res.data.organizations ?? prev.organizations,
-      }));
-    } else if (!res.ok) {
-      showToast(res.error.code || tOrg("errorUpdate"), true);
+    setPendingOrgActionId(`select:${orgId}`);
+    try {
+      const res = await getOrganizationAction(orgId);
+      if (res.ok && res.data) {
+        setOrg((prev) => ({
+          ...res.data,
+          organizations: res.data.organizations ?? prev.organizations,
+          platformConfig: res.data.platformConfig ?? prev.platformConfig,
+          platformPaymentMethodConfigs:
+            res.data.platformPaymentMethodConfigs ??
+            prev.platformPaymentMethodConfigs,
+        }));
+      } else if (!res.ok) {
+        showToast(res.error.code || tOrg("errorUpdate"), true);
+      }
+    } finally {
+      setPendingOrgActionId(null);
     }
   }
 
@@ -115,39 +127,52 @@ export function OrganizationPage({
     targetOrgId: string,
     payload: { status?: "ACTIVE" | "INACTIVE" | "SUSPENDED"; isBookingPaused?: boolean }
   ) {
-    const res = await updateOrganizationStatusAction(targetOrgId, payload);
-    if (res.ok && res.data) {
-      const updated = res.data;
-      setOrg((prev) => {
-        const nextOrgs =
-          updated.organizations ??
-          (prev.organizations || []).map((item) =>
-            item.id === targetOrgId
-              ? {
-                  ...item,
-                  status: payload.status ?? updated.status ?? item.status,
-                  isBookingPaused:
-                    payload.isBookingPaused !== undefined
-                      ? payload.isBookingPaused
-                      : updated.isBookingPaused ?? item.isBookingPaused,
-                }
-              : item
-          );
-        if (prev.id === targetOrgId || updated.id === prev.id) {
+    const actionKey =
+      payload.status !== undefined
+        ? `status:${targetOrgId}`
+        : `pause:${targetOrgId}`;
+    setPendingOrgActionId(actionKey);
+    try {
+      const res = await updateOrganizationStatusAction(targetOrgId, payload);
+      if (res.ok && res.data) {
+        const updated = res.data;
+        setOrg((prev) => {
+          const nextOrgs =
+            updated.organizations ??
+            (prev.organizations || []).map((item) =>
+              item.id === targetOrgId
+                ? {
+                    ...item,
+                    status: payload.status ?? updated.status ?? item.status,
+                    isBookingPaused:
+                      payload.isBookingPaused !== undefined
+                        ? payload.isBookingPaused
+                        : updated.isBookingPaused ?? item.isBookingPaused,
+                  }
+                : item
+            );
+          if (prev.id === targetOrgId || updated.id === prev.id) {
+            return {
+              ...prev,
+              ...updated,
+              organizations: nextOrgs,
+              platformConfig: updated.platformConfig ?? prev.platformConfig,
+              platformPaymentMethodConfigs:
+                updated.platformPaymentMethodConfigs ??
+                prev.platformPaymentMethodConfigs,
+            };
+          }
           return {
             ...prev,
-            ...updated,
             organizations: nextOrgs,
           };
-        }
-        return {
-          ...prev,
-          organizations: nextOrgs,
-        };
-      });
-      showToast("✓ Estado operativo de la organización actualizado", false);
-    } else if (!res.ok) {
-      showToast(res.error.code || tOrg("errorUpdate"), true);
+        });
+        showToast("✓ Estado operativo de la organización actualizado", false);
+      } else if (!res.ok) {
+        showToast(res.error.code || tOrg("errorUpdate"), true);
+      }
+    } finally {
+      setPendingOrgActionId(null);
     }
   }
 
@@ -477,39 +502,51 @@ export function OrganizationPage({
                           <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
                             <button
                               type="button"
+                              disabled={pendingOrgActionId !== null}
                               onClick={() => handleSelectOrganization(item.id)}
-                              className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all cursor-pointer ${
+                              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all cursor-pointer disabled:opacity-60 ${
                                 isSelected
                                   ? "border-accent bg-accent text-accent-foreground"
                                   : "border-border bg-surface text-foreground hover:bg-muted"
                               }`}
                             >
+                              {pendingOrgActionId === `select:${item.id}` && (
+                                <Spinner className="size-3.5" />
+                              )}
                               {isSelected ? "✓ Seleccionada" : "Inspeccionar"}
                             </button>
                             <button
                               type="button"
+                              disabled={pendingOrgActionId !== null}
                               onClick={() =>
                                 handleUpdateOrgStatus(item.id, {
                                   isBookingPaused: !itemPaused,
                                 })
                               }
-                              className="rounded-lg border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-muted cursor-pointer"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-muted cursor-pointer disabled:opacity-60"
                             >
+                              {pendingOrgActionId === `pause:${item.id}` && (
+                                <Spinner className="size-3.5" />
+                              )}
                               {itemPaused ? "▶ Reanudar" : "⏸ Pausar"}
                             </button>
                             <button
                               type="button"
+                              disabled={pendingOrgActionId !== null}
                               onClick={() =>
                                 handleUpdateOrgStatus(item.id, {
                                   status: itemActive ? "INACTIVE" : "ACTIVE",
                                 })
                               }
-                              className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold cursor-pointer ${
+                              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold cursor-pointer disabled:opacity-60 ${
                                 itemActive
                                   ? "border-rose-500/30 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20"
                                   : "border-emerald-500/30 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
                               }`}
                             >
+                              {pendingOrgActionId === `status:${item.id}` && (
+                                <Spinner className="size-3.5" />
+                              )}
                               {itemActive ? "Desactivar" : "Activar"}
                             </button>
                           </div>
@@ -568,6 +605,20 @@ export function OrganizationPage({
             }))
           }
           onToast={showToast}
+        />
+      )}
+
+      {/* YoReservo Official Support Channels (WhatsApp & Email) (PLATFORM_ADMIN) */}
+      {isPlatformAdmin && (
+        <PlatformSupportConfigCard
+          initialConfig={org.platformConfig}
+          onSaved={(updatedConfig) =>
+            setOrg((prev) => ({
+              ...prev,
+              platformConfig: updatedConfig,
+            }))
+          }
+          onToast={(msg, variant) => showToast(msg, variant === "warning")}
         />
       )}
 

@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Laptop, Smartphone, Ban, ShieldCheck } from "lucide-react";
+import { Laptop, Smartphone, Ban, ShieldCheck, Loader2 } from "lucide-react";
 import { useTimeFormat } from "@/shared/lib/time-format";
 import type { ProfileSessionItem } from "../model/types";
 
@@ -20,8 +21,18 @@ export function ProfileSessionsList({
 }: ProfileSessionsListProps) {
   const t = useTranslations("profile");
   const { formatTime } = useTimeFormat();
+  const [revokingId, setRevokingId] = useState<string | null>(null);
 
   const otherSessionsCount = sessions.filter((s) => !s.isCurrent).length;
+
+  async function handleRevokeSingle(sessionId: string) {
+    setRevokingId(sessionId);
+    try {
+      await onRevokeSession(sessionId);
+    } finally {
+      setRevokingId(null);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -117,11 +128,14 @@ export function ProfileSessionsList({
               ) : (
                 <button
                   type="button"
-                  onClick={() => onRevokeSession(session.id)}
-                  disabled={isRevoking}
-                  className="px-3 py-1.5 rounded-lg border border-border bg-surface-muted text-foreground text-xs font-semibold hover:bg-surface hover:text-red-500 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                  onClick={() => handleRevokeSingle(session.id)}
+                  disabled={isRevoking || revokingId !== null}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-surface-muted text-foreground text-xs font-semibold hover:bg-surface hover:text-red-500 active:scale-95 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
                 >
-                  {t("sessions.revoke")}
+                  {revokingId === session.id && (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  )}
+                  <span>{t("sessions.revoke")}</span>
                 </button>
               )}
             </div>

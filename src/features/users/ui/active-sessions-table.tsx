@@ -62,6 +62,7 @@ export function ActiveSessionsTable({
             size="sm"
             onClick={handleRevokeAll}
             isLoading={revokingAll}
+            disabled={revokingAll || loadingId !== null || sessions.length === 0}
             id="btn-revoke-all-sessions"
           >
             ⚠️ {t("btnRevokeAll")}
@@ -123,6 +124,7 @@ export function ActiveSessionsTable({
                       size="sm"
                       onClick={() => handleRevoke(s.id)}
                       isLoading={loadingId === s.id}
+                      disabled={loadingId !== null || revokingAll}
                       className="h-8 px-2.5 text-xs"
                       id={`btn-revoke-session-${s.id}`}
                     >

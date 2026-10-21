@@ -118,6 +118,7 @@ export function CancelBookingModal({
               type="submit"
               variant="destructive"
               size="sm"
+              isLoading={loading}
               disabled={loading}
               id="btn-confirm-cancel"
             >

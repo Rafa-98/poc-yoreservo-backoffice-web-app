@@ -123,6 +123,7 @@ export function ReservationDetailDrawer({
                 variant="primary"
                 size="sm"
                 onClick={handleCheckIn}
+                isLoading={checkingIn}
                 disabled={checkingIn || reservation.status === "CANCELLED"}
                 id="drawer-checkin-btn"
               >

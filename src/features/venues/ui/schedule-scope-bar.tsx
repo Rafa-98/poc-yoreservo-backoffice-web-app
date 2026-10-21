@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { SpaceItem, VenueItem } from "../model/types";
 
@@ -17,6 +18,7 @@ interface ScheduleScopeBarProps {
   onCopyMondayToWeek: () => void;
   onSaveSchedules: () => void;
   isSaving: boolean;
+  isLoading?: boolean;
 }
 
 export function ScheduleScopeBar({
@@ -32,6 +34,7 @@ export function ScheduleScopeBar({
   onCopyMondayToWeek,
   onSaveSchedules,
   isSaving,
+  isLoading = false,
 }: ScheduleScopeBarProps) {
   const t = useTranslations("venues.schedules");
   const currentVenue =
@@ -143,12 +146,15 @@ export function ScheduleScopeBar({
           </button>
           <button
             type="button"
-            className="btn btn-primary text-[13px]"
+            className="btn btn-primary inline-flex items-center gap-2 text-[13px] disabled:opacity-50"
             onClick={onSaveSchedules}
-            disabled={isSaving}
+            disabled={isSaving || isLoading}
             id="btn-save-schedules"
           >
-            {isSaving ? "..." : t("btnSave")}
+            {(isSaving || isLoading) && (
+              <Loader2 className="size-3.5 animate-spin" />
+            )}
+            <span>{t("btnSave")}</span>
           </button>
         </div>
       </div>

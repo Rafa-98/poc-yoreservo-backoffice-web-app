@@ -51,6 +51,7 @@ export const ROUTES = {
   // Module 5: users (RBAC) & master catalogs
   users: "/users",
   catalogs: "/catalogs",
+  support: "/support",
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];
@@ -81,6 +82,7 @@ export const PROTECTED_ROUTE_PREFIXES: readonly string[] = [
   ROUTES.venues,
   ROUTES.users,
   ROUTES.catalogs,
+  ROUTES.support,
   ROUTES.profile,
 ];
 
@@ -141,6 +143,11 @@ export const ROUTE_ALLOWED_ROLES: Record<string, readonly BackofficeRole[]> = {
   [ROUTES.venues]: ["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING", "ALLY_ADMIN"],
   [ROUTES.users]: ["PLATFORM_ADMIN", "ALLY_ADMIN"],
   [ROUTES.catalogs]: ["PLATFORM_ADMIN", "ALLY_ADMIN"],
+  [ROUTES.support]: [
+    "PLATFORM_ADMIN",
+    "PLATFORM_ACCOUNTING",
+    "ALLY_ADMIN",
+  ],
   [ROUTES.profile]: [
     "PLATFORM_ADMIN",
     "PLATFORM_ACCOUNTING",

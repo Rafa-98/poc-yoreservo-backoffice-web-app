@@ -508,6 +508,7 @@ export function VenueModal({
               >
                 <option value="0212">{t("operatorLandline")}</option>
                 <option value="0412">0412 (Digitel)</option>
+                <option value="0422">0422 (Digitel)</option>
                 <option value="0414">0414 (Movistar)</option>
                 <option value="0424">0424 (Movistar)</option>
                 <option value="0416">0416 (Movilnet)</option>

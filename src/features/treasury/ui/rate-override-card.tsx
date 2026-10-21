@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import type { ManualRateOverrideInput } from "../model/types";
@@ -166,10 +167,14 @@ export function RateOverrideCard({
           <button
             id="btn-save-manual-rate"
             type="submit"
-            className="btn btn-outline inline-flex items-center gap-2 rounded-[10px] border-status-hold-border px-4.5 py-2.5 text-[13px] font-bold text-status-hold-fg"
+            className="btn btn-outline inline-flex items-center gap-2 rounded-[10px] border-status-hold-border px-4.5 py-2.5 text-[13px] font-bold text-status-hold-fg disabled:opacity-50"
             disabled={isProcessing}
           >
-            <span>💾</span>
+            {isProcessing ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <span>💾</span>
+            )}
             <span>{isProcessing ? t("saving") : t("save")}</span>
           </button>
         </div>

@@ -492,6 +492,7 @@ export function SettlementsPage({
                   type="submit"
                   variant="primary"
                   size="sm"
+                  isLoading={isGeneratingBatch}
                   disabled={isGeneratingBatch || !genOrgId}
                   id="btn-confirm-generate-batch"
                 >

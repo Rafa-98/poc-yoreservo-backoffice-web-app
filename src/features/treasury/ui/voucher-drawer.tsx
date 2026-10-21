@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { BackofficeRole } from "@/shared/config";
 import { DEFAULT_BCV_USD_RATE, useTimeFormat } from "@/shared/lib";
@@ -278,11 +279,16 @@ export function VoucherDrawer({
               <button
                 id="drawer-approve-btn"
                 type="button"
-                className="btn btn-primary flex-[1.5] rounded-[10px] px-4 py-2.5 text-[13px]"
+                className="btn btn-primary inline-flex flex-[1.5] items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-[13px] disabled:opacity-50"
                 onClick={() => onApprove(payment.id)}
                 disabled={isProcessing}
               >
-                ✓ {t("reconcileConfirm")}
+                {isProcessing ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <span>✓</span>
+                )}
+                <span>{t("reconcileConfirm")}</span>
               </button>
             </div>
           )}

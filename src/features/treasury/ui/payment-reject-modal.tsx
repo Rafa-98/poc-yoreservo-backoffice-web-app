@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { PaymentItem } from "../model/types";
 
@@ -28,11 +29,17 @@ export function PaymentRejectModal({
 
   const [reason, setReason] = useState("NOT_FOUND");
   const [notes, setNotes] = useState("");
+  const [activeAction, setActiveAction] = useState<"RETRY" | "CANCEL" | null>(null);
 
   if (!isOpen || !payment) return null;
 
   const handleAction = async (action: "RETRY" | "CANCEL") => {
-    await onConfirm(payment.id, reason, action, notes);
+    setActiveAction(action);
+    try {
+      await onConfirm(payment.id, reason, action, notes);
+    } finally {
+      setActiveAction(null);
+    }
   };
 
   return (
@@ -110,21 +117,31 @@ export function PaymentRejectModal({
             <button
               id="confirm-reject-retry-button"
               type="button"
-              className="w-full cursor-pointer rounded-[10px] border border-amber-500/40 bg-amber-500/15 px-4 py-2.5 text-[13px] font-bold text-amber-700 transition-colors hover:bg-amber-500/25 disabled:opacity-50 dark:text-amber-300"
+              className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-amber-500/40 bg-amber-500/15 px-4 py-2.5 text-[13px] font-bold text-amber-700 transition-colors hover:bg-amber-500/25 disabled:opacity-50 dark:text-amber-300"
               onClick={() => handleAction("RETRY")}
               disabled={isProcessing}
             >
-              ⏳ {isProcessing ? t("rejecting") : t("confirmRetry")}
+              {isProcessing && activeAction === "RETRY" ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <span>⏳</span>
+              )}
+              <span>{isProcessing && activeAction === "RETRY" ? t("rejecting") : t("confirmRetry")}</span>
             </button>
 
             <button
               id="confirm-reject-button"
               type="button"
-              className="btn btn-destructive w-full rounded-[10px] px-4 py-2.5 text-[13px]"
+              className="btn btn-destructive inline-flex w-full items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-[13px] disabled:opacity-50"
               onClick={() => handleAction("CANCEL")}
               disabled={isProcessing}
             >
-              ✕ {isProcessing ? t("rejecting") : t("confirmCancelBooking")}
+              {isProcessing && activeAction === "CANCEL" ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <span>✕</span>
+              )}
+              <span>{isProcessing && activeAction === "CANCEL" ? t("rejecting") : t("confirmCancelBooking")}</span>
             </button>
 
             <button

@@ -25,6 +25,27 @@ export function SettlementStatementDrawer({
   const t = useTranslations("settlements");
   const [detailBatch, setDetailBatch] = useState<SettlementBatchItem | null>(null);
   const [loading, setLoading] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<"BDV" | "BANESCO" | "PAGO_MOVIL" | "CSV" | null>(null);
+
+  async function handleExportBankFile(format: "BDV" | "BANESCO" | "PAGO_MOVIL" | "CSV", batchId: string) {
+    setExportingFormat(format);
+    try {
+      const res = await exportSettlementBankingFileAction(batchId, format);
+      if (res.ok && res.data) {
+        const blob = new Blob([res.data.content], { type: res.data.mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = res.data.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } finally {
+      setExportingFormat(null);
+    }
+  }
 
   useEffect(() => {
     if (!isOpen || !batch) {
@@ -409,92 +430,48 @@ export function SettlementStatementDrawer({
               type="button"
               variant="secondary"
               size="sm"
-              onClick={async () => {
-                const res = await exportSettlementBankingFileAction(current.id, "BDV");
-                if (res.ok && res.data) {
-                  const blob = new Blob([res.data.content], { type: res.data.mimeType });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = res.data.filename;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
-                }
-              }}
+              isLoading={exportingFormat === "BDV"}
+              disabled={exportingFormat !== null}
+              onClick={() => handleExportBankFile("BDV", current.id)}
               title={t("exportBdvTitle")}
             >
-              <span>🏛️</span>
+              {exportingFormat !== "BDV" && <span>🏛️</span>}
               <span>{t("exportBdvBtn")}</span>
             </Button>
             <Button
               type="button"
               variant="secondary"
               size="sm"
-              onClick={async () => {
-                const res = await exportSettlementBankingFileAction(current.id, "BANESCO");
-                if (res.ok && res.data) {
-                  const blob = new Blob([res.data.content], { type: res.data.mimeType });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = res.data.filename;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
-                }
-              }}
+              isLoading={exportingFormat === "BANESCO"}
+              disabled={exportingFormat !== null}
+              onClick={() => handleExportBankFile("BANESCO", current.id)}
               title={t("exportBanescoTitle")}
             >
-              <span>🟩</span>
+              {exportingFormat !== "BANESCO" && <span>🟩</span>}
               <span>{t("exportBanescoBtn")}</span>
             </Button>
             <Button
               type="button"
               variant="secondary"
               size="sm"
-              onClick={async () => {
-                const res = await exportSettlementBankingFileAction(current.id, "PAGO_MOVIL");
-                if (res.ok && res.data) {
-                  const blob = new Blob([res.data.content], { type: res.data.mimeType });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = res.data.filename;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
-                }
-              }}
+              isLoading={exportingFormat === "PAGO_MOVIL"}
+              disabled={exportingFormat !== null}
+              onClick={() => handleExportBankFile("PAGO_MOVIL", current.id)}
               title={t("exportPagoMovilTitle")}
             >
-              <span>📱</span>
+              {exportingFormat !== "PAGO_MOVIL" && <span>📱</span>}
               <span>{t("exportPagoMovilBtn")}</span>
             </Button>
             <Button
               type="button"
               variant="secondary"
               size="sm"
-              onClick={async () => {
-                const res = await exportSettlementBankingFileAction(current.id, "CSV");
-                if (res.ok && res.data) {
-                  const blob = new Blob([res.data.content], { type: res.data.mimeType });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = res.data.filename;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
-                }
-              }}
+              isLoading={exportingFormat === "CSV"}
+              disabled={exportingFormat !== null}
+              onClick={() => handleExportBankFile("CSV", current.id)}
               title={t("exportCsvTitle")}
             >
-              <span>📊</span>
+              {exportingFormat !== "CSV" && <span>📊</span>}
               <span>{t("exportCsvBtn")}</span>
             </Button>
           </div>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Key, Check, Circle, ShieldAlert } from "lucide-react";
+import { Key, Check, Circle, ShieldAlert, Loader2 } from "lucide-react";
 import type { ChangePasswordInput } from "../model/types";
 
 interface ProfilePasswordFormProps {
@@ -179,7 +179,11 @@ export function ProfilePasswordForm({
           disabled={!allRulesValid || !passwordsMatch || isSubmitting}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-accent-foreground font-bold text-xs sm:text-sm shadow-xs hover:brightness-105 active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
-          <Key className="size-4" />
+          {isSubmitting ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Key className="size-4" />
+          )}
           <span>
             {isSubmitting ? t("security.updating") : t("security.updatePass")}
           </span>

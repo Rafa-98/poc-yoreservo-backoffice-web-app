@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import { uploadBackofficeFileAction } from "@/shared/api/upload-action";
@@ -388,7 +389,11 @@ export function SettlementPayoutModal({
                 {t("lblUploadVoucher")}
               </label>
               <label className="block border-2 border-dashed border-border hover:border-accent/60 rounded-xl p-4 text-center bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer">
-                <span className="text-2xl">📄</span>
+                {uploadingFile ? (
+                  <Loader2 className="mx-auto size-6 animate-spin text-accent" />
+                ) : (
+                  <span className="text-2xl">📄</span>
+                )}
                 <div className="text-xs font-bold text-foreground mt-1">
                   {uploadingFile
                     ? t("btnProcessing")
@@ -405,6 +410,7 @@ export function SettlementPayoutModal({
                   type="file"
                   accept="image/png,image/jpeg,application/pdf"
                   className="hidden"
+                  disabled={uploadingFile || loading}
                   onChange={handleFileChange}
                   id="modal-file-upload"
                 />
@@ -443,10 +449,11 @@ export function SettlementPayoutModal({
               type="submit"
               variant="primary"
               size="sm"
+              isLoading={loading || uploadingFile}
               disabled={loading || uploadingFile}
               id="btn-confirm-payout"
             >
-              <span>✓</span>
+              {!(loading || uploadingFile) && <span>✓</span>}
               <span>
                 {loading || uploadingFile
                   ? t("btnProcessing")

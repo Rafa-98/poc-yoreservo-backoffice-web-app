@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { BackofficeRole } from "@/shared/config";
 import { DEFAULT_BCV_USD_RATE, useTimeFormat } from "@/shared/lib";
@@ -254,22 +255,27 @@ export function PaymentsTable({
                       <button
                         id={`btn-validate-${p.referenceNumber ?? p.id}`}
                         type="button"
-                        className="btn btn-primary rounded-lg px-3 py-1.5 text-xs"
+                        className="btn btn-primary inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs disabled:opacity-50"
                         onClick={() => onApprove(p.id)}
-                        disabled={isCurrentProcessing}
+                        disabled={Boolean(isProcessingId)}
                         title={t("validateTitle")}
                       >
-                        ✓ {t("validate")}
+                        {isCurrentProcessing ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <span>✓</span>
+                        )}
+                        <span>{t("validate")}</span>
                       </button>
                       <button
                         id={`btn-reject-${p.referenceNumber ?? p.id}`}
                         type="button"
-                        className="btn btn-destructive rounded-lg px-3 py-1.5 text-xs"
+                        className="btn btn-destructive inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs disabled:opacity-50"
                         onClick={() => onOpenReject(p)}
-                        disabled={isCurrentProcessing}
+                        disabled={Boolean(isProcessingId)}
                         title={t("rejectTitle")}
                       >
-                        ✕ {t("reject")}
+                        <span>✕ {t("reject")}</span>
                       </button>
                     </div>
                   )}

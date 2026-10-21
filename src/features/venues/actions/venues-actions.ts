@@ -12,6 +12,7 @@ import type {
   LocationNode,
   OrganizationData,
   PaymentMethodConfigItem,
+  PlatformConfigData,
   SpaceItem,
   SpaceStatusConflictResult,
   SportCategoryItem,
@@ -176,6 +177,17 @@ function mapOrganizationData(raw: any): OrganizationData {
     platformPaymentMethodConfigs: Array.isArray(raw?.platformPaymentMethodConfigs)
       ? raw.platformPaymentMethodConfigs
       : undefined,
+    platformConfig:
+      raw?.platformConfig && typeof raw.platformConfig === "object"
+        ? {
+            supportWhatsapp: String(
+              raw.platformConfig.supportWhatsapp ?? "+58 412 5503235"
+            ),
+            supportEmail: String(
+              raw.platformConfig.supportEmail ?? "soporte@yoreservo.com"
+            ),
+          }
+        : undefined,
     organizations: Array.isArray(raw?.organizations)
       ? raw.organizations.map((o: any) => {
           const oRate = Number(o?.commissionRate ?? 5);
@@ -386,6 +398,32 @@ export async function updatePaymentMethodConfigsAction(input: {
       ? (res.body as any).methods
       : [];
     return ok(methods);
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : "UNKNOWN_ERROR");
+  }
+}
+
+export async function updatePlatformConfigAction(
+  input: PlatformConfigData
+): Promise<ActionResult<PlatformConfigData>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN"]);
+  try {
+    const res = await backendRequest("/backoffice/platform-config", {
+      method: "PUT",
+      accessToken,
+      body: input,
+    });
+    if (!res.ok) {
+      const msg =
+        (res.body as any)?.message || "FAILED_TO_UPDATE_PLATFORM_CONFIG";
+      return fail(msg);
+    }
+    revalidatePath(ROUTES.organization);
+    const body = res.body as any;
+    return ok({
+      supportWhatsapp: String(body?.supportWhatsapp ?? input.supportWhatsapp),
+      supportEmail: String(body?.supportEmail ?? input.supportEmail),
+    });
   } catch (error) {
     return fail(error instanceof Error ? error.message : "UNKNOWN_ERROR");
   }

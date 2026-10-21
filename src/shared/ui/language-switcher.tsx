@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, useTransition } from "react";
-import { Check, Globe } from "lucide-react";
+import { Check, Globe, Loader2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { cn } from "@/shared/lib";
 import { LOCALES, setLocaleAction, type AppLocale } from "@/shared/i18n";
@@ -52,6 +52,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
+        disabled={isPending}
         aria-label={label}
         title={label}
         aria-haspopup="menu"
@@ -61,10 +62,14 @@ export function LanguageSwitcher({ className }: { className?: string }) {
         className={cn(
           "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-surface px-2.5 text-xs font-bold text-foreground shadow-2xs transition-all",
           "hover:border-border-strong hover:bg-muted active:scale-95",
-          isPending && "opacity-70",
+          isPending && "opacity-70 cursor-not-allowed",
         )}
       >
-        <Globe aria-hidden="true" className="size-3.5 text-muted-foreground" />
+        {isPending ? (
+          <Loader2 aria-hidden="true" className="size-3.5 animate-spin text-muted-foreground" />
+        ) : (
+          <Globe aria-hidden="true" className="size-3.5 text-muted-foreground" />
+        )}
         <span aria-hidden="true" className="uppercase">
           {activeLocale}
         </span>

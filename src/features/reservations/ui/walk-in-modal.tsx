@@ -272,6 +272,7 @@ export function WalkInModal({
                   className="form-select text-xs font-bold px-2 py-2 w-[85px] shrink-0"
                 >
                   <option value="0412">0412</option>
+                  <option value="0422">0422</option>
                   <option value="0414">0414</option>
                   <option value="0424">0424</option>
                   <option value="0416">0416</option>
@@ -448,7 +449,8 @@ export function WalkInModal({
               type="submit"
               variant="primary"
               size="sm"
-              disabled={loading}
+              isLoading={loading}
+              disabled={loading || loadingSpaces}
               id="btn-confirm-walkin"
             >
               {loading ? t("btnCreating") : t("btnConfirm")}

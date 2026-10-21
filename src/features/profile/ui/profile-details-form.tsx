@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Save, CheckCircle, Camera } from "lucide-react";
+import { Save, CheckCircle, Camera, Loader2 } from "lucide-react";
 import { uploadBackofficeFileAction } from "@/shared/api/upload-action";
 import type { UpdateProfileInput, UserProfileData } from "../model/types";
 
@@ -33,7 +33,7 @@ function parseProfilePhone(rawPhone?: string | null): {
     }
   }
 
-  const knownOperators = ["0412", "0414", "0424", "0416", "0426", "0212"];
+  const knownOperators = ["0412", "0422", "0414", "0424", "0416", "0426", "0212"];
   for (const op of knownOperators) {
     if (rest.startsWith(op)) {
       return { countryCode, operator: op, phoneNum: rest.slice(op.length) };
@@ -129,7 +129,11 @@ export function ProfileDetailsForm({
               className="flex-1 px-3 py-1.5 rounded-lg border border-border bg-surface text-foreground text-xs focus:outline-hidden focus:ring-2 focus:ring-accent/40"
             />
             <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-surface hover:bg-muted text-xs font-semibold cursor-pointer shrink-0">
-              <Camera className="size-3.5" />
+              {isUploadingAvatar ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Camera className="size-3.5" />
+              )}
               <span>{isUploadingAvatar ? "..." : "Subir"}</span>
               <input
                 type="file"
@@ -230,6 +234,7 @@ export function ProfileDetailsForm({
           >
             <option value="0414">0414 (Movistar)</option>
             <option value="0412">0412 (Digitel)</option>
+            <option value="0422">0422 (Digitel)</option>
             <option value="0424">0424 (Movistar)</option>
             <option value="0416">0416 (Movilnet)</option>
             <option value="0426">0426 (Movilnet)</option>
@@ -290,10 +295,14 @@ export function ProfileDetailsForm({
       <div className="flex justify-end pt-2">
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isUploadingAvatar}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-accent-foreground font-bold text-xs sm:text-sm shadow-xs hover:brightness-105 active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
         >
-          <Save className="size-4" />
+          {isSubmitting ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Save className="size-4" />
+          )}
           <span>
             {isSubmitting ? t("general.saving") : t("general.saveChanges")}
           </span>

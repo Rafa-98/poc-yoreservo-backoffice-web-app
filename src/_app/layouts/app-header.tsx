@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
   CalendarPlus,
   ChevronDown,
+  Loader2,
   LogOut,
   Menu,
   QrCode,
@@ -33,6 +34,7 @@ export function AppHeader({
 }: AppHeaderProps) {
   const t = useTranslations("shell");
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isLoggingOut, startLogoutTransition] = useTransition();
 
   const getRoleBadge = (role: SessionUser["role"]) => {
     switch (role) {
@@ -221,15 +223,23 @@ export function AppHeader({
                 </div>
 
                 <div className="border-t border-border pt-1">
-                  <form action={logoutAction}>
-                    <button
-                      type="submit"
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-status-cancelled-fg hover:bg-status-cancelled-bg transition-colors"
-                    >
+                  <button
+                    type="button"
+                    disabled={isLoggingOut}
+                    onClick={() => {
+                      startLogoutTransition(async () => {
+                        await logoutAction();
+                      });
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-status-cancelled-fg hover:bg-status-cancelled-bg transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    {isLoggingOut ? (
+                      <Loader2 className="size-4 shrink-0 animate-spin" />
+                    ) : (
                       <LogOut className="size-4 shrink-0" />
-                      <span>{t("navLogout")}</span>
-                    </button>
-                  </form>
+                    )}
+                    <span>{t("navLogout")}</span>
+                  </button>
                 </div>
               </div>
             </>

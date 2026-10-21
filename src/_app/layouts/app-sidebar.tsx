@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useTransition, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -14,6 +14,8 @@ import {
   Landmark,
   Layers,
   LayoutDashboard,
+  LifeBuoy,
+  Loader2,
   LogOut,
   Settings2,
   TrendingUp,
@@ -190,6 +192,12 @@ const NAV_SECTIONS: readonly NavSectionDef[] = [
     titleKey: "navSystem",
     items: [
       {
+        labelKey: "navSupport",
+        href: ROUTES.support,
+        icon: <LifeBuoy className="size-4" />,
+        roles: ["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING", "ALLY_ADMIN"],
+      },
+      {
         labelKey: "navCatalogs",
         href: ROUTES.catalogs,
         icon: <BarChart3 className="size-4" />,
@@ -221,6 +229,7 @@ export function AppSidebar({
   const pathname = usePathname();
   const contextPendingCount = useContext(SidebarBadgeContext);
   const resolvedPendingCount = pendingPaymentsCount ?? contextPendingCount;
+  const [isLoggingOut, startLogoutTransition] = useTransition();
 
   const initials = `${user.name?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() || "YO";
 
@@ -355,15 +364,23 @@ export function AppSidebar({
               </div>
             </Link>
 
-            <form action={logoutAction}>
-              <button
-                type="submit"
-                title={t("navLogout")}
-                className="flex size-8 items-center justify-center rounded-lg text-sidebar-foreground hover:bg-status-cancelled-bg/20 hover:text-status-cancelled-fg transition-colors"
-              >
+            <button
+              type="button"
+              disabled={isLoggingOut}
+              onClick={() => {
+                startLogoutTransition(async () => {
+                  await logoutAction();
+                });
+              }}
+              title={t("navLogout")}
+              className="flex size-8 items-center justify-center rounded-lg text-sidebar-foreground hover:bg-status-cancelled-bg/20 hover:text-status-cancelled-fg transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              {isLoggingOut ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
                 <LogOut className="size-4" />
-              </button>
-            </form>
+              )}
+            </button>
           </div>
         </div>
       </aside>

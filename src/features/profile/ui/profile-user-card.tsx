@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Camera, ShieldCheck, MapPin, Calendar, Lock } from "lucide-react";
+import { Camera, Loader2, ShieldCheck, MapPin, Calendar, Lock } from "lucide-react";
 import { uploadBackofficeFileAction } from "@/shared/api/upload-action";
 import type { UserProfileData } from "../model/types";
 
@@ -73,7 +73,11 @@ export function ProfileUserCard({
           title={t("sidebar.changePhoto")}
           className="absolute -bottom-1 -right-1 size-8 rounded-full bg-forest-900 text-white border-2 border-surface flex items-center justify-center text-xs hover:bg-accent hover:text-accent-foreground hover:scale-110 active:scale-95 transition-all shadow-xs cursor-pointer disabled:opacity-50"
         >
-          <Camera className="size-3.5" />
+          {isUploading ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Camera className="size-3.5" />
+          )}
         </button>
       </div>
 
