@@ -387,7 +387,7 @@ export function SettlementStatementDrawer({
                 Tasa Oficial BCV de Referencia: Bs.{" "}
                 {bcvRate.toLocaleString("es-VE", {
                   minimumFractionDigits: 2,
-                  maximumFractionDigits: 4,
+                  maximumFractionDigits: 2,
                 })}{" "}
                 / USD • Lote #{current.batchCode}
               </div>

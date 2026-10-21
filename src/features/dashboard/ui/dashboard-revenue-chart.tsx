@@ -66,7 +66,7 @@ export function DashboardRevenueChart({
             >
               {/* Tooltip on hover */}
               <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-foreground text-background text-[10px] font-bold py-1 px-2 rounded pointer-events-none shadow-md whitespace-nowrap z-20">
-                ${gmv.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                ${gmv.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
 
               {/* Bars side by side */}

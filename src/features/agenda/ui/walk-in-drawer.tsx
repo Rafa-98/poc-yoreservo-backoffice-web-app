@@ -224,7 +224,7 @@ export function WalkInDrawer({
               <div className="text-right">
                 <span className="text-link">${price.toFixed(2)}</span>
                 <span className="block text-[11px] font-normal text-muted-foreground">
-                  Bs. {priceVes.toLocaleString("es-VE")}
+                  Bs. {priceVes.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             </div>

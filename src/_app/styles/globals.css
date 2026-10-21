@@ -388,6 +388,39 @@
     outline-offset: 2px;
   }
 
+  /* Ensure all interactive elements display the pointer (hand) cursor on hover. */
+  a[href],
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  [role="menuitemradio"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="radio"]:not([aria-disabled="true"]),
+  [role="switch"]:not([aria-disabled="true"]),
+  select:not(:disabled),
+  summary,
+  label[for],
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="range"]:not(:disabled),
+  input[type="file"]:not(:disabled),
+  input[type="date"]:not(:disabled),
+  input[type="time"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  textarea:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
   /* Keep browser autofill consistent with the active theme. */
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
@@ -527,6 +560,12 @@
     transition: border-color 0.15s, box-shadow 0.15s;
     outline: none;
     box-sizing: border-box;
+  }
+  .form-select:not(:disabled) {
+    cursor: pointer;
+  }
+  .form-select:hover:not(:disabled) {
+    border-color: var(--border-strong);
   }
   :where(.form-input:focus, .form-select:focus, .form-textarea:focus) {
     border-color: var(--ring);

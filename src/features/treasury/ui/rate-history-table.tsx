@@ -146,8 +146,8 @@ export function RateHistoryTable({ rates }: RateHistoryTableProps) {
                     <td className="px-4.5 py-3.5">
                       <div className={`font-display text-[15px] font-bold ${rateTextClass}`}>
                         {r.rate.toLocaleString("es-VE", {
-                          minimumFractionDigits: 6,
-                          maximumFractionDigits: 6,
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
                         })}{" "}
                         Bs.
                       </div>

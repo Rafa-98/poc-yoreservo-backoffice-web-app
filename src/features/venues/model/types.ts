@@ -1,5 +1,26 @@
 export type PaymentCollectionMode = "PLATFORM_CUSTODY" | "ALLY_DIRECT";
 
+export type PaymentMethodType =
+  | "PAGO_MOVIL"
+  | "ZELLE"
+  | "PIPOL_PAY"
+  | "CASH"
+  | "CARD";
+
+export interface PaymentMethodConfigItem {
+  id?: string;
+  organizationId?: string | null;
+  method: PaymentMethodType;
+  isEnabled: boolean;
+  bankCode?: string | null;
+  bankName?: string | null;
+  phone?: string | null;
+  documentId?: string | null;
+  email?: string | null;
+  beneficiaryName?: string | null;
+  instructions?: string | null;
+}
+
 export interface OrganizationSummaryItem {
   id: string;
   tradeName: string;
@@ -41,6 +62,8 @@ export interface OrganizationData {
   status: string;
   venuesCount: number;
   spacesCount: number;
+  paymentMethodConfigs?: PaymentMethodConfigItem[];
+  platformPaymentMethodConfigs?: PaymentMethodConfigItem[];
   organizations?: OrganizationSummaryItem[];
 }
 

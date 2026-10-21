@@ -51,7 +51,16 @@ export function PaymentsTable({
     );
   }
 
-  const getBankLabel = (bankCode: string | null) => {
+  const getBankLabel = (bankCode: string | null, method?: string) => {
+    if (method === "CASH") return "💵 Efectivo en Sede (Taquilla)";
+    if (method === "ZELLE")
+      return bankCode && bankCode !== "ZELLE"
+        ? `💜 Zelle (${bankCode})`
+        : "💜 Zelle (USD)";
+    if (method === "PIPOL_PAY")
+      return bankCode && bankCode !== "PIPOL_PAY"
+        ? `⚡ Pipol Pay (${bankCode})`
+        : "⚡ Pipol Pay (USD)";
     switch (bankCode) {
       case "0134":
         return "0134 — Banesco";
@@ -187,10 +196,12 @@ export function PaymentsTable({
                 {/* 3. ORIGIN BANK & PHONE */}
                 <td className="px-4.5 py-3.5">
                   <div className="font-semibold text-foreground">
-                    {getBankLabel(p.originBank)}
+                    {getBankLabel(p.originBank, p.paymentMethod)}
                   </div>
                   <div className="text-[11.5px] text-muted-foreground">
-                    {p.phoneNumber || "—"}
+                    {p.paymentMethod === "CASH"
+                      ? "Reserva confirmada con QR • Cobrar en taquilla"
+                      : p.phoneNumber || p.payerIdDocument || "—"}
                   </div>
                 </td>
 

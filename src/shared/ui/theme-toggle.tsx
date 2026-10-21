@@ -19,8 +19,8 @@ export function ThemeToggle({ className }: { className?: string }) {
       aria-label={label}
       title={label}
       className={cn(
-        "relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-surface text-foreground shadow-2xs transition-all",
-        "hover:bg-muted active:scale-95",
+        "relative grid size-9 shrink-0 cursor-pointer place-items-center overflow-hidden rounded-xl border border-border bg-surface text-foreground shadow-2xs transition-all",
+        "hover:border-border-strong hover:bg-muted active:scale-95",
         className,
       )}
     >

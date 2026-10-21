@@ -11,6 +11,7 @@ import type {
   CreateVenueInput,
   LocationNode,
   OrganizationData,
+  PaymentMethodConfigItem,
   SpaceItem,
   SpaceStatusConflictResult,
   SportCategoryItem,
@@ -169,6 +170,12 @@ function mapOrganizationData(raw: any): OrganizationData {
     status: String(raw?.status ?? "ACTIVE"),
     venuesCount: Number(raw?.venuesCount ?? 0),
     spacesCount: Number(raw?.spacesCount ?? 0),
+    paymentMethodConfigs: Array.isArray(raw?.paymentMethodConfigs)
+      ? raw.paymentMethodConfigs
+      : undefined,
+    platformPaymentMethodConfigs: Array.isArray(raw?.platformPaymentMethodConfigs)
+      ? raw.platformPaymentMethodConfigs
+      : undefined,
     organizations: Array.isArray(raw?.organizations)
       ? raw.organizations.map((o: any) => {
           const oRate = Number(o?.commissionRate ?? 5);
@@ -317,6 +324,68 @@ export async function updateOrganizationAction(
     revalidatePath(ROUTES.schedules);
 
     return ok(mapOrganizationData(res.body));
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : "UNKNOWN_ERROR");
+  }
+}
+
+export async function getPaymentMethodConfigsAction(
+  scope: "PLATFORM" | "ORGANIZATION",
+  organizationId?: string
+): Promise<ActionResult<PaymentMethodConfigItem[]>> {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "PLATFORM_ACCOUNTING",
+    "ALLY_ADMIN",
+    "ALLY_ACCOUNTING",
+  ]);
+  try {
+    const params = new URLSearchParams();
+    params.set("scope", scope);
+    if (organizationId) params.set("organizationId", organizationId);
+    const res = await backendRequest(
+      `/backoffice/payment-methods?${params.toString()}`,
+      { accessToken }
+    );
+    if (!res.ok) {
+      const msg = (res.body as any)?.message || "FAILED_TO_LOAD_PAYMENT_METHODS";
+      return fail(msg);
+    }
+    const methods = Array.isArray((res.body as any)?.methods)
+      ? (res.body as any).methods
+      : [];
+    return ok(methods);
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : "UNKNOWN_ERROR");
+  }
+}
+
+export async function updatePaymentMethodConfigsAction(input: {
+  scope: "PLATFORM" | "ORGANIZATION";
+  organizationId?: string;
+  methods: PaymentMethodConfigItem[];
+}): Promise<ActionResult<PaymentMethodConfigItem[]>> {
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "PLATFORM_ACCOUNTING",
+    "ALLY_ADMIN",
+  ]);
+  try {
+    const res = await backendRequest("/backoffice/payment-methods", {
+      method: "PUT",
+      accessToken,
+      body: input,
+    });
+    if (!res.ok) {
+      const msg =
+        (res.body as any)?.message || "FAILED_TO_UPDATE_PAYMENT_METHODS";
+      return fail(msg);
+    }
+    revalidatePath(ROUTES.organization);
+    const methods = Array.isArray((res.body as any)?.methods)
+      ? (res.body as any).methods
+      : [];
+    return ok(methods);
   } catch (error) {
     return fail(error instanceof Error ? error.message : "UNKNOWN_ERROR");
   }

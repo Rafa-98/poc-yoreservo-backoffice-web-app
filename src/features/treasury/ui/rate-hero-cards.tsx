@@ -51,8 +51,8 @@ export function RateHeroCards({ activeUsd, activeEur }: RateHeroCardsProps) {
         <div className="text-xs text-muted-foreground">
           <strong className="text-foreground">
             {usdRate.toLocaleString("es-VE", {
-              minimumFractionDigits: 6,
-              maximumFractionDigits: 6,
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
             })}{" "}
             Bs.
           </strong>{" "}
@@ -93,8 +93,8 @@ export function RateHeroCards({ activeUsd, activeEur }: RateHeroCardsProps) {
         <div className="text-xs text-muted-foreground">
           <strong className="text-foreground">
             {eurRate.toLocaleString("es-VE", {
-              minimumFractionDigits: 6,
-              maximumFractionDigits: 6,
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
             })}{" "}
             Bs.
           </strong>{" "}

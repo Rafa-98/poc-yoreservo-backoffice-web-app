@@ -63,9 +63,7 @@ export function OrgMasterCard({
         100
     );
   const netPayoutPct = 100 - commissionPct;
-  const minMonthlyFee = Number(organization.minimumMonthlyFee ?? 0)
-    .toFixed(2)
-    .replace(/\.00$/, "");
+  const minMonthlyFee = Number(organization.minimumMonthlyFee ?? 0).toFixed(2);
 
   return (
     <section className="px-5 pt-5">

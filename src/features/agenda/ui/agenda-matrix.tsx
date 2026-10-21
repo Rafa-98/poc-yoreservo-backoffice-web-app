@@ -78,7 +78,7 @@ export function AgendaMatrix({
                     <span>{categoryName}</span>
                     <span className="mx-1.5">•</span>
                     <span className="font-semibold text-link">
-                      ${space.pricePerHour}/h
+                      ${space.pricePerHour.toFixed(2)}/h
                     </span>
                   </div>
                 </div>

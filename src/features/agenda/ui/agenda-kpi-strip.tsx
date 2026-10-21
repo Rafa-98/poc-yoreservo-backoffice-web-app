@@ -145,7 +145,7 @@ export function AgendaKpiStrip({
             ${totalRevenue.toFixed(2)}
           </span>
           <span className="text-xs text-muted-foreground font-medium">
-            Bs. {revenueVes.toLocaleString("es-VE")}
+            Bs. {revenueVes.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>
       </div>

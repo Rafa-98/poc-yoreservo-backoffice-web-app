@@ -393,7 +393,7 @@ export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRat
                   symbol: "$",
                   rate: `${activeUsd.rate.toLocaleString("es-VE", {
                     minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
+                    maximumFractionDigits: 2,
                   })} Bs.${activeUsd.variationPct ? ` (${activeUsd.variationPct})` : ""}`,
                 },
               ]
@@ -405,7 +405,7 @@ export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRat
                   symbol: "€",
                   rate: `${activeEur.rate.toLocaleString("es-VE", {
                     minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
+                    maximumFractionDigits: 2,
                   })} Bs.${activeEur.variationPct ? ` (${activeEur.variationPct})` : ""}`,
                 },
               ]
@@ -415,7 +415,7 @@ export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRat
                 {
                   currency: "EUR / USD",
                   symbol: "€/$",
-                  rate: (activeEur.rate / activeUsd.rate).toFixed(4),
+                  rate: (activeEur.rate / activeUsd.rate).toFixed(2),
                 },
               ]
             : []),

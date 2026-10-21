@@ -2,34 +2,25 @@
 export const DEFAULT_BCV_USD_RATE = 41.0;
 export const DEFAULT_BCV_EUR_RATE = 44.28;
 
-const USD_FORMATTERS = {
-  whole: new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }),
-  cents: new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }),
-};
+const CENTS_FORMATTER = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 /**
- * Formats a USD amount: `$30`, `$3.60`, `$63.60`. Whole amounts drop the cents;
- * anything else always shows two decimals. The separator is the same in every
- * language so the price never changes shape when the user switches language.
+ * Formats a USD amount with 2 decimals: `$30.00`, `$3.60`, `$63.60`.
+ * The separator is the same in every language so the price never changes shape
+ * when the user switches language.
  *
  * Display only: money math (fees, rates, settlements) is done by the backend.
  */
 export function formatUsd(amount: number): string {
-  const formatter = Number.isInteger(amount)
-    ? USD_FORMATTERS.whole
-    : USD_FORMATTERS.cents;
-  return `$${formatter.format(amount)}`;
+  return `$${CENTS_FORMATTER.format(amount)}`;
 }
 
 /** Always two decimals (`$1,250.00`): ledgers, settlements and reports. */
 export function formatUsdFixed(amount: number): string {
-  return `$${USD_FORMATTERS.cents.format(amount)}`;
+  return `$${CENTS_FORMATTER.format(amount)}`;
 }
 
 const BS_FORMATTER = new Intl.NumberFormat("es-VE", {
@@ -49,4 +40,22 @@ export function formatBs(amount: number): string {
 /** USD equivalent label of the payment screens: `USD 63,60`. */
 export function formatUsdEquivalent(amount: number): string {
   return `USD ${BS_FORMATTER.format(amount)}`;
+}
+
+/**
+ * Universal multi-currency formatter (always 2 decimals):
+ * supports USD ($), EUR (€), and VES (Bs).
+ */
+export function formatCurrency(
+  amount: number,
+  currencyCode: string = "USD",
+): string {
+  const code = (currencyCode || "USD").toUpperCase();
+  if (code === "EUR") {
+    return `€${CENTS_FORMATTER.format(amount)}`;
+  }
+  if (code === "VES") {
+    return formatBs(amount);
+  }
+  return formatUsd(amount);
 }

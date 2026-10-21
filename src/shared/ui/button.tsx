@@ -9,10 +9,10 @@ import { Spinner } from "./spinner";
  */
 export const buttonVariants = cva(
   [
-    "relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap",
+    "relative inline-flex cursor-pointer select-none items-center justify-center gap-2 whitespace-nowrap",
     "rounded-xl font-semibold transition-all duration-200 ease-out",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-    "active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60",
+    "active:scale-[0.98] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60",
   ],
   {
     variants: {

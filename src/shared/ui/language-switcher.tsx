@@ -59,8 +59,8 @@ export function LanguageSwitcher({ className }: { className?: string }) {
         aria-controls={open ? menuId : undefined}
         aria-busy={isPending || undefined}
         className={cn(
-          "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-surface px-2.5 text-xs font-bold text-foreground shadow-2xs transition-all",
-          "hover:bg-muted active:scale-95",
+          "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-surface px-2.5 text-xs font-bold text-foreground shadow-2xs transition-all",
+          "hover:border-border-strong hover:bg-muted active:scale-95",
           isPending && "opacity-70",
         )}
       >
@@ -88,7 +88,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
                 lang={locale}
                 onClick={() => selectLocale(locale)}
                 className={cn(
-                  "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted",
+                  "flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted",
                   selected ? "font-semibold text-link" : "text-foreground",
                 )}
               >

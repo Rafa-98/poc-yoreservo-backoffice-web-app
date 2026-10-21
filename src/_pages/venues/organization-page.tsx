@@ -18,6 +18,7 @@ import {
 import { OrgMasterCard } from "@/features/venues/ui/org-master-card";
 import { OrgEditModal } from "@/features/venues/ui/org-edit-modal";
 import { CreateOrganizationModal } from "@/features/venues/ui/org-create-modal";
+import { PaymentMethodsConfigCard } from "@/features/venues/ui/payment-methods-config-card";
 
 interface OrganizationPageProps {
   initialOrg: OrganizationData;
@@ -538,6 +539,37 @@ export function OrganizationPage({
         }
         userRole={userRole}
       />
+
+      {/* Ally Organization Accepted Payment Methods (ALLY_DIRECT) */}
+      <PaymentMethodsConfigCard
+        scope="ORGANIZATION"
+        organization={org}
+        initialMethods={org.paymentMethodConfigs}
+        userRole={userRole}
+        onSaved={(updatedMethods) =>
+          setOrg((prev) => ({
+            ...prev,
+            paymentMethodConfigs: updatedMethods,
+          }))
+        }
+        onToast={showToast}
+      />
+
+      {/* YoReservo Platform Custody Accepted Payment Methods (PLATFORM_ADMIN) */}
+      {isPlatformAdmin && (
+        <PaymentMethodsConfigCard
+          scope="PLATFORM"
+          initialMethods={org.platformPaymentMethodConfigs}
+          userRole={userRole}
+          onSaved={(updatedMethods) =>
+            setOrg((prev) => ({
+              ...prev,
+              platformPaymentMethodConfigs: updatedMethods,
+            }))
+          }
+          onToast={showToast}
+        />
+      )}
 
       {/* Associated Venues Summary Card */}
       <section className="px-5 pt-6">

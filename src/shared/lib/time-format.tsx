@@ -151,8 +151,8 @@ export function TimeFormatToggle({
         onClick={() => setTimeFormat("12h")}
         className={`h-7 rounded-lg ${btnPadding} flex items-center transition-all cursor-pointer ${
           timeFormat === "12h"
-            ? "bg-accent text-accent-foreground font-extrabold shadow-2xs"
-            : "text-muted-foreground hover:text-foreground"
+            ? "bg-accent text-accent-foreground font-extrabold shadow-2xs hover:brightness-95"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground"
         }`}
         title="Formato 12 horas (AM/PM)"
       >
@@ -163,8 +163,8 @@ export function TimeFormatToggle({
         onClick={() => setTimeFormat("24h")}
         className={`h-7 rounded-lg ${btnPadding} flex items-center transition-all cursor-pointer ${
           timeFormat === "24h"
-            ? "bg-accent text-accent-foreground font-extrabold shadow-2xs"
-            : "text-muted-foreground hover:text-foreground"
+            ? "bg-accent text-accent-foreground font-extrabold shadow-2xs hover:brightness-95"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground"
         }`}
         title="Formato 24 horas (Militar)"
       >
