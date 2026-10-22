@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useTransition, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -25,10 +32,24 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { SessionUser } from "@/shared/auth";
-import { ROUTES, type BackofficeRole } from "@/shared/config";
+import { ROUTE_ALLOWED_ROLES, ROUTES, type BackofficeRole } from "@/shared/config";
 import { logoutAction } from "@/features/auth/actions/logout-action";
+import { getPaymentsInboxAction } from "@/features/treasury/actions/treasury-actions";
+import { useActiveVenue } from "@/features/venues/context/venue-context";
 
-const SidebarBadgeContext = createContext<number | undefined>(undefined);
+interface SidebarBadgeContextValue {
+  pendingPaymentsCount: number | undefined;
+  setPendingPaymentsCount: (count: number) => void;
+}
+
+const SidebarBadgeContext = createContext<SidebarBadgeContextValue>({
+  pendingPaymentsCount: undefined,
+  setPendingPaymentsCount: () => {},
+});
+
+export function useSidebarBadge() {
+  return useContext(SidebarBadgeContext);
+}
 
 export function SidebarBadgeProvider({
   pendingPaymentsCount,
@@ -37,8 +58,19 @@ export function SidebarBadgeProvider({
   pendingPaymentsCount?: number;
   children: ReactNode;
 }) {
+  const [count, setCount] = useState<number | undefined>(pendingPaymentsCount);
+
+  useEffect(() => {
+    setCount(pendingPaymentsCount);
+  }, [pendingPaymentsCount]);
+
   return (
-    <SidebarBadgeContext.Provider value={pendingPaymentsCount}>
+    <SidebarBadgeContext.Provider
+      value={{
+        pendingPaymentsCount: count,
+        setPendingPaymentsCount: setCount,
+      }}
+    >
       {children}
     </SidebarBadgeContext.Provider>
   );
@@ -90,9 +122,7 @@ const NAV_SECTIONS: readonly NavSectionDef[] = [
         icon: <Calendar className="size-4" />,
         roles: [
           "PLATFORM_ADMIN",
-          "PLATFORM_ACCOUNTING",
           "ALLY_ADMIN",
-          "ALLY_ACCOUNTING",
           "ALLY_VALIDATOR",
         ],
       },
@@ -102,9 +132,7 @@ const NAV_SECTIONS: readonly NavSectionDef[] = [
         icon: <Layers className="size-4" />,
         roles: [
           "PLATFORM_ADMIN",
-          "PLATFORM_ACCOUNTING",
           "ALLY_ADMIN",
-          "ALLY_ACCOUNTING",
           "ALLY_VALIDATOR",
         ],
       },
@@ -227,9 +255,53 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const t = useTranslations("shell");
   const pathname = usePathname();
-  const contextPendingCount = useContext(SidebarBadgeContext);
+  const { activeVenueId } = useActiveVenue();
+  const {
+    pendingPaymentsCount: contextPendingCount,
+    setPendingPaymentsCount,
+  } = useContext(SidebarBadgeContext);
   const resolvedPendingCount = pendingPaymentsCount ?? contextPendingCount;
   const [isLoggingOut, startLogoutTransition] = useTransition();
+
+  useEffect(() => {
+    if (!ROUTE_ALLOWED_ROLES[ROUTES.paymentsInbox].includes(user.role)) {
+      return;
+    }
+    // On /treasury/payments, PaymentsInboxPage manages the badge directly with its active filters
+    if (pathname === ROUTES.paymentsInbox) {
+      return;
+    }
+
+    let cancelled = false;
+    const todayIso = new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "America/Caracas",
+    }).format(new Date());
+    const fromDateObj = new Date(`${todayIso}T12:00:00Z`);
+    fromDateObj.setUTCDate(fromDateObj.getUTCDate() - 6);
+    const fromDateIso = fromDateObj.toISOString().slice(0, 10);
+
+    getPaymentsInboxAction({
+      status: "PENDING",
+      venueId:
+        activeVenueId && activeVenueId !== "ALL" ? activeVenueId : undefined,
+      fromDate: fromDateIso,
+      toDate: todayIso,
+    }).then((res) => {
+      if (!cancelled && res.ok && res.data) {
+        const count = (res.data.items ?? []).filter(
+          (p) => p.status === "PENDING",
+        ).length;
+        setPendingPaymentsCount(count);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeVenueId, pathname, user.role, setPendingPaymentsCount]);
 
   const initials = `${user.name?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() || "YO";
 

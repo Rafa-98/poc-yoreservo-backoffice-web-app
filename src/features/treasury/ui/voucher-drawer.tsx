@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { BackofficeRole } from "@/shared/config";
 import { DEFAULT_BCV_USD_RATE, useTimeFormat } from "@/shared/lib";
 import type { PaymentItem } from "../model/types";
@@ -18,6 +18,20 @@ interface VoucherDrawerProps {
   isProcessing?: boolean;
 }
 
+function formatHumanDate(dateStr: string | null | undefined, locale: string): string {
+  if (!dateStr) return "—";
+  const cleanIso = dateStr.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(cleanIso)) return dateStr;
+  const parsed = new Date(`${cleanIso}T12:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return dateStr;
+  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "es-VE", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(parsed);
+}
+
 export function VoucherDrawer({
   payment,
   userRole = "PLATFORM_ADMIN",
@@ -28,35 +42,39 @@ export function VoucherDrawer({
   isProcessing = false,
 }: VoucherDrawerProps) {
   const t = useTranslations("treasury.inbox.voucher");
+  const locale = useLocale();
   const { formatTime } = useTimeFormat();
   const [isZoomed, setIsZoomed] = useState(false);
 
   if (!isOpen || !payment) return null;
 
   const isDirectMode = payment.collectionMode === "ALLY_DIRECT";
+  const isRejected = payment.status === "REJECTED" || payment.status === "FAILED";
   const canReconcile = canUserReconcilePayment(payment, userRole);
 
   const bankName =
-    payment.originBank === "0134"
-      ? "BANESCO BANCO UNIVERSAL"
-      : payment.originBank === "0105"
-      ? "BANCO MERCANTIL"
-      : payment.originBank === "0102"
-      ? "BANCO DE VENEZUELA"
-      : payment.originBank === "0172"
-      ? "BANCAMIGA BANCO UNIVERSAL"
-      : payment.originBank || "BANCO UNIVERSAL";
+    payment.paymentMethod === "CASH"
+      ? "EFECTIVO EN SEDE (TAQUILLA)"
+      : payment.originBank === "0134"
+        ? "BANESCO BANCO UNIVERSAL"
+        : payment.originBank === "0105"
+          ? "BANCO MERCANTIL"
+          : payment.originBank === "0102"
+            ? "BANCO DE VENEZUELA"
+            : payment.originBank === "0172"
+              ? "BANCAMIGA BANCO UNIVERSAL"
+              : payment.originBank || "BANCO UNIVERSAL";
 
   const bankAccentColor =
     payment.originBank === "0134"
       ? "#005696"
       : payment.originBank === "0105"
-      ? "#EA7600"
-      : payment.originBank === "0102"
-      ? "#B91C1C"
-      : payment.originBank === "0172"
-      ? "#008852"
-      : "var(--brand-lime)";
+        ? "#EA7600"
+        : payment.originBank === "0102"
+          ? "#B91C1C"
+          : payment.originBank === "0172"
+            ? "#008852"
+            : "var(--brand-lime)";
 
   const effectiveRate = payment.exchangeRate || DEFAULT_BCV_USD_RATE;
 
@@ -70,15 +88,19 @@ export function VoucherDrawer({
         maximumFractionDigits: 2,
       });
 
-  const amountUsd = payment.amountReference
+  const amountRef = payment.amountReference
     ? payment.amountReference.toFixed(2)
     : payment.amount.toFixed(2);
+  const refCurrency =
+    payment.currencyCode || payment.reservation?.currencyCode || "USD";
+  const refSymbol = refCurrency === "EUR" ? "€" : "$";
 
   const rateValue = effectiveRate.toFixed(2);
 
-  const formattedPaymentDate = formatTime(
+  const formattedPaymentDate = formatHumanDate(
     payment.paymentDate ||
-      (payment.createdAt ? payment.createdAt.slice(0, 10) : "—"),
+      (payment.createdAt ? payment.createdAt.slice(0, 10) : ""),
+    locale,
   );
 
   const payerDocumentDisplay = payment.payerIdDocument
@@ -132,6 +154,16 @@ export function VoucherDrawer({
 
         {/* BODY */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
+          {/* REJECTION REASON ALERT (IF REJECTED) */}
+          {isRejected && (
+            <div className="mb-4 rounded-xl border border-status-cancelled-border bg-status-cancelled-bg px-4 py-3 text-xs leading-relaxed text-status-cancelled-fg">
+              <div className="font-bold">❌ {t("rejectedAlertTitle")}</div>
+              <div className="mt-1 font-medium">
+                {payment.rejectionReason || "Referencia no localizada en el extracto bancario."}
+              </div>
+            </div>
+          )}
+
           {/* DUPLICATE REFERENCE WARNING ALERT */}
           {payment.isDuplicateReference && (
             <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/15 px-4 py-3 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
@@ -205,7 +237,12 @@ export function VoucherDrawer({
                   Bs. {amountBs}
                 </div>
                 <div className="text-[11px] font-semibold text-status-available-fg">
-                  {t("rateEquivalent", { usd: amountUsd, rate: rateValue })}
+                  {t("equivalentAtRate", {
+                    symbol: refSymbol,
+                    amount: amountRef,
+                    currency: refCurrency,
+                    rate: rateValue,
+                  })}
                 </div>
               </div>
 
@@ -255,10 +292,12 @@ export function VoucherDrawer({
             <div className="text-[15px] font-bold text-foreground">
               #{payment.reservation?.shortCode} —{" "}
               {payment.reservation?.space?.spaceNumber} (
-              {formatTime(payment.reservation?.startTime)} - {formatTime(payment.reservation?.endTime)})
+              {formatTime(payment.reservation?.startTime)} -{" "}
+              {formatTime(payment.reservation?.endTime)})
             </div>
             <div className="mt-0.5 text-xs text-muted-foreground">
-              {payment.reservation?.space?.venue?.name}
+              {payment.reservation?.space?.venue?.name} •{" "}
+              {formatHumanDate(payment.reservation?.reservationDate, locale)}
             </div>
           </div>
         </div>
@@ -270,7 +309,7 @@ export function VoucherDrawer({
               <button
                 id="drawer-reject-btn"
                 type="button"
-                className="btn btn-destructive flex-1 rounded-[10px] px-4 py-2.5 text-[13px]"
+                className="btn btn-destructive flex-1 rounded-[10px] px-4 py-2.5 text-[13px] cursor-pointer"
                 onClick={() => onOpenReject(payment)}
                 disabled={isProcessing}
               >
@@ -279,7 +318,7 @@ export function VoucherDrawer({
               <button
                 id="drawer-approve-btn"
                 type="button"
-                className="btn btn-primary inline-flex flex-[1.5] items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-[13px] disabled:opacity-50"
+                className="btn btn-primary inline-flex flex-[1.5] items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-[13px] disabled:opacity-50 cursor-pointer"
                 onClick={() => onApprove(payment.id)}
                 disabled={isProcessing}
               >
@@ -302,7 +341,7 @@ export function VoucherDrawer({
               </div>
               <button
                 type="button"
-                className="btn btn-outline w-full rounded-[10px] px-4 py-2.5 text-[13px]"
+                className="btn btn-outline w-full rounded-[10px] px-4 py-2.5 text-[13px] cursor-pointer"
                 onClick={onClose}
               >
                 {t("closeAudit")}
@@ -313,7 +352,7 @@ export function VoucherDrawer({
           {payment.status !== "PENDING" && (
             <button
               type="button"
-              className="btn btn-outline w-full rounded-[10px] px-4 py-2.5 text-[13px]"
+              className="btn btn-outline w-full rounded-[10px] px-4 py-2.5 text-[13px] cursor-pointer"
               onClick={onClose}
             >
               {t("closeAudit")}

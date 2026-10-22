@@ -19,8 +19,10 @@ import type {
   PaymentItem,
   PaymentsInboxData,
   SettlementBatchItem,
+  SettlementDirection,
   SettlementsKpis,
   TreasuryKpis,
+  UnsettledPoolItem,
 } from "../model/types";
 
 function formatSettlementPeriod(
@@ -61,6 +63,8 @@ export async function getPaymentsInboxAction(filters?: {
   paymentMethod?: string;
   search?: string;
   venueId?: string;
+  fromDate?: string;
+  toDate?: string;
 }): Promise<ActionResult<PaymentsInboxData>> {
   const { accessToken } = await requireSessionWithToken([
     "PLATFORM_ADMIN",
@@ -81,6 +85,12 @@ export async function getPaymentsInboxAction(filters?: {
     }
     if (filters?.venueId && filters.venueId !== "ALL") {
       query.set("venueId", filters.venueId);
+    }
+    if (filters?.fromDate) {
+      query.set("fromDate", filters.fromDate);
+    }
+    if (filters?.toDate) {
+      query.set("toDate", filters.toDate);
     }
 
     const endpoint = `/backoffice/treasury/payments${
@@ -119,6 +129,10 @@ export async function getPaymentsInboxAction(filters?: {
               ? Number((rawAmount / rate).toFixed(2))
               : rawAmount;
 
+      const refCurrency =
+        p.reservation?.currencyCode ||
+        (p.currencyCode && p.currencyCode !== "VES" ? p.currencyCode : "USD");
+
       return {
         id: p.id,
         reservationId: p.reservationId,
@@ -130,7 +144,8 @@ export async function getPaymentsInboxAction(filters?: {
         amount: computedAmountReference,
         amountVes: computedAmountVes,
         amountReference: computedAmountReference,
-        currency: p.currency ?? "USD",
+        currency: refCurrency,
+        currencyCode: refCurrency,
         exchangeRate: rate,
         paymentMethod: p.paymentMethod ?? "PAGO_MOVIL",
         paymentDate: p.paymentDate ? String(p.paymentDate).slice(0, 10) : "",
@@ -147,6 +162,7 @@ export async function getPaymentsInboxAction(filters?: {
           id: p.reservation?.id ?? "",
           shortCode: p.reservation?.shortCode ?? "---",
           status: p.reservation?.status ?? "",
+          currencyCode: refCurrency,
           reservationDate: p.reservation?.reservationDate
             ? String(p.reservation.reservationDate).slice(0, 10)
             : "",
@@ -308,7 +324,13 @@ export async function rejectPaymentAction(
   }
 }
 
-export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRateData>> {
+export async function getExchangeRatesAction(params?: {
+  currencyCode?: "USD" | "EUR";
+  page?: number;
+  limit?: number;
+  fromDate?: string;
+  toDate?: string;
+}): Promise<ActionResult<ExchangeRateData>> {
   const { accessToken } = await requireSessionWithToken([
     "PLATFORM_ADMIN",
     "PLATFORM_ACCOUNTING",
@@ -316,9 +338,23 @@ export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRat
     "ALLY_ACCOUNTING",
   ]);
   try {
-    const res = await backendRequest("/backoffice/treasury/exchange-rates", {
-      accessToken,
-    });
+    const query = new URLSearchParams();
+    query.set("currencyCode", params?.currencyCode ?? "USD");
+    query.set("page", String(params?.page ?? 1));
+    query.set("limit", String(params?.limit ?? 5));
+    if (params?.fromDate) {
+      query.set("fromDate", params.fromDate);
+    }
+    if (params?.toDate) {
+      query.set("toDate", params.toDate);
+    }
+
+    const res = await backendRequest(
+      `/backoffice/treasury/exchange-rates?${query.toString()}`,
+      {
+        accessToken,
+      },
+    );
 
     if (!res.ok) {
       return fail("FAILED_TO_LOAD_EXCHANGE_RATES");
@@ -327,6 +363,12 @@ export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRat
     const data = res.body as {
       activeRates: any[];
       history: any[];
+      historyPagination?: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      };
       lastSync?: string;
       secondaryCurrencies?: Array<{ currency: string; symbol: string; rate: string }>;
     };
@@ -351,6 +393,11 @@ export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRat
             lastName: r.creator.lastName,
           }
         : null,
+      previousRate:
+        r.previousRate !== null && r.previousRate !== undefined
+          ? Number(r.previousRate)
+          : undefined,
+      variationPct: r.variationPct ?? undefined,
     });
 
     const activeList = (data?.activeRates ?? []).map(mapRate);
@@ -359,8 +406,8 @@ export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRat
     const activeUsd = activeList.find((r) => r.currencyCode === "USD") ?? null;
     const activeEur = activeList.find((r) => r.currencyCode === "EUR") ?? null;
 
-    // Attach previous rate and variation % from history ledger
-    if (activeUsd) {
+    // Attach previous rate and variation % from history ledger if not already computed by backend
+    if (activeUsd && !activeUsd.previousRate) {
       const prevUsd = historyList.find(
         (h) => h.currencyCode === "USD" && h.id !== activeUsd.id,
       );
@@ -371,7 +418,7 @@ export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRat
       }
     }
 
-    if (activeEur) {
+    if (activeEur && !activeEur.previousRate) {
       const prevEur = historyList.find(
         (h) => h.currencyCode === "EUR" && h.id !== activeEur.id,
       );
@@ -435,6 +482,12 @@ export async function getExchangeRatesAction(): Promise<ActionResult<ExchangeRat
       activeUsd,
       activeEur,
       history: historyList,
+      historyPagination: data?.historyPagination ?? {
+        total: historyList.length,
+        page: params?.page ?? 1,
+        limit: params?.limit ?? 5,
+        totalPages: 1,
+      },
       lastSync: formattedSyncTime,
       secondaryCurrencies,
     });
@@ -481,6 +534,12 @@ export async function getSettlementsAction(filters?: {
     total: number;
     kpis: SettlementsKpis;
     organizations: Array<{ id: string; name: string }>;
+    unsettledPools: UnsettledPoolItem[];
+    autoBatchSchedule?: {
+      morningTime: string;
+      nightTime: string;
+      timeZone: string;
+    };
   }>
 > {
   const { accessToken } = await requireSessionWithToken([
@@ -516,8 +575,32 @@ export async function getSettlementsAction(filters?: {
       items: any[];
       cycleDeadline?: string;
       organizations?: Array<{ id: string; name?: string; tradeName?: string }>;
+      unsettledPools?: any[];
+      autoBatchSchedule?: {
+        morningTime?: string;
+        nightTime?: string;
+        timeZone?: string;
+      };
     };
     const rawItems = data?.items ?? [];
+    const unsettledPools: UnsettledPoolItem[] = (data?.unsettledPools ?? []).map((p: any) => ({
+      organizationId: String(p.organizationId),
+      organizationName: String(p.organizationName ?? "Organización Aliada"),
+      legalName: p.legalName ? String(p.legalName) : undefined,
+      rif: String(p.rif ?? "J-00000000-0"),
+      currencyCode: p.currencyCode ? String(p.currencyCode) : "USD",
+      payoutBank: p.payoutBank ?? null,
+      payoutAccountNumber: p.payoutAccountNumber ?? null,
+      payoutAccountHolder: p.payoutAccountHolder ?? null,
+      direction:
+        p.direction === "ALLY_TO_PLATFORM" ? "ALLY_TO_PLATFORM" : "PLATFORM_TO_ALLY",
+      reservationsCount: Number(p.reservationsCount ?? 0),
+      grossAmount: Number(p.grossAmount ?? 0),
+      platformFeeAmount: Number(p.platformFeeAmount ?? 0),
+      netAmount: Number(p.netAmount ?? 0),
+      oldestVerifiedAt: p.oldestVerifiedAt ? String(p.oldestVerifiedAt) : null,
+      latestVerifiedAt: p.latestVerifiedAt ? String(p.latestVerifiedAt) : null,
+    }));
 
     let totalGmv = 0;
     let totalFee = 0;
@@ -590,6 +673,8 @@ export async function getSettlementsAction(filters?: {
           tradeName: orgTradeName,
           legalName: b.organization?.legalName ?? "Razón Social",
           rif: b.organization?.rif ?? "J-00000000-0",
+          referenceCurrencyCode:
+            b.organization?.referenceCurrencyCode ?? b.currencyCode ?? "USD",
           payoutBank: b.organization?.payoutBank ?? null,
           payoutAccountNumber: b.organization?.payoutAccountNumber ?? null,
           payoutAccountType: b.organization?.payoutAccountType ?? null,
@@ -607,7 +692,8 @@ export async function getSettlementsAction(filters?: {
           b.periodDisplay,
         ),
         totalReservations: resCount,
-        currencyCode: b.currencyCode ?? "USD",
+        currencyCode:
+          b.currencyCode ?? b.organization?.referenceCurrencyCode ?? "USD",
         grossAmount: gross,
         platformFeeAmount: fee,
         netPayoutAmount: net,
@@ -615,7 +701,7 @@ export async function getSettlementsAction(filters?: {
         payoutExchangeRate:
           b.payoutExchangeRate !== null && b.payoutExchangeRate !== undefined
             ? Number(b.payoutExchangeRate)
-            : DEFAULT_BCV_USD_RATE,
+            : null,
         direction:
           b.direction === "ALLY_TO_PLATFORM"
             ? "ALLY_TO_PLATFORM"
@@ -668,6 +754,12 @@ export async function getSettlementsAction(filters?: {
       total: data?.total ?? items.length,
       kpis,
       organizations: Array.from(orgMap.values()),
+      unsettledPools,
+      autoBatchSchedule: {
+        morningTime: data?.autoBatchSchedule?.morningTime || "07:00",
+        nightTime: data?.autoBatchSchedule?.nightTime || "23:00",
+        timeZone: data?.autoBatchSchedule?.timeZone || "America/Caracas",
+      },
     });
   } catch (e) {
     console.error("[treasury] getSettlementsAction failed:", e);
@@ -720,7 +812,8 @@ export async function getSettlementDetailAction(
         b.periodDisplay,
       ),
       totalReservations: Number(b.totalReservations ?? 0),
-      currencyCode: b.currencyCode ?? "USD",
+      currencyCode:
+        b.currencyCode ?? b.organization?.referenceCurrencyCode ?? "USD",
       grossAmount: Number(b.grossAmount ?? 0),
       platformFeeAmount: Number(b.platformFeeAmount ?? 0),
       netPayoutAmount: Number(b.netPayoutAmount ?? 0),
@@ -728,7 +821,7 @@ export async function getSettlementDetailAction(
       payoutExchangeRate:
         b.payoutExchangeRate !== null && b.payoutExchangeRate !== undefined
           ? Number(b.payoutExchangeRate)
-          : DEFAULT_BCV_USD_RATE,
+          : null,
       direction:
         b.direction === "ALLY_TO_PLATFORM"
           ? "ALLY_TO_PLATFORM"
@@ -938,11 +1031,17 @@ export const syncBcvRatesAction = syncBcvExchangeRatesAction;
 
 export async function generateSettlementBatchAction(input: {
   organizationId: string;
-  periodStartDate: string;
-  periodEndDate: string;
+  periodStartDate?: string;
+  periodEndDate?: string;
+  direction?: SettlementDirection;
   venueId?: string;
 }): Promise<ActionResult<any>> {
-  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING"]);
+  const { accessToken } = await requireSessionWithToken([
+    "PLATFORM_ADMIN",
+    "PLATFORM_ACCOUNTING",
+    "ALLY_ADMIN",
+    "ALLY_ACCOUNTING",
+  ]);
   try {
     const res = await backendRequest("/backoffice/settlements/generate", {
       method: "POST",

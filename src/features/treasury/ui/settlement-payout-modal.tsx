@@ -26,6 +26,7 @@ interface SettlementPayoutModalProps {
   isOpen: boolean;
   batch: SettlementBatchItem | null;
   bcvRate: number;
+  bcvEurRate?: number;
   onClose: () => void;
   onDisburse?: (
     input: SettlementPayoutSubmitPayload,
@@ -40,6 +41,7 @@ export function SettlementPayoutModal({
   isOpen,
   batch,
   bcvRate,
+  bcvEurRate,
   onClose,
   onDisburse,
   onReportInvoice,
@@ -75,7 +77,20 @@ export function SettlementPayoutModal({
   const isAllyToPlatform = batch.direction === "ALLY_TO_PLATFORM";
   const isInvoiceVerify = isAllyToPlatform && batch.status === "PAYMENT_UNDER_REVIEW";
   const isInvoiceReport = isAllyToPlatform && !isInvoiceVerify;
-  const netBs = batch.netPayoutAmount * bcvRate;
+  const rawCurr =
+    batch.currencyCode ||
+    batch.organization?.referenceCurrencyCode ||
+    "USD";
+  const isEur = rawCurr === "EUR";
+  const currCode = isEur ? "EUR" : "USD";
+  const sym = isEur ? "€" : "$";
+  const rateUsed =
+    batch.payoutExchangeRate && batch.payoutExchangeRate > 0
+      ? batch.payoutExchangeRate
+      : isEur
+        ? (bcvEurRate ?? bcvRate)
+        : bcvRate;
+  const netBs = batch.netPayoutAmount * rateUsed;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -268,12 +283,12 @@ export function SettlementPayoutModal({
                     {isAllyToPlatform ? t("lblInvoiceAmountToPay") : t("lblNetToTransfer")}
                   </div>
                   <div className="font-display text-2xl font-black text-status-available-fg mt-0.5" id="modal-net-usd">
-                    ${batch.netPayoutAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                    {sym}{batch.netPayoutAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currCode}
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-[11px] text-muted-foreground">
-                    {t("lblBcvRate")} {bcvRate.toFixed(2)} Bs/$
+                    {t("lblBcvRate")} {rateUsed.toFixed(2)} Bs./{currCode}
                   </div>
                   <div className="text-sm font-bold text-foreground mt-0.5" id="modal-net-bs">
                     Bs. {netBs.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

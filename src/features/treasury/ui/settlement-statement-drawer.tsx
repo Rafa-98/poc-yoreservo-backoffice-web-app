@@ -2,50 +2,40 @@
 
 import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import type { BackofficeRole } from "@/shared/config";
 import { Button } from "@/shared/ui/button";
 import type { SettlementBatchItem, SettlementItemDetail } from "../model/types";
-import {
-  exportSettlementBankingFileAction,
-  getSettlementDetailAction,
-} from "../actions/treasury-actions";
+import { getSettlementDetailAction } from "../actions/treasury-actions";
 
 interface SettlementStatementDrawerProps {
   isOpen: boolean;
   batch: SettlementBatchItem | null;
   bcvRate: number;
+  bcvEurRate?: number;
+  userRole?: BackofficeRole;
   onClose: () => void;
+  onOpenPayout?: (batch: SettlementBatchItem) => void;
 }
 
 export function SettlementStatementDrawer({
   isOpen,
   batch,
   bcvRate,
+  bcvEurRate,
+  userRole = "PLATFORM_ADMIN",
   onClose,
+  onOpenPayout,
 }: SettlementStatementDrawerProps) {
   const t = useTranslations("settlements");
   const [detailBatch, setDetailBatch] = useState<SettlementBatchItem | null>(null);
   const [loading, setLoading] = useState(false);
-  const [exportingFormat, setExportingFormat] = useState<"BDV" | "BANESCO" | "PAGO_MOVIL" | "CSV" | null>(null);
 
-  async function handleExportBankFile(format: "BDV" | "BANESCO" | "PAGO_MOVIL" | "CSV", batchId: string) {
-    setExportingFormat(format);
-    try {
-      const res = await exportSettlementBankingFileAction(batchId, format);
-      if (res.ok && res.data) {
-        const blob = new Blob([res.data.content], { type: res.data.mimeType });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = res.data.filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-    } finally {
-      setExportingFormat(null);
-    }
-  }
+  const isPlatformUser =
+    userRole === "PLATFORM_ADMIN" || userRole === "PLATFORM_ACCOUNTING";
+  const isAllyFinanceOrAdmin =
+    userRole === "ALLY_ADMIN" ||
+    userRole === "ALLY_ACCOUNTING" ||
+    userRole === "PLATFORM_ADMIN";
 
   useEffect(() => {
     if (!isOpen || !batch) {
@@ -126,10 +116,32 @@ export function SettlementStatementDrawer({
 
   const current = detailBatch || batch;
   const isDisbursed = current.status === "DISBURSED";
+  const isAllyToPlatform = current.direction === "ALLY_TO_PLATFORM";
+  const rawCurr =
+    current.currencyCode ||
+    current.organization?.referenceCurrencyCode ||
+    "USD";
+  const isEur = rawCurr === "EUR";
+  const currCode = isEur ? "EUR" : "USD";
+  const sym = isEur ? "€" : "$";
+  const rateUsed =
+    current.payoutExchangeRate && current.payoutExchangeRate > 0
+      ? current.payoutExchangeRate
+      : isEur
+        ? (bcvEurRate ?? bcvRate)
+        : bcvRate;
 
-  const gmvBs = current.grossAmount * bcvRate;
-  const feeBs = current.platformFeeAmount * bcvRate;
-  const netBs = current.netPayoutAmount * bcvRate;
+  const gmvBs = current.grossAmount * rateUsed;
+  const feeBs = current.platformFeeAmount * rateUsed;
+  const netBs = current.netPayoutAmount * rateUsed;
+
+  const netBoxTitle = isAllyToPlatform
+    ? isDisbursed
+      ? "Comisión Pagada"
+      : "Comisión por Pagar"
+    : isDisbursed
+      ? "Neto Transferido"
+      : "Neto por Transferir";
 
   const displayItems: SettlementItemDetail[] = current.items ?? [];
 
@@ -244,17 +256,46 @@ export function SettlementStatementDrawer({
               </div>
             </div>
 
-            {/* Bank reference snippet */}
-            <div className="border-t border-border pt-3 flex items-center justify-between text-xs">
-              <div>
-                <span className="text-muted-foreground">{t("lblBankRef")} </span>
-                <span className="font-mono font-bold text-foreground" id="drawer-bank-ref">
-                  {current.payoutReferenceNumber || "—"}
-                </span>
+            {/* Bank coordinates & reference snippet */}
+            <div className="border-t border-border pt-3 space-y-2 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span className="text-muted-foreground">Cuenta Destino: </span>
+                  <span className="font-semibold text-foreground">
+                    {current.direction === "ALLY_TO_PLATFORM"
+                      ? "Banesco (0134) — YoReservo C.A. (J-50123456-7 • 0414-9001122)"
+                      : `${current.organization?.payoutBank || "—"} ${
+                          current.organization?.payoutAccountNumber
+                            ? `• ${current.organization.payoutAccountNumber}`
+                            : ""
+                        }`}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-muted-foreground">{t("lblBankRef")} </span>
+                  <span className="font-mono font-bold text-foreground" id="drawer-bank-ref">
+                    {current.payoutReferenceNumber || "—"}
+                  </span>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-muted-foreground">Moneda / Tasa BCV: </span>
+                  <span className="font-bold text-foreground">
+                    {isEur ? "💶 EUR" : "💵 USD"} •{" "}
+                    {rateUsed.toLocaleString("es-VE", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    Bs./{currCode}
+                  </span>
+                </div>
               </div>
 
               {current.payoutReceiptUrl && (
-                <div>
+                <div className="pt-1">
                   <a
                     href={current.payoutReceiptUrl}
                     target="_blank"
@@ -272,10 +313,10 @@ export function SettlementStatementDrawer({
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-xl border border-border bg-surface p-3.5 text-center">
               <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                {t("drawerGmv")}
+                {isAllyToPlatform ? "Cobrado por Aliado" : t("drawerGmv")}
               </div>
               <div className="font-display text-base font-extrabold text-foreground mt-1" id="drawer-gmv">
-                ${current.grossAmount.toFixed(2)}
+                {sym}{current.grossAmount.toFixed(2)} {currCode}
               </div>
               <div className="text-[10px] text-muted-foreground mt-0.5" id="drawer-gmv-bs">
                 Bs. {gmvBs.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -287,19 +328,34 @@ export function SettlementStatementDrawer({
                 {t("drawerFee")}
               </div>
               <div className="font-display text-base font-extrabold text-status-cancelled-fg mt-1" id="drawer-fee">
-                -${current.platformFeeAmount.toFixed(2)}
+                {isAllyToPlatform ? "" : "−"}{sym}{current.platformFeeAmount.toFixed(2)} {currCode}
               </div>
               <div className="text-[10px] text-muted-foreground mt-0.5" id="drawer-fee-bs">
-                Bs. -{feeBs.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                Bs. {isAllyToPlatform ? "" : "−"}{feeBs.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
 
-            <div className="rounded-xl border border-status-available-border bg-status-available-bg p-3.5 text-center">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-status-available-fg">
-                {t("drawerNet")}
+            <div
+              className={`rounded-xl border p-3.5 text-center ${
+                isDisbursed
+                  ? "border-status-available-border bg-status-available-bg"
+                  : "border-status-hold-border bg-status-hold-bg"
+              }`}
+            >
+              <div
+                className={`text-[10px] font-bold uppercase tracking-wider ${
+                  isDisbursed ? "text-status-available-fg" : "text-status-hold-fg"
+                }`}
+              >
+                {netBoxTitle}
               </div>
-              <div className="font-display text-base font-extrabold text-status-available-fg mt-1" id="drawer-net">
-                ${current.netPayoutAmount.toFixed(2)}
+              <div
+                className={`font-display text-base font-extrabold mt-1 ${
+                  isDisbursed ? "text-status-available-fg" : "text-status-hold-fg"
+                }`}
+                id="drawer-net"
+              >
+                {sym}{current.netPayoutAmount.toFixed(2)} {currCode}
               </div>
               <div className="text-[10px] text-muted-foreground mt-0.5" id="drawer-net-bs">
                 Bs. {netBs.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -380,15 +436,15 @@ export function SettlementStatementDrawer({
                         </td>
 
                         <td className="px-3 py-2.5 text-right font-medium text-foreground">
-                          ${item.courtSubtotal.toFixed(2)}
+                          {sym}{item.courtSubtotal.toFixed(2)}
                         </td>
 
                         <td className="px-3 py-2.5 text-right font-medium text-status-cancelled-fg">
-                          -${item.serviceFee.toFixed(2)}
+                          −{sym}{item.serviceFee.toFixed(2)}
                         </td>
 
                         <td className="px-3 py-2.5 text-right font-bold text-status-available-fg">
-                          ${item.netAllyAmount.toFixed(2)}
+                          {sym}{item.netAllyAmount.toFixed(2)}
                         </td>
                       </tr>
                     ))
@@ -405,12 +461,12 @@ export function SettlementStatementDrawer({
                 Documento conciliado digitalmente por YoReservo C.A.
               </div>
               <div>
-                Tasa Oficial BCV de Referencia: Bs.{" "}
-                {bcvRate.toLocaleString("es-VE", {
+                Tasa Oficial BCV Aplicada: Bs.{" "}
+                {rateUsed.toLocaleString("es-VE", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}{" "}
-                / USD • Lote #{current.batchCode}
+                / {currCode} • Lote #{current.batchCode}
               </div>
             </div>
             <div className="text-right">
@@ -422,73 +478,19 @@ export function SettlementStatementDrawer({
 
         {/* FOOTER (Interactive controls hidden when printing) */}
         <div className="no-print print:hidden border-t border-border bg-muted/40 p-5 flex flex-wrap items-center justify-between gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={onClose}
+          >
+            {t("btnClose")}
+          </Button>
+
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground mr-1">
-              {t("lblExportBankFile")}
-            </span>
             <Button
               type="button"
               variant="secondary"
-              size="sm"
-              isLoading={exportingFormat === "BDV"}
-              disabled={exportingFormat !== null}
-              onClick={() => handleExportBankFile("BDV", current.id)}
-              title={t("exportBdvTitle")}
-            >
-              {exportingFormat !== "BDV" && <span>🏛️</span>}
-              <span>{t("exportBdvBtn")}</span>
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              isLoading={exportingFormat === "BANESCO"}
-              disabled={exportingFormat !== null}
-              onClick={() => handleExportBankFile("BANESCO", current.id)}
-              title={t("exportBanescoTitle")}
-            >
-              {exportingFormat !== "BANESCO" && <span>🟩</span>}
-              <span>{t("exportBanescoBtn")}</span>
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              isLoading={exportingFormat === "PAGO_MOVIL"}
-              disabled={exportingFormat !== null}
-              onClick={() => handleExportBankFile("PAGO_MOVIL", current.id)}
-              title={t("exportPagoMovilTitle")}
-            >
-              {exportingFormat !== "PAGO_MOVIL" && <span>📱</span>}
-              <span>{t("exportPagoMovilBtn")}</span>
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              isLoading={exportingFormat === "CSV"}
-              disabled={exportingFormat !== null}
-              onClick={() => handleExportBankFile("CSV", current.id)}
-              title={t("exportCsvTitle")}
-            >
-              {exportingFormat !== "CSV" && <span>📊</span>}
-              <span>{t("exportCsvBtn")}</span>
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={onClose}
-            >
-              {t("btnClose")}
-            </Button>
-
-            <Button
-              type="button"
-              variant="primary"
               size="sm"
               onClick={handlePrintPdf}
               id="btn-print-statement"
@@ -496,6 +498,65 @@ export function SettlementStatementDrawer({
               <span>🖨️</span>
               <span>{t("btnPrintPdf")}</span>
             </Button>
+
+            {!isDisbursed &&
+              current.direction !== "ALLY_TO_PLATFORM" &&
+              isPlatformUser &&
+              onOpenPayout && (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    onClose();
+                    onOpenPayout(current);
+                  }}
+                  id="btn-drawer-pay-now"
+                >
+                  <span>💸</span>
+                  <span>{t("btnPayNow")}</span>
+                </Button>
+              )}
+
+            {!isDisbursed &&
+              current.direction === "ALLY_TO_PLATFORM" &&
+              current.status !== "PAYMENT_UNDER_REVIEW" &&
+              isAllyFinanceOrAdmin &&
+              onOpenPayout && (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    onClose();
+                    onOpenPayout(current);
+                  }}
+                  id="btn-drawer-report-invoice"
+                >
+                  <span>💳</span>
+                  <span>{t("btnPayInvoice")}</span>
+                </Button>
+              )}
+
+            {!isDisbursed &&
+              current.direction === "ALLY_TO_PLATFORM" &&
+              current.status === "PAYMENT_UNDER_REVIEW" &&
+              isPlatformUser &&
+              onOpenPayout && (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    onClose();
+                    onOpenPayout(current);
+                  }}
+                  id="btn-drawer-verify-invoice"
+                >
+                  <span>✓</span>
+                  <span>{t("btnVerifyInvoice")}</span>
+                </Button>
+              )}
           </div>
         </div>
       </div>

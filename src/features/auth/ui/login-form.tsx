@@ -35,38 +35,40 @@ const PERSONAL_PRESETS: readonly DemoRolePreset[] = [
     email: "mendezsnow98@gmail.com",
     pass: "Battlefield3",
   },
-];
-
-const DEMO_PRESETS: readonly DemoRolePreset[] = [
   {
-    id: "ally_admin",
-    labelKey: "roleAlly",
-    email: "aliado@sanagustin.com",
-    pass: "AliadoPass123",
+    id: "test_platform_admin",
+    customLabel: "👑 Platform Admin",
+    sublabel: "platform_admin_test@nivis.cloud",
+    email: "platform_admin_test@nivis.cloud",
+    pass: "Battlefield3",
   },
   {
-    id: "ally_accounting",
-    labelKey: "roleAllyAccounting",
-    email: "finanzas@sanagustin.com",
-    pass: "FinanceAlly123",
+    id: "test_platform_accounting",
+    customLabel: "💳 Platform Accounting",
+    sublabel: "platform_accounting_test@nivis.cloud",
+    email: "platform_accounting_test@nivis.cloud",
+    pass: "Battlefield3",
   },
   {
-    id: "ally_validator",
-    labelKey: "roleValidator",
-    email: "recepcion@sanagustin.com",
-    pass: "StaffPass123",
+    id: "test_ally_admin",
+    customLabel: "⚽ Ally Admin",
+    sublabel: "ally_admin_test@nivis.cloud",
+    email: "ally_admin_test@nivis.cloud",
+    pass: "Battlefield3",
   },
   {
-    id: "platform_admin",
-    labelKey: "roleAdmin",
-    email: "admin@yoreservo.com",
-    pass: "AdminPass123",
+    id: "test_ally_accounting",
+    customLabel: "📊 Ally Accounting",
+    sublabel: "ally_accounting_test@nivis.cloud",
+    email: "ally_accounting_test@nivis.cloud",
+    pass: "Battlefield3",
   },
   {
-    id: "platform_accounting",
-    labelKey: "roleAccounting",
-    email: "tesoreria@yoreservo.com",
-    pass: "FinancePass123",
+    id: "test_ally_validator",
+    customLabel: "🎫 Ally Validator",
+    sublabel: "ally_validator_test@nivis.cloud",
+    email: "ally_validator_test@nivis.cloud",
+    pass: "Battlefield3",
   },
 ];
 
@@ -233,65 +235,34 @@ export function LoginForm() {
         </Button>
 
         {/* Quick-Login Testing Accounts */}
-        <div className="mt-6 border-t border-dashed border-border pt-4 space-y-3">
-          <div>
-            <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground">
-              ⚡ Cuentas Personales (Acceso Rápido):
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {PERSONAL_PRESETS.map((preset) => {
-                const isActive = selectedRole === preset.id;
-                return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    id={`preset-${preset.id}`}
-                    onClick={() => handleRoleSelect(preset)}
-                    className={`rounded-xl border px-3 py-2 text-left transition-all cursor-pointer ${
-                      isActive
-                        ? "border-accent bg-accent/15 text-foreground shadow-sm ring-1 ring-accent/40"
-                        : "border-border bg-background text-muted-foreground hover:border-border-medium hover:text-foreground"
-                    }`}
-                  >
-                    <div className="text-xs font-bold text-foreground">
-                      {preset.customLabel}
-                    </div>
-                    <div className="text-[10px] font-mono text-muted-foreground truncate">
-                      {preset.sublabel}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+        <div className="mt-6 border-t border-dashed border-border pt-4">
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground">
+            {t("quickAccessTitle")}
           </div>
-
-          <div>
-            <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-              {t("roleSimTitle")}
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {DEMO_PRESETS.map((preset) => {
-                const isActive = selectedRole === preset.id;
-                return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    id={`preset-${preset.id}`}
-                    onClick={() => handleRoleSelect(preset)}
-                    className={`rounded-lg border px-2.5 py-1.5 text-left text-xs font-semibold transition-all cursor-pointer ${
-                      isActive
-                        ? "border-accent bg-accent/15 text-foreground shadow-sm"
-                        : "border-border bg-background text-muted-foreground hover:border-border-medium hover:text-foreground"
-                    }`}
-                  >
-                    <div>{t(preset.labelKey as any)}</div>
-                    <div className="text-[10px] font-mono font-normal text-muted-foreground truncate">
-                      {preset.email}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {PERSONAL_PRESETS.map((preset) => {
+              const isActive = selectedRole === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  id={`preset-${preset.id}`}
+                  onClick={() => handleRoleSelect(preset)}
+                  className={`rounded-xl border px-3 py-2 text-left transition-all cursor-pointer ${
+                    isActive
+                      ? "border-accent bg-accent/15 text-foreground shadow-sm ring-1 ring-accent/40"
+                      : "border-border bg-background text-muted-foreground hover:border-border-medium hover:text-foreground"
+                  }`}
+                >
+                  <div className="text-xs font-bold text-foreground">
+                    {preset.customLabel}
+                  </div>
+                  <div className="text-[10px] font-mono text-muted-foreground truncate">
+                    {preset.sublabel}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </form>

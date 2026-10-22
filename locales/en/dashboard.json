@@ -140,6 +140,8 @@
     "titleAdmin": "Live Transactional Activity Stream",
     "titleAlly": "Front Desk & Reception Log",
     "websocketActive": "WebSocket Active",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing...",
     "emptyStream": "No recent activity recorded."
   },
   "systemStatus": {

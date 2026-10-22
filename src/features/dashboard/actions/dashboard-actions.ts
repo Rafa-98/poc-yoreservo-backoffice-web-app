@@ -181,23 +181,25 @@ export async function getDashboardSummaryAction(params?: {
         })
       : [];
 
-  const adminActivityFeed: ActivityStreamItem[] =
+  const adminActivityFeed: ActivityStreamItem[] = (
     Array.isArray(backendSummary?.adminActivityFeed) &&
     backendSummary.adminActivityFeed.length > 0
       ? backendSummary.adminActivityFeed
       : Array.isArray(backendSummary?.activityFeed) &&
         backendSummary.activityFeed.length > 0
       ? backendSummary.activityFeed
-      : mappedRecentBookingsFeed;
+      : mappedRecentBookingsFeed
+  ).slice(0, 5);
 
-  const allyActivityFeed: ActivityStreamItem[] =
+  const allyActivityFeed: ActivityStreamItem[] = (
     Array.isArray(backendSummary?.allyActivityFeed) &&
     backendSummary.allyActivityFeed.length > 0
       ? backendSummary.allyActivityFeed
       : Array.isArray(backendSummary?.activityFeed) &&
         backendSummary.activityFeed.length > 0
       ? backendSummary.activityFeed
-      : mappedRecentBookingsFeed;
+      : mappedRecentBookingsFeed
+  ).slice(0, 5);
 
   const chartData: Record<TimeframeKey, TimeframeChartData> = {
     HOY: backendSummary?.chartData?.HOY ?? EMPTY_CHART_DATA.HOY,

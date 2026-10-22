@@ -1,6 +1,11 @@
+import packageJson from "../../../package.json";
+
+export const APP_VERSION: string = packageJson.version;
+
 /** Non-localized site constants. Localized copy lives in `/locales/<lang>/meta.json`. */
 export const SITE = {
   name: "YoReservo",
   /** Product surface name; the UI copy for it lives in `meta.json`. */
-  surface: "Backoffice",
+  surface: "Panel de Administración",
+  version: APP_VERSION,
 } as const;

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Radio, Calendar, ArrowRight } from "lucide-react";
+import { RefreshCw, Calendar, ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ROUTES } from "@/shared/config";
 import { useTimeFormat } from "@/shared/lib/time-format";
@@ -12,6 +12,9 @@ interface DashboardActivityStreamProps {
   adminFeed: ActivityStreamItem[];
   allyFeed: ActivityStreamItem[];
   bcvRate?: number;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
+  canAccessAgenda?: boolean;
 }
 
 export function DashboardActivityStream({
@@ -19,11 +22,14 @@ export function DashboardActivityStream({
   adminFeed,
   allyFeed,
   bcvRate,
+  onRefresh,
+  isRefreshing = false,
+  canAccessAgenda = true,
 }: DashboardActivityStreamProps) {
   const t = useTranslations("dashboard");
   const { formatTime } = useTimeFormat();
 
-  const feed = perspective === "ADMIN" ? adminFeed : allyFeed;
+  const feed = (perspective === "ADMIN" ? adminFeed : allyFeed).slice(0, 5);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -35,10 +41,21 @@ export function DashboardActivityStream({
               ? t("stream.titleAdmin")
               : t("stream.titleAlly")}
           </h3>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-            <Radio className="size-3 animate-pulse" />
-            <span>{t("stream.websocketActive")}</span>
-          </span>
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-border bg-surface-muted hover:bg-surface text-xs font-bold text-foreground shadow-2xs transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
+            >
+              <RefreshCw
+                className={`size-3.5 text-primary ${isRefreshing ? "animate-spin" : ""}`}
+              />
+              <span>
+                {isRefreshing ? t("stream.refreshing") : t("stream.refresh")}
+              </span>
+            </button>
+          )}
         </div>
 
         {feed.length === 0 ? (
@@ -126,16 +143,18 @@ export function DashboardActivityStream({
         </div>
 
         {/* Quick Access Link to Agenda */}
-        <div className="pt-4 mt-4 border-t border-border/50">
-          <Link
-            href={ROUTES.agenda}
-            className="w-full inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border border-border bg-surface-muted text-foreground text-xs font-bold shadow-2xs hover:bg-surface hover:border-border/80 active:scale-98 transition-all"
-          >
-            <Calendar className="size-4 text-accent-foreground" />
-            <span>{t("actions.goToAgenda")}</span>
-            <ArrowRight className="size-3.5" />
-          </Link>
-        </div>
+        {canAccessAgenda && (
+          <div className="pt-4 mt-4 border-t border-border/50">
+            <Link
+              href={ROUTES.agenda}
+              className="w-full inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border border-border bg-surface-muted text-foreground text-xs font-bold shadow-2xs hover:bg-surface hover:border-border/80 active:scale-98 transition-all"
+            >
+              <Calendar className="size-4 text-accent-foreground" />
+              <span>{t("actions.goToAgenda")}</span>
+              <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

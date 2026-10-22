@@ -46,11 +46,29 @@ export function ExecutiveDashboardPage({
 
   const [data, setData] = useState<ExecutiveDashboardData>(initialData);
   const [timeframe, setTimeframe] = useState<TimeframeKey>("MES");
+  const [isRefreshingStream, setIsRefreshingStream] = useState(false);
   const [checkedInIds, setCheckedInIds] = useState<Set<string>>(new Set());
   const [pendingCheckIns, setPendingCheckIns] = useState<number>(
     initialData.allyKpis?.pendingCheckInCount ?? 0
   );
   const isFirstRender = useRef(true);
+
+  const handleRefreshStream = async () => {
+    setIsRefreshingStream(true);
+    try {
+      const fresh = await getDashboardSummaryAction({
+        period: timeframe,
+        venueId:
+          activeVenueId && activeVenueId !== "ALL" ? activeVenueId : undefined,
+      });
+      setData(fresh);
+      setPendingCheckIns(fresh.allyKpis?.pendingCheckInCount ?? 0);
+    } catch {
+      // Keep current state on error
+    } finally {
+      setIsRefreshingStream(false);
+    }
+  };
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -220,6 +238,11 @@ export function ExecutiveDashboardPage({
         adminFeed={data.adminActivityFeed}
         allyFeed={data.allyActivityFeed}
         bcvRate={data.bcvRate}
+        onRefresh={handleRefreshStream}
+        isRefreshing={isRefreshingStream}
+        canAccessAgenda={
+          userRole !== "ALLY_ACCOUNTING" && userRole !== "PLATFORM_ACCOUNTING"
+        }
       />
 
       {/* Interactive Toast Notification */}

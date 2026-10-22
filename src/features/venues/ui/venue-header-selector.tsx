@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   Building2,
   Check,
@@ -13,10 +14,12 @@ import {
   X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { ROUTES } from "@/shared/config";
 import { useActiveVenue } from "../context/venue-context";
 
 export function VenueHeaderSelector() {
   const t = useTranslations("shell");
+  const pathname = usePathname();
   const {
     venues,
     activeVenueId,
@@ -29,6 +32,22 @@ export function VenueHeaderSelector() {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const isGlobalPageLocked = Boolean(
+    pathname?.startsWith(ROUTES.settlements) ||
+      pathname?.startsWith(ROUTES.exchangeRate),
+  );
+  const isSelectorLocked = isManagedLocked || isGlobalPageLocked;
+
+  // Automatically force "Todas las sedes" ("ALL") when visiting global treasury pages
+  useEffect(() => {
+    if (isGlobalPageLocked) {
+      setIsOpen(false);
+      if (activeVenueId !== "ALL") {
+        setActiveVenueId("ALL");
+      }
+    }
+  }, [isGlobalPageLocked, activeVenueId, setActiveVenueId]);
 
   // Close on outside click
   useEffect(() => {
@@ -100,12 +119,12 @@ export function VenueHeaderSelector() {
       <button
         type="button"
         onClick={() => {
-          if (!isManagedLocked) setIsOpen(!isOpen);
+          if (!isSelectorLocked) setIsOpen(!isOpen);
         }}
-        disabled={isManagedLocked || isLoading}
+        disabled={isSelectorLocked || isLoading}
         className={`group inline-flex h-9 shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl border border-border bg-surface px-3 text-xs font-semibold text-foreground shadow-2xs transition-all duration-200 ${
-          isManagedLocked
-            ? "cursor-default opacity-90"
+          isSelectorLocked
+            ? "cursor-not-allowed opacity-80"
             : "hover:border-accent/50 hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/30"
         }`}
         aria-haspopup="listbox"
@@ -114,7 +133,7 @@ export function VenueHeaderSelector() {
         id="header-venue-selector-trigger"
       >
         <div className="flex size-5 shrink-0 items-center justify-center rounded-md bg-accent/20 text-accent-foreground">
-          {isManagedLocked ? (
+          {isSelectorLocked ? (
             <Lock className="size-3" />
           ) : isAllSelected ? (
             <Globe className="size-3" />
@@ -130,12 +149,12 @@ export function VenueHeaderSelector() {
           <span className="max-w-[140px] sm:max-w-[200px] lg:max-w-[240px] truncate font-bold text-foreground">
             {isLoading
               ? t("allVenues")
-              : isAllSelected
+              : isGlobalPageLocked || isAllSelected
               ? t("allVenuesConsolidated")
               : activeVenue?.name || t("allVenues")}
           </span>
 
-          {isAllSelected && venues.length > 0 && (
+          {(isGlobalPageLocked || isAllSelected) && venues.length > 0 && (
             <span className="hidden sm:inline-flex items-center rounded-full bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold text-accent-foreground">
               {venues.length}
             </span>
@@ -148,7 +167,7 @@ export function VenueHeaderSelector() {
           )}
         </div>
 
-        {!isManagedLocked && (
+        {!isSelectorLocked && (
           <ChevronDown
             className={`size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 ${
               isOpen ? "rotate-180 text-foreground" : "group-hover:text-foreground"
@@ -158,7 +177,7 @@ export function VenueHeaderSelector() {
       </button>
 
       {/* DROPDOWN MENU */}
-      {isOpen && !isManagedLocked && (
+      {isOpen && !isSelectorLocked && (
         <div
           role="listbox"
           aria-label={t("venueSelectorTitle")}

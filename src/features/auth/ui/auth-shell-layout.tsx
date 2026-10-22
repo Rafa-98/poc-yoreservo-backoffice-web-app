@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Image from "next/image";
 import { Check, ShieldCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { APP_VERSION } from "@/shared/config";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
 import { LanguageSwitcher } from "@/shared/ui/language-switcher";
 
@@ -21,7 +22,7 @@ export interface AuthShellLayoutProps {
 export function AuthShellLayout({
   children,
   bgImageSrc = "/pitch-aerial.jpg",
-  badgeText = "Backoffice Pro",
+  badgeText,
   subtitle,
   heading,
   description,
@@ -30,6 +31,7 @@ export function AuthShellLayout({
 }: AuthShellLayoutProps) {
   const t = useTranslations("auth");
 
+  const effectiveBadgeText = badgeText ?? t("portalBadge");
   const effectiveSubtitle = subtitle ?? t("brandSubtitle");
   const effectiveHeading = heading ?? t("brandHeading");
   const effectiveDescription = description ?? t("brandDescription");
@@ -65,7 +67,7 @@ export function AuthShellLayout({
               />
             </div>
             <span className="rounded-md border border-accent/30 bg-accent/15 px-2.5 py-1 font-display text-[11px] font-bold uppercase tracking-wider text-accent">
-              {badgeText}
+              {effectiveBadgeText}
             </span>
           </div>
         </div>
@@ -101,7 +103,9 @@ export function AuthShellLayout({
         {/* Footer info */}
         <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-6 text-xs text-[#A2ADA0]">
           <span>{t("brandFooter")}</span>
-          <span className="font-mono text-[11px] text-accent/80">{t("brandVersion")}</span>
+          <span className="font-mono text-[11px] text-accent/80">
+            {t("brandVersion", { version: APP_VERSION })}
+          </span>
         </div>
       </div>
 
@@ -119,7 +123,7 @@ export function AuthShellLayout({
               />
             </div>
             <span className="rounded bg-accent/20 px-2 py-0.5 text-[10px] font-bold uppercase text-accent-foreground">
-              Pro
+              {effectiveBadgeText}
             </span>
           </div>
 

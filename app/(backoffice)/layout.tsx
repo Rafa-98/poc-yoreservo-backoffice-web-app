@@ -15,10 +15,25 @@ export default async function BackofficeRootLayout({
   let pendingPaymentsCount = 0;
   if (ROUTE_ALLOWED_ROLES[ROUTES.paymentsInbox].includes(session.user.role)) {
     try {
-      const res = await getPaymentsInboxAction({ status: "PENDING" });
+      const todayIso = new Intl.DateTimeFormat("en-CA", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        timeZone: "America/Caracas",
+      }).format(new Date());
+      const fromDateObj = new Date(`${todayIso}T12:00:00Z`);
+      fromDateObj.setUTCDate(fromDateObj.getUTCDate() - 6);
+      const fromDateIso = fromDateObj.toISOString().slice(0, 10);
+
+      const res = await getPaymentsInboxAction({
+        status: "PENDING",
+        fromDate: fromDateIso,
+        toDate: todayIso,
+      });
       if (res.ok && res.data) {
-        pendingPaymentsCount =
-          res.data.kpis?.pendingCount ?? res.data.items?.length ?? 0;
+        pendingPaymentsCount = (res.data.items ?? []).filter(
+          (p) => p.status === "PENDING",
+        ).length;
       }
     } catch {
       pendingPaymentsCount = 0;

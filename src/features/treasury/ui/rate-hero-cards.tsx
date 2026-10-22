@@ -1,7 +1,7 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE, useTimeFormat } from "@/shared/lib";
+import { useLocale, useTranslations } from "next-intl";
+import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import type { ExchangeRateItem } from "../model/types";
 
 interface RateHeroCardsProps {
@@ -9,16 +9,29 @@ interface RateHeroCardsProps {
   activeEur: ExchangeRateItem | null;
 }
 
+function formatHeroValueDate(dateStr: string, locale: string): string {
+  const cleanIso = dateStr.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(cleanIso)) return dateStr;
+  const parsed = new Date(`${cleanIso}T12:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return dateStr;
+  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "es-VE", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(parsed);
+}
+
 export function RateHeroCards({ activeUsd, activeEur }: RateHeroCardsProps) {
   const t = useTranslations("treasury.rate");
-  const { formatTime } = useTimeFormat();
+  const locale = useLocale();
 
   const usdRate = activeUsd ? activeUsd.rate : DEFAULT_BCV_USD_RATE;
   const eurRate = activeEur ? activeEur.rate : DEFAULT_BCV_EUR_RATE;
 
   const todayIso = new Date().toISOString().slice(0, 10);
-  const usdValueDate = formatTime(activeUsd?.valueDate || todayIso);
-  const eurValueDate = formatTime(activeEur?.valueDate || todayIso);
+  const usdValueDate = formatHeroValueDate(activeUsd?.valueDate || todayIso, locale);
+  const eurValueDate = formatHeroValueDate(activeEur?.valueDate || todayIso, locale);
 
   return (
     <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -24,6 +24,7 @@ export interface ReservationRef {
   reservationDate: string;
   startTime: string;
   endTime: string;
+  currencyCode?: string;
   client: ClientRef;
   space: SpaceRef;
 }
@@ -46,6 +47,7 @@ export interface PaymentItem {
   amountVes: number | null;
   amountReference: number | null;
   currency: string;
+  currencyCode?: string;
   exchangeRate: number;
   paymentMethod: string;
   paymentDate: string;
@@ -101,10 +103,18 @@ export interface SecondaryCurrency {
   rate: string;
 }
 
+export interface ExchangeRateHistoryPagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface ExchangeRateData {
   activeUsd: ExchangeRateItem | null;
   activeEur: ExchangeRateItem | null;
   history: ExchangeRateItem[];
+  historyPagination?: ExchangeRateHistoryPagination;
   lastSync: string;
   secondaryCurrencies: SecondaryCurrency[];
 }
@@ -139,6 +149,7 @@ export interface SettlementOrganizationRef {
   tradeName: string;
   legalName: string;
   rif: string;
+  referenceCurrencyCode?: string;
   payoutBank?: string | null;
   payoutAccountNumber?: string | null;
   payoutAccountType?: string | null;
@@ -227,6 +238,24 @@ export interface SettlementBatchItem {
 
 export type SettlementBatch = SettlementBatchItem;
 
+export interface UnsettledPoolItem {
+  organizationId: string;
+  organizationName: string;
+  legalName?: string;
+  rif: string;
+  currencyCode?: string;
+  payoutBank?: string | null;
+  payoutAccountNumber?: string | null;
+  payoutAccountHolder?: string | null;
+  direction: SettlementDirection;
+  reservationsCount: number;
+  grossAmount: number;
+  platformFeeAmount: number;
+  netAmount: number;
+  oldestVerifiedAt?: string | null;
+  latestVerifiedAt?: string | null;
+}
+
 export interface SettlementsKpis {
   gmv: number;
   fee: number;
@@ -244,10 +273,21 @@ export interface SettlementsKpis {
   };
 }
 
+export type SettlementPeriodPreset =
+  | "TODAY"
+  | "YESTERDAY"
+  | "LAST_7_DAYS"
+  | "THIS_MONTH"
+  | "CUSTOM"
+  | "ALL";
+
 export interface SettlementFilter {
   search: string;
-  period: string;
+  period: SettlementPeriodPreset | string;
+  fromDate?: string;
+  toDate?: string;
   organizationId: string;
+  direction: SettlementDirection;
   status: "ALL" | "PENDING" | "DISBURSED";
 }
 

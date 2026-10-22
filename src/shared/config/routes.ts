@@ -96,16 +96,12 @@ export const ROUTE_ALLOWED_ROLES: Record<string, readonly BackofficeRole[]> = {
   ],
   [ROUTES.agenda]: [
     "PLATFORM_ADMIN",
-    "PLATFORM_ACCOUNTING",
     "ALLY_ADMIN",
-    "ALLY_ACCOUNTING",
     "ALLY_VALIDATOR",
   ],
   [ROUTES.reservations]: [
     "PLATFORM_ADMIN",
-    "PLATFORM_ACCOUNTING",
     "ALLY_ADMIN",
-    "ALLY_ACCOUNTING",
     "ALLY_VALIDATOR",
   ],
   [ROUTES.paymentsInbox]: [

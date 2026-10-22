@@ -8,7 +8,7 @@ import {
 import type { SettlementsKpis } from "@/features/treasury/model/types";
 import { requireSession } from "@/shared/auth/index.server";
 import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
-import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
+import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +49,10 @@ export default async function Page() {
     ratesRes.ok && ratesRes.data?.activeUsd
       ? ratesRes.data.activeUsd.rate
       : DEFAULT_BCV_USD_RATE;
+  const bcvEurRate =
+    ratesRes.ok && ratesRes.data?.activeEur
+      ? ratesRes.data.activeEur.rate
+      : DEFAULT_BCV_EUR_RATE;
 
   const initialBatches =
     settlementsRes.ok && settlementsRes.data ? settlementsRes.data.items : [];
@@ -56,6 +60,14 @@ export default async function Page() {
     settlementsRes.ok && settlementsRes.data
       ? settlementsRes.data.kpis
       : EMPTY_KPIS;
+  const initialUnsettledPools =
+    settlementsRes.ok && settlementsRes.data?.unsettledPools
+      ? settlementsRes.data.unsettledPools
+      : [];
+  const autoBatchSchedule =
+    settlementsRes.ok && settlementsRes.data?.autoBatchSchedule
+      ? settlementsRes.data.autoBatchSchedule
+      : { morningTime: "07:00", nightTime: "23:00", timeZone: "America/Caracas" };
 
   const organizations =
     settlementsRes.ok && settlementsRes.data?.organizations?.length
@@ -73,9 +85,12 @@ export default async function Page() {
     <SettlementsPage
       initialBatches={initialBatches}
       initialKpis={initialKpis}
+      initialUnsettledPools={initialUnsettledPools}
       organizations={organizations}
       bcvRate={bcvRate}
+      bcvEurRate={bcvEurRate}
       userRole={session.user.role}
+      autoBatchSchedule={autoBatchSchedule}
     />
   );
 }

@@ -140,6 +140,8 @@
     "titleAdmin": "Flujo de Actividad Transaccional en Tiempo Real",
     "titleAlly": "Bitácora de Mostrador & Recepción",
     "websocketActive": "WebSocket Activo",
+    "refresh": "Actualizar",
+    "refreshing": "Actualizando...",
     "emptyStream": "No hay actividad reciente registrada."
   },
   "systemStatus": {
