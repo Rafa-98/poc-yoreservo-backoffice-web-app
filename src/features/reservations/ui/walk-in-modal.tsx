@@ -19,7 +19,7 @@ const WALKIN_TIME_OPTIONS = Array.from({ length: 35 }, (_, i) => {
 interface WalkInModalProps {
   isOpen: boolean;
   onClose: () => void;
-  venues: Array<{ id: string; name: string }>;
+  venues: Array<{ id: string; name: string; referenceCurrencyCode?: string }>;
   spaces: Array<{ id: string; name: string; venueId: string; pricePerHour: number }>;
   onSuccess: () => void;
 }
@@ -118,6 +118,11 @@ export function WalkInModal({
   }, [isOpen, selectedVenueId, allSpaces, selectedSpaceId, duration]);
 
   if (!isOpen) return null;
+
+  const selectedVenue = venues.find((v) => v.id === selectedVenueId);
+  const isEurVenue = selectedVenue?.referenceCurrencyCode === "EUR";
+  const venueCurrencySymbol = isEurVenue ? "€" : "$";
+  const venueCurrencyLabel = isEurVenue ? "EUR" : "USD";
 
   function calculateEndTime(start: string, durationMins: number): string {
     const [h, m] = start.split(":").map(Number);
@@ -336,7 +341,7 @@ export function WalkInModal({
                 >
                   {filteredSpaces.map((sp) => (
                     <option key={sp.id} value={sp.id}>
-                      {sp.name} (${sp.pricePerHour}/h)
+                      {sp.name} ({venueCurrencySymbol}{sp.pricePerHour}/h)
                     </option>
                   ))}
                 </select>
@@ -411,7 +416,9 @@ export function WalkInModal({
                   className="form-select"
                   id="walkin-payment"
                 >
-                  <option value="CASH">{t("cash")}</option>
+                  <option value="CASH">
+                    💵 Efectivo {venueCurrencyLabel} en Caja
+                  </option>
                   <option value="PAGO_MOVIL">{t("pagoMovil")}</option>
                   <option value="POS">{t("pos")}</option>
                 </select>
@@ -419,7 +426,7 @@ export function WalkInModal({
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                  {t("amount")}
+                  Monto a Cobrar ({venueCurrencySymbol} {venueCurrencyLabel})
                 </label>
                 <input
                   type="number"

@@ -210,10 +210,8 @@ export function PaymentMethodsConfigCard({
 
   const isPlatformScope = scope === "PLATFORM";
   const canEdit = isPlatformScope
-    ? userRole === "PLATFORM_ADMIN" || userRole === "PLATFORM_ACCOUNTING"
-    : !userRole ||
-      userRole === "PLATFORM_ADMIN" ||
-      userRole === "ALLY_ADMIN";
+    ? userRole === "PLATFORM_ADMIN"
+    : userRole === "PLATFORM_ADMIN" || userRole === "ALLY_ADMIN";
 
   const orgCollectionMode: PaymentCollectionMode =
     organization?.paymentCollectionMode === "ALLY_DIRECT"
@@ -302,7 +300,7 @@ export function PaymentMethodsConfigCard({
             <span className="rounded-xl border border-border bg-muted px-3 py-1.5 text-xs font-bold text-foreground">
               {enabledList.length} habilitado{enabledList.length === 1 ? "" : "s"}
             </span>
-            {canEdit && (
+            {canEdit ? (
               <button
                 type="button"
                 id={`btn-save-payment-methods-${scope.toLowerCase()}`}
@@ -312,6 +310,10 @@ export function PaymentMethodsConfigCard({
               >
                 {saving ? "Guardando..." : "💾 Guardar Métodos de Pago"}
               </button>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-muted/60 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+                🔒 Solo lectura
+              </span>
             )}
           </div>
         </div>
@@ -377,20 +379,25 @@ export function PaymentMethodsConfigCard({
                     </div>
 
                     {/* Toggle Switch */}
-                    <label className="inline-flex cursor-pointer items-center gap-2 select-none">
+                    <label
+                      className={`relative inline-flex items-center gap-2 select-none ${
+                        canEdit ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+                      }`}
+                    >
                       <input
                         type="checkbox"
                         checked={isEnabled}
                         disabled={!canEdit}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          if (!canEdit) return;
                           updateItem(item.method, {
                             isEnabled: e.target.checked,
-                          })
-                        }
+                          });
+                        }}
                         className="peer sr-only"
                         id={`toggle-${scope.toLowerCase()}-${item.method.toLowerCase()}`}
                       />
-                      <div className="peer relative h-6 w-11 rounded-full bg-border after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-emerald-500 peer-checked:after:translate-x-full" />
+                      <div className="peer relative h-6 w-11 rounded-full bg-border after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-emerald-500 peer-checked:after:translate-x-full peer-disabled:cursor-not-allowed" />
                       <span
                         className={`text-[11px] font-extrabold uppercase ${
                           isEnabled

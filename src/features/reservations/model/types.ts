@@ -28,6 +28,7 @@ export interface ReservationItem {
   dateDisplay: string;
   timeSlot: string;
   duration: string;
+  currencyCode: string;
   priceUsd: number;
   rateBcv: number;
   priceBs: number;
@@ -47,6 +48,7 @@ export interface ReservationKpis {
   volumeUsd: number;
   volumeVes: number;
   confirmedGrowthPct?: string;
+  referenceCurrencyCode?: string;
 }
 
 export interface ReservationFilter {

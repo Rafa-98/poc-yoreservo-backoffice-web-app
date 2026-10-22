@@ -3,7 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { backendRequest } from "@/shared/api/index.server";
 import { requireSessionWithToken } from "@/shared/auth/index.server";
-import { DEFAULT_BCV_USD_RATE, fail, ok, type ActionResult } from "@/shared/lib";
+import {
+  DEFAULT_BCV_EUR_RATE,
+  DEFAULT_BCV_USD_RATE,
+  fail,
+  ok,
+  type ActionResult,
+} from "@/shared/lib";
 import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
 import type {
   CheckInMethod,
@@ -13,11 +19,11 @@ import type {
 } from "../model/types";
 
 function formatTime(val: any): string {
-  if (!val) return "00:00";
+  if (!val) return "—";
   if (typeof val === "string") {
     if (val.includes("T")) {
       const d = new Date(val);
-      return d.toISOString().substring(11, 16);
+      return Number.isNaN(d.getTime()) ? val.substring(0, 5) : d.toISOString().substring(11, 16);
     }
     return val.substring(0, 5);
   }
@@ -30,17 +36,35 @@ function formatTime(val: any): string {
 function calculateDurationMinutes(start: string, end: string): string {
   const [sh, sm] = start.split(":").map(Number);
   const [eh, em] = end.split(":").map(Number);
+  if (Number.isNaN(sh) || Number.isNaN(sm) || Number.isNaN(eh) || Number.isNaN(em)) {
+    return "—";
+  }
   const startMins = sh * 60 + sm;
-  const endMins = eh * 60 + em;
+  let endMins = eh * 60 + em;
+  if (endMins === 0 && startMins > 0) {
+    endMins = 24 * 60;
+  }
   const diff = endMins - startMins;
-  return `${diff > 0 ? diff : 90} min`;
+  return diff > 0 ? `${diff} min` : "—";
 }
 
-function mapReservationRow(row: any, fallbackBcvRate = DEFAULT_BCV_USD_RATE): ReservationItem {
+function mapReservationRow(
+  row: any,
+  rates: {
+    usdRate: number;
+    eurRate: number;
+    defaultCurrencyCode: string;
+  },
+): ReservationItem {
   const isWalkIn = !!row.isManual;
+  const clientFullName = row.client
+    ? `${row.client.name || ""} ${row.client.lastName || ""}`.trim()
+    : "";
   const clientName =
     row.customerName ||
-    (row.client ? `${row.client.name} ${row.client.lastName || ""}`.trim() : "Cliente YoReservo");
+    clientFullName ||
+    row.client?.email ||
+    "—";
   const phone = row.customerPhone || row.client?.phone || "—";
   const dni =
     row.clientDni ||
@@ -49,25 +73,47 @@ function mapReservationRow(row: any, fallbackBcvRate = DEFAULT_BCV_USD_RATE): Re
       ? `${row.customerDocumentType}-${row.customerDocumentNumber}`
       : null) ||
     row.client?.dni ||
+    (row.client?.documentType && row.client?.documentNumber
+      ? `${row.client.documentType}-${row.client.documentNumber}`
+      : null) ||
     "—";
 
-  const dateObj = row.reservationDate ? new Date(row.reservationDate) : new Date();
-  const dateStr = dateObj.toISOString().split("T")[0];
+  const dateStr = row.reservationDate
+    ? String(row.reservationDate).slice(0, 10)
+    : "—";
 
   const startTimeStr = formatTime(row.startTime);
   const endTimeStr = formatTime(row.endTime);
   const timeSlot = `${startTimeStr} - ${endTimeStr}`;
   const duration = calculateDurationMinutes(startTimeStr, endTimeStr);
 
-  const priceUsd = Number(row.totalAmount || row.subtotal || 0);
-  const rateBcv = Number(row.exchangeRateValue || fallbackBcvRate);
-  const priceBs = Number(row.totalAmountVes || priceUsd * rateBcv);
+  const currencyCode =
+    row.space?.venue?.organization?.referenceCurrencyCode ||
+    row.currencyCode ||
+    rates.defaultCurrencyCode ||
+    "USD";
 
-  // Determine payment method and meta from actual payment record first
+  const fallbackRateForCurrency =
+    currencyCode === "EUR" ? rates.eurRate : rates.usdRate;
+
   const latestPayment =
     Array.isArray(row.payments) && row.payments.length > 0 ? row.payments[0] : null;
-  let paymentMethod = "pago_movil";
-  let paymentMeta = "Pendiente de pago";
+
+  const priceUsd = Number(row.totalAmount ?? row.subtotal ?? 0);
+  const rateBcv = Number(
+    row.exchangeRateValue ||
+      latestPayment?.exchangeRate ||
+      fallbackRateForCurrency,
+  );
+  const priceBs = Number(
+    row.totalAmountVes ||
+      latestPayment?.amountVes ||
+      priceUsd * rateBcv,
+  );
+
+  // Determine payment method and meta from actual payment record
+  let paymentMethod = "pending";
+  let paymentMeta = "Sin pago registrado";
 
   if (latestPayment && latestPayment.paymentMethod) {
     const rawMethod = String(latestPayment.paymentMethod).toUpperCase();
@@ -75,7 +121,13 @@ function mapReservationRow(row: any, fallbackBcvRate = DEFAULT_BCV_USD_RATE): Re
       paymentMethod = "pago_movil";
     } else if (rawMethod === "CASH") {
       paymentMethod = "cash";
-    } else if (rawMethod === "POS" || rawMethod === "CARD") {
+    } else if (
+      rawMethod === "POS" ||
+      rawMethod === "CARD" ||
+      rawMethod === "ZELLE" ||
+      rawMethod === "PIPOL_PAY" ||
+      rawMethod === "BANK_TRANSFER"
+    ) {
       paymentMethod = "pos";
     } else {
       paymentMethod = rawMethod.toLowerCase();
@@ -87,21 +139,32 @@ function mapReservationRow(row: any, fallbackBcvRate = DEFAULT_BCV_USD_RATE): Re
     paymentMeta = `${latestPayment.paymentMethod}${bankPart}${refPart}`;
   } else if (isWalkIn) {
     paymentMethod = "cash";
-    paymentMeta = "Efectivo en Mostrador (Caja)";
+    paymentMeta = "Cobro en Mostrador (Taquilla)";
   }
 
-  // Sport name resolution
-  let sportName = "Pádel";
-  const actName = row.space?.activityCategory?.activity?.name;
+  // Sport name resolution from real activity / category
+  let sportName = "—";
+  const actName =
+    row.space?.activityCategory?.activity?.name ??
+    row.space?.activityCategory?.name;
   if (actName) {
     if (typeof actName === "object") {
-      sportName = actName.es || actName.en || "Deporte";
+      sportName = actName.es || actName.en || "—";
     } else {
       sportName = String(actName);
     }
   }
 
   const isCheckedIn = row.status === "COMPLETED" || !!row.validatedAt;
+
+  const rawSpaceNumber = row.space?.spaceNumber
+    ? String(row.space.spaceNumber).trim()
+    : "";
+  const courtDisplay = rawSpaceNumber
+    ? rawSpaceNumber.toLowerCase().includes("cancha")
+      ? rawSpaceNumber
+      : `Cancha ${rawSpaceNumber}`
+    : "—";
 
   return {
     id: row.id,
@@ -113,13 +176,14 @@ function mapReservationRow(row: any, fallbackBcvRate = DEFAULT_BCV_USD_RATE): Re
     isFrequentPlayer: Boolean(row.isFrequentPlayer),
     phone,
     venueId: row.space?.venue?.id || "",
-    venue: row.space?.venue?.name || "Sede Principal",
-    court: row.space?.spaceNumber ? `Cancha ${row.space.spaceNumber}` : "Cancha 1",
+    venue: row.space?.venue?.name || "—",
+    court: courtDisplay,
     sport: sportName,
     date: dateStr,
     dateDisplay: dateStr,
     timeSlot,
     duration,
+    currencyCode,
     priceUsd,
     rateBcv,
     priceBs,
@@ -141,7 +205,16 @@ export async function getReservationsAction(filter?: {
   search?: string;
   fromDate?: string;
   toDate?: string;
-}): Promise<ActionResult<{ items: ReservationItem[]; kpis: ReservationKpis; total: number }>> {
+}): Promise<
+  ActionResult<{
+    items: ReservationItem[];
+    kpis: ReservationKpis;
+    total: number;
+    referenceCurrencyCode: string;
+    activeUsdRate: number | null;
+    activeEurRate: number | null;
+  }>
+> {
   const { accessToken } = await requireSessionWithToken(ROUTE_ALLOWED_ROLES[ROUTES.reservations]);
   try {
     const query = new URLSearchParams();
@@ -163,20 +236,66 @@ export async function getReservationsAction(filter?: {
 
     const data = res.body as any;
     const rawItems: any[] = data.items || [];
-    const items = rawItems.map((r) => mapReservationRow(r));
+    const activeUsdRate =
+      data.activeUsdRate && Number(data.activeUsdRate) > 0
+        ? Number(data.activeUsdRate)
+        : DEFAULT_BCV_USD_RATE;
+    const activeEurRate =
+      data.activeEurRate && Number(data.activeEurRate) > 0
+        ? Number(data.activeEurRate)
+        : DEFAULT_BCV_EUR_RATE;
+    const referenceCurrencyCode =
+      data.referenceCurrencyCode ||
+      data.kpis?.referenceCurrencyCode ||
+      "USD";
 
-    const kpis: ReservationKpis = data.kpis || {
-      totalBookings: data.total || items.length,
-      confirmedCount: items.filter((i) => i.status === "CONFIRMED" || i.status === "COMPLETED").length,
-      walkinCount: items.filter((i) => i.origin === "walk-in").length,
-      volumeUsd: items.reduce((acc, curr) => acc + (curr.status === "CONFIRMED" || curr.status === "COMPLETED" ? curr.priceUsd : 0), 0),
-      volumeVes: items.reduce((acc, curr) => acc + (curr.status === "CONFIRMED" || curr.status === "COMPLETED" ? curr.priceBs : 0), 0),
+    const items = rawItems.map((r) =>
+      mapReservationRow(r, {
+        usdRate: activeUsdRate,
+        eurRate: activeEurRate,
+        defaultCurrencyCode: referenceCurrencyCode,
+      }),
+    );
+
+    const kpis: ReservationKpis = {
+      totalBookings: data.kpis?.totalBookings ?? (data.total || items.length),
+      confirmedCount:
+        data.kpis?.confirmedCount ??
+        items.filter((i) => i.status === "CONFIRMED" || i.status === "COMPLETED").length,
+      walkinCount:
+        data.kpis?.walkinCount ??
+        items.filter((i) => i.origin === "walk-in").length,
+      volumeUsd:
+        data.kpis?.volumeUsd ??
+        items.reduce(
+          (acc, curr) =>
+            acc +
+            (curr.status === "CONFIRMED" || curr.status === "COMPLETED"
+              ? curr.priceUsd
+              : 0),
+          0,
+        ),
+      volumeVes:
+        data.kpis?.volumeVes ??
+        items.reduce(
+          (acc, curr) =>
+            acc +
+            (curr.status === "CONFIRMED" || curr.status === "COMPLETED"
+              ? curr.priceBs
+              : 0),
+          0,
+        ),
+      confirmedGrowthPct: data.kpis?.confirmedGrowthPct,
+      referenceCurrencyCode,
     };
 
     return ok({
       items,
       kpis,
       total: data.total || items.length,
+      referenceCurrencyCode,
+      activeUsdRate: data.activeUsdRate ? Number(data.activeUsdRate) : null,
+      activeEurRate: data.activeEurRate ? Number(data.activeEurRate) : null,
     });
   } catch (err: any) {
     return fail(err instanceof Error ? err.message : "RESERVATIONS_FETCH_FAILED");
@@ -262,7 +381,6 @@ export async function createWalkInReservationAction(
   const { accessToken } = await requireSessionWithToken([
     "PLATFORM_ADMIN",
     "ALLY_ADMIN",
-    "ALLY_VALIDATOR",
   ]);
   try {
     const res = await backendRequest("/backoffice/agenda/walk-in", {

@@ -124,7 +124,6 @@ export async function createWalkInAction(
   const { accessToken } = await requireSessionWithToken([
     "PLATFORM_ADMIN",
     "ALLY_ADMIN",
-    "ALLY_VALIDATOR",
   ]);
   try {
     const res = await backendRequest("/backoffice/agenda/walk-in", {

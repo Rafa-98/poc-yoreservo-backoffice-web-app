@@ -96,6 +96,11 @@ function mapVenueItem(v: any): VenueItem {
     ...v,
     id: String(v?.id ?? ""),
     organizationId: String(v?.organizationId ?? ""),
+    referenceCurrencyCode: v?.referenceCurrencyCode
+      ? String(v.referenceCurrencyCode)
+      : v?.organization?.referenceCurrencyCode
+      ? String(v.organization.referenceCurrencyCode)
+      : "USD",
     name: String(v?.name ?? ""),
     rif: String(v?.rif ?? ""),
     address: String(v?.address ?? ""),
@@ -196,6 +201,7 @@ function mapOrganizationData(raw: any): OrganizationData {
             tradeName: String(o?.tradeName || o?.legalName || ""),
             legalName: o?.legalName ? String(o.legalName) : undefined,
             rif: o?.rif ? String(o.rif) : undefined,
+            fiscalAddress: o?.fiscalAddress ? String(o.fiscalAddress) : undefined,
             status: o?.status ? String(o.status) : "ACTIVE",
             isBookingPaused: Boolean(o?.isBookingPaused),
             paymentCollectionMode:
@@ -214,6 +220,7 @@ function mapOrganizationData(raw: any): OrganizationData {
                 : Array.isArray(o?.venues)
                 ? o.venues.length
                 : undefined,
+            venues: Array.isArray(o?.venues) ? o.venues : undefined,
           };
         })
       : undefined,
@@ -612,9 +619,7 @@ export async function getSpaceSchedulesAction(
 ): Promise<ActionResult<WeeklyScheduleData>> {
   const { accessToken } = await requireSessionWithToken([
     "PLATFORM_ADMIN",
-    "PLATFORM_ACCOUNTING",
     "ALLY_ADMIN",
-    "ALLY_ACCOUNTING",
   ]);
   try {
     const res = await backendRequest(`/backoffice/spaces/${spaceId}/schedules`, {

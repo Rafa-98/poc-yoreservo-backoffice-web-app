@@ -287,6 +287,7 @@ export interface SettlementFilter {
   fromDate?: string;
   toDate?: string;
   organizationId: string;
+  stateFilter?: string;
   direction: SettlementDirection;
   status: "ALL" | "PENDING" | "DISBURSED";
 }

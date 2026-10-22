@@ -18,6 +18,7 @@ import {
 import { OrgMasterCard } from "@/features/venues/ui/org-master-card";
 import { OrgEditModal } from "@/features/venues/ui/org-edit-modal";
 import { CreateOrganizationModal } from "@/features/venues/ui/org-create-modal";
+import { OrganizationAdvancedSelector } from "@/features/venues/ui/organization-advanced-selector";
 import { PaymentMethodsConfigCard } from "@/features/venues/ui/payment-methods-config-card";
 import { PlatformSupportConfigCard } from "@/features/venues/ui/platform-support-config-card";
 import { Spinner } from "@/shared/ui";
@@ -49,6 +50,8 @@ export function OrganizationPage({
   const [pendingOrgActionId, setPendingOrgActionId] = useState<string | null>(null);
 
   const isPlatformAdmin = userRole === "PLATFORM_ADMIN";
+  const canManageFacilities =
+    userRole === "PLATFORM_ADMIN" || userRole === "ALLY_ADMIN";
   const organizations = org.organizations ?? initialOrg.organizations ?? [];
   const displayedVenues = org.id
     ? venues.filter((v) => !v.organizationId || v.organizationId === org.id)
@@ -262,27 +265,14 @@ export function OrganizationPage({
 
         <div className="flex flex-wrap items-center gap-2.5">
           {organizations.length > 1 && (
-            <div className="flex items-center gap-2">
-              <label
-                htmlFor="organization-selector"
-                className="text-xs font-semibold text-muted-foreground"
-              >
-                {tOrg("selectorLabel")}
-              </label>
-              <select
-                id="organization-selector"
-                className="input-field form-select px-3 py-1.5 text-xs font-bold"
-                value={org.id}
-                onChange={(e) => handleSelectOrganization(e.target.value)}
-              >
-                {organizations.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.tradeName}
-                    {item.rif ? ` (${item.rif})` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <OrganizationAdvancedSelector
+              id="organization-selector"
+              label={tOrg("selectorLabel")}
+              organizations={organizations}
+              venues={venues}
+              selectedOrganizationId={org.id}
+              onSelectOrganization={handleSelectOrganization}
+            />
           )}
 
           {isPlatformAdmin && (
@@ -297,13 +287,15 @@ export function OrganizationPage({
             </button>
           )}
 
-          <Link
-            href={ROUTES.venues}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 py-2 text-xs font-bold text-foreground shadow-2xs hover:bg-muted transition-all"
-          >
-            <span>🏟️</span>
-            <span>{t("orgBtnManageVenues")}</span>
-          </Link>
+          {canManageFacilities && (
+            <Link
+              href={ROUTES.venues}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 py-2 text-xs font-bold text-foreground shadow-2xs hover:bg-muted transition-all"
+            >
+              <span>🏟️</span>
+              <span>{t("orgBtnManageVenues")}</span>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -634,12 +626,14 @@ export function OrganizationPage({
                 {t("orgVenuesSummarySubtitle")}
               </p>
             </div>
-            <Link
-              href={ROUTES.venues}
-              className="text-xs font-bold text-link hover:underline"
-            >
-              {t("orgBtnManageVenues")}
-            </Link>
+            {canManageFacilities && (
+              <Link
+                href={ROUTES.venues}
+                className="text-xs font-bold text-link hover:underline"
+              >
+                {t("orgBtnManageVenues")}
+              </Link>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -675,12 +669,14 @@ export function OrganizationPage({
                       ⚽ <strong className="text-foreground">{venue.spacesCount}</strong>{" "}
                       {tVenues("courts").toLowerCase()}
                     </span>
-                    <Link
-                      href={`${ROUTES.spaces}?venueId=${venue.id}`}
-                      className="font-semibold text-link hover:underline"
-                    >
-                      {tVenues("btnManageCourts")} →
-                    </Link>
+                    {canManageFacilities && (
+                      <Link
+                        href={`${ROUTES.spaces}?venueId=${venue.id}`}
+                        className="font-semibold text-link hover:underline"
+                      >
+                        {tVenues("btnManageCourts")} →
+                      </Link>
+                    )}
                   </div>
                 </div>
               );

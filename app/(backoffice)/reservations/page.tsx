@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/shared/auth/index.server";
 import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
-import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
+import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE } from "@/shared/lib";
 import { getReservationsAction } from "@/features/reservations/actions/reservations-actions";
 import {
   getSpacesAction,
@@ -21,19 +21,31 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.reservations]);
+  const session = await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.reservations]);
 
-  const [resRes, venuesRes, ratesRes] = await Promise.all([
+  const [resRes, venuesRes, ratesRes, spacesRes] = await Promise.all([
     getReservationsAction(),
     getVenuesListAction(),
     getExchangeRatesAction(),
+    getSpacesAction("ALL"),
   ]);
 
   const venues = venuesRes.ok && venuesRes.data ? venuesRes.data : [];
+
   const bcvRate =
-    ratesRes.ok && ratesRes.data?.activeUsd
-      ? ratesRes.data.activeUsd.rate
-      : DEFAULT_BCV_USD_RATE;
+    (resRes.ok && resRes.data?.activeUsdRate) ||
+    (ratesRes.ok && ratesRes.data?.activeUsd ? ratesRes.data.activeUsd.rate : null) ||
+    DEFAULT_BCV_USD_RATE;
+
+  const bcvEurRate =
+    (resRes.ok && resRes.data?.activeEurRate) ||
+    (ratesRes.ok && ratesRes.data?.activeEur ? ratesRes.data.activeEur.rate : null) ||
+    DEFAULT_BCV_EUR_RATE;
+
+  const referenceCurrencyCode =
+    (resRes.ok && resRes.data?.referenceCurrencyCode) ||
+    venues[0]?.referenceCurrencyCode ||
+    "USD";
 
   const initialReservations = resRes.ok && resRes.data ? resRes.data.items : [];
   const initialKpis =
@@ -45,11 +57,9 @@ export default async function Page() {
           walkinCount: 0,
           volumeUsd: 0,
           volumeVes: 0,
+          referenceCurrencyCode,
         };
 
-  // Fetch spaces for the first venue or all venues
-  const targetVenueId = venues[0]?.id || "";
-  const spacesRes = targetVenueId ? await getSpacesAction(targetVenueId) : null;
   const rawSpaces = spacesRes?.ok && spacesRes.data ? spacesRes.data : [];
 
   const spaces = rawSpaces.map((s) => ({
@@ -61,7 +71,11 @@ export default async function Page() {
     pricePerHour: s.pricePerHour,
   }));
 
-  const mappedVenues = venues.map((v) => ({ id: v.id, name: v.name }));
+  const mappedVenues = venues.map((v) => ({
+    id: v.id,
+    name: v.name,
+    referenceCurrencyCode: v.referenceCurrencyCode || referenceCurrencyCode,
+  }));
 
   return (
     <ReservationsPage
@@ -70,6 +84,9 @@ export default async function Page() {
       venues={mappedVenues}
       spaces={spaces}
       bcvRate={bcvRate}
+      bcvEurRate={bcvEurRate}
+      referenceCurrencyCode={referenceCurrencyCode}
+      userRole={session.user.role}
     />
   );
 }

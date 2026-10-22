@@ -26,6 +26,7 @@ export interface OrganizationSummaryItem {
   tradeName: string;
   legalName?: string;
   rif?: string;
+  fiscalAddress?: string;
   status?: string;
   isBookingPaused?: boolean;
   paymentCollectionMode?: PaymentCollectionMode;
@@ -34,6 +35,12 @@ export interface OrganizationSummaryItem {
   contactEmail?: string;
   contactPhone?: string;
   venuesCount?: number;
+  venues?: Array<{
+    id?: string;
+    name?: string;
+    address?: string;
+    location?: any;
+  }>;
 }
 
 export interface OrganizationData {
@@ -133,6 +140,7 @@ export interface LocationNode {
 export interface VenueItem {
   id: string;
   organizationId: string;
+  referenceCurrencyCode?: string;
   name: string;
   rif: string;
   address: string;

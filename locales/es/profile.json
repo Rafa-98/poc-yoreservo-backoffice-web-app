@@ -12,6 +12,13 @@
     "securityBcryptActive": "✓ Contraseña bcrypt activa",
     "changePhoto": "Cambiar Foto de Perfil"
   },
+  "roles": {
+    "PLATFORM_ADMIN": "Administrador Global YoReservo",
+    "PLATFORM_ACCOUNTING": "Contabilidad & Finanzas YoReservo",
+    "ALLY_ADMIN": "Administrador de Aliado",
+    "ALLY_ACCOUNTING": "Contabilidad & Finanzas de Aliado",
+    "ALLY_VALIDATOR": "Recepción & Control de Acceso"
+  },
   "tabs": {
     "general": "Datos Personales",
     "security": "Seguridad & Contraseña",

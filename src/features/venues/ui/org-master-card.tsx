@@ -30,10 +30,10 @@ export function OrgMasterCard({
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
 
   const isEur = organization.referenceCurrencyCode === "EUR";
-  const currencyLabel = isEur ? t("currencyEur") : t("currencyUsd");
-  const currencyRateLabel = isEur
-    ? t("rateEur", { rate: bcvEurRate.toFixed(2) })
-    : t("rateUsd", { rate: bcvRate.toFixed(2) });
+  const currencyLabel = isEur ? "💶 Euros (€ EUR)" : "💵 Dólares ($ USD)";
+  const currencySubtitle = isEur
+    ? "La organización cobra en Euros (EUR)"
+    : "La organización cobra en Dólares (USD)";
 
   const displayName =
     organization.tradeName || organization.legalName || t("notConfigured");
@@ -50,9 +50,7 @@ export function OrgMasterCard({
       : "PLATFORM_CUSTODY";
 
   const canEdit =
-    !userRole ||
-    userRole === "PLATFORM_ADMIN" ||
-    userRole === "ALLY_ADMIN";
+    userRole === "PLATFORM_ADMIN" || userRole === "ALLY_ADMIN";
   const isPlatformAdmin = userRole === "PLATFORM_ADMIN";
   const isActiveStatus = (organization.status || "ACTIVE") === "ACTIVE";
 
@@ -143,12 +141,14 @@ export function OrgMasterCard({
                 {t("badge")}
               </span>
               {isActiveStatus ? (
-                <span className="badge badge-available">
-                  {t("active")}
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-status-available-border bg-status-available-bg px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-status-available-fg uppercase shadow-2xs">
+                  <span className="size-1.5 rounded-full bg-status-available-fg" />
+                  <span>{t("active")}</span>
                 </span>
               ) : (
-                <span className="badge badge-cancelled">
-                  INACTIVA
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-status-cancelled-border bg-status-cancelled-bg px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-status-cancelled-fg uppercase shadow-2xs">
+                  <span className="size-1.5 rounded-full bg-status-cancelled-fg" />
+                  <span>INACTIVA</span>
                 </span>
               )}
               {organization.isBookingPaused && (
@@ -208,7 +208,7 @@ export function OrgMasterCard({
                 </button>
               )
             )}
-            {canEdit && (
+            {canEdit ? (
               <button
                 type="button"
                 className="btn btn-outline text-[12.5px]"
@@ -217,6 +217,10 @@ export function OrgMasterCard({
               >
                 ✏️ <span>{t("btnEdit")}</span>
               </button>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-muted/60 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+                🔒 Solo lectura
+              </span>
             )}
           </div>
         </div>
@@ -264,7 +268,7 @@ export function OrgMasterCard({
                   ? "border-accent bg-surface shadow-xs ring-1 ring-accent"
                   : canEdit
                   ? "cursor-pointer border-border bg-surface/60 opacity-80 hover:border-border-medium hover:opacity-100"
-                  : "border-border bg-surface/50 opacity-70"
+                  : "cursor-not-allowed border-border bg-muted/40 opacity-60"
               }`}
               id="card-mode-platform-custody"
             >
@@ -305,7 +309,7 @@ export function OrgMasterCard({
                   ? "border-accent bg-surface shadow-xs ring-1 ring-accent"
                   : canEdit
                   ? "cursor-pointer border-border bg-surface/60 opacity-80 hover:border-border-medium hover:opacity-100"
-                  : "border-border bg-surface/50 opacity-70"
+                  : "cursor-not-allowed border-border bg-muted/40 opacity-60"
               }`}
               id="card-mode-ally-direct"
             >
@@ -335,7 +339,7 @@ export function OrgMasterCard({
         <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3 rounded-xl border border-border bg-muted p-3.5">
           <div>
             <div className="text-[11.5px] font-semibold text-muted-foreground uppercase">
-              {t("bcvRef")}
+              Moneda de Cobro
             </div>
             <div
               className="mt-1 text-[13px] font-bold text-status-confirmed-fg"
@@ -347,7 +351,7 @@ export function OrgMasterCard({
               className="text-xs text-muted-foreground"
               id="card-org-rate"
             >
-              {currencyRateLabel}
+              {currencySubtitle}
             </div>
           </div>
 

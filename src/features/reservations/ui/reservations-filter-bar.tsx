@@ -9,9 +9,11 @@ interface ReservationsFilterBarProps {
   filter: ReservationFilter;
   onChangeFilter: (newFilter: Partial<ReservationFilter>) => void;
   onResetFilter: () => void;
-  venues: Array<{ id: string; name: string }>;
+  venues: Array<{ id: string; name: string; referenceCurrencyCode?: string }>;
   sports: string[];
   bcvRate: number;
+  bcvEurRate?: number;
+  currencyCode?: string;
 }
 
 export function ReservationsFilterBar({
@@ -21,8 +23,11 @@ export function ReservationsFilterBar({
   venues,
   sports,
   bcvRate,
+  bcvEurRate,
+  currencyCode = "USD",
 }: ReservationsFilterBarProps) {
   const t = useTranslations("reservations.filters");
+  const effectiveEurRate = bcvEurRate ?? bcvRate;
 
   const dateChips: Array<{ key: NonNullable<ReservationFilter["dateFilter"]>; label: string }> = [
     { key: "all", label: t("allDates") },
@@ -60,10 +65,25 @@ export function ReservationsFilterBar({
           })}
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <span className="rounded-xl border border-border bg-muted/60 px-3 py-1 text-xs font-bold text-foreground">
-            {t("bcvRefBadge", { rate: bcvRate.toFixed(2) })}
-          </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {currencyCode === "MIXED" ? (
+            <>
+              <span className="rounded-xl border border-border bg-muted/60 px-3 py-1 text-xs font-bold text-foreground">
+                Ref BCV USD: ${bcvRate.toFixed(2)} Bs.
+              </span>
+              <span className="rounded-xl border border-border bg-muted/60 px-3 py-1 text-xs font-bold text-foreground">
+                Ref BCV EUR: €{effectiveEurRate.toFixed(2)} Bs.
+              </span>
+            </>
+          ) : currencyCode === "EUR" ? (
+            <span className="rounded-xl border border-border bg-muted/60 px-3 py-1 text-xs font-bold text-foreground">
+              Ref BCV: €{effectiveEurRate.toFixed(2)} Bs. / EUR
+            </span>
+          ) : (
+            <span className="rounded-xl border border-border bg-muted/60 px-3 py-1 text-xs font-bold text-foreground">
+              Ref BCV: ${bcvRate.toFixed(2)} Bs. / USD
+            </span>
+          )}
         </div>
       </div>
 
@@ -83,19 +103,21 @@ export function ReservationsFilterBar({
           </div>
 
           {/* Venue Dropdown */}
-          <select
-            id="filter-venue"
-            value={filter.venueId || "all"}
-            onChange={(e) => onChangeFilter({ venueId: e.target.value })}
-            className="rounded-xl border border-border bg-surface px-3 py-2 text-xs font-semibold text-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
-          >
-            <option value="all">{t("allVenues")}</option>
-            {venues.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name}
-              </option>
-            ))}
-          </select>
+          {venues.length > 1 && (
+            <select
+              id="filter-venue"
+              value={filter.venueId || "all"}
+              onChange={(e) => onChangeFilter({ venueId: e.target.value })}
+              className="rounded-xl border border-border bg-surface px-3 py-2 text-xs font-semibold text-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+            >
+              <option value="all">{t("allVenues")}</option>
+              {venues.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
+                </option>
+              ))}
+            </select>
+          )}
 
           {/* Sport Dropdown */}
           <select

@@ -90,9 +90,7 @@ export const PROTECTED_ROUTE_PREFIXES: readonly string[] = [
 export const ROUTE_ALLOWED_ROLES: Record<string, readonly BackofficeRole[]> = {
   [ROUTES.dashboard]: [
     "PLATFORM_ADMIN",
-    "PLATFORM_ACCOUNTING",
     "ALLY_ADMIN",
-    "ALLY_ACCOUNTING",
   ],
   [ROUTES.agenda]: [
     "PLATFORM_ADMIN",
@@ -134,14 +132,13 @@ export const ROUTE_ALLOWED_ROLES: Record<string, readonly BackofficeRole[]> = {
     "ALLY_ADMIN",
     "ALLY_ACCOUNTING",
   ],
-  [ROUTES.spaces]: ["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING", "ALLY_ADMIN"],
-  [ROUTES.schedules]: ["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING", "ALLY_ADMIN"],
-  [ROUTES.venues]: ["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING", "ALLY_ADMIN"],
+  [ROUTES.spaces]: ["PLATFORM_ADMIN", "ALLY_ADMIN"],
+  [ROUTES.schedules]: ["PLATFORM_ADMIN", "ALLY_ADMIN"],
+  [ROUTES.venues]: ["PLATFORM_ADMIN", "ALLY_ADMIN"],
   [ROUTES.users]: ["PLATFORM_ADMIN", "ALLY_ADMIN"],
   [ROUTES.catalogs]: ["PLATFORM_ADMIN", "ALLY_ADMIN"],
   [ROUTES.support]: [
     "PLATFORM_ADMIN",
-    "PLATFORM_ACCOUNTING",
     "ALLY_ADMIN",
   ],
   [ROUTES.profile]: [
@@ -158,6 +155,12 @@ export function getDefaultRouteForRole(role?: BackofficeRole | string | null): A
   const normalized = normalizeBackofficeRole(role);
   if (normalized === "ALLY_VALIDATOR") {
     return ROUTES.agenda;
+  }
+  if (
+    normalized === "ALLY_ACCOUNTING" ||
+    normalized === "PLATFORM_ACCOUNTING"
+  ) {
+    return ROUTES.paymentsInbox;
   }
   return ROUTES.dashboard;
 }

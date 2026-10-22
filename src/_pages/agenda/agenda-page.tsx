@@ -24,17 +24,20 @@ import type {
 } from "@/features/agenda/model/types";
 
 import { useActiveVenue } from "@/features/venues/context/venue-context";
+import type { BackofficeRole } from "@/shared/config";
 import { todayInTimezone } from "@/shared/lib";
 
 export interface AgendaPageProps {
   initialAgenda: AgendaData | null;
   initialVenues: VenueRef[];
+  userRole?: BackofficeRole;
 }
 
-export function AgendaPage({ initialAgenda, initialVenues }: AgendaPageProps) {
+export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPageProps) {
   const t = useTranslations("agenda");
   const searchParams = useSearchParams();
   const { activeVenueId: globalVenueId, setActiveVenueId: setGlobalVenueId } = useActiveVenue();
+  const isValidator = userRole === "ALLY_VALIDATOR";
 
   // Active state
   const todayStr = todayInTimezone(
@@ -84,14 +87,14 @@ export function AgendaPage({ initialAgenda, initialVenues }: AgendaPageProps) {
   const [selectedBlockHour, setSelectedBlockHour] = useState("09:00");
   const [isBlockOpen, setIsBlockOpen] = useState(false);
 
-  // Auto-open walk-in drawer if URL query `?drawer=open`
+  // Auto-open walk-in drawer if URL query `?drawer=open` (not for validators)
   useEffect(() => {
-    if (searchParams.get("drawer") === "open" && agenda?.spaces?.[0]) {
+    if (!isValidator && searchParams.get("drawer") === "open" && agenda?.spaces?.[0]) {
       setSelectedWalkInCourt(agenda.spaces[0]);
       setSelectedWalkInHour("16:00");
       setIsWalkInOpen(true);
     }
-  }, [searchParams, agenda]);
+  }, [searchParams, agenda, isValidator]);
 
   // Refresh agenda data
   const refreshAgenda = () => {
@@ -116,6 +119,7 @@ export function AgendaPage({ initialAgenda, initialVenues }: AgendaPageProps) {
 
   // Click on available slot
   const handleSlotClick = (court: CourtSpace, startTime: string) => {
+    if (isValidator) return;
     setSelectedWalkInCourt(court);
     setSelectedWalkInHour(startTime);
     setIsWalkInOpen(true);
@@ -206,20 +210,22 @@ export function AgendaPage({ initialAgenda, initialVenues }: AgendaPageProps) {
             <span>{t("btnScanQr")}</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              if (allSpaces[0]) {
-                setSelectedWalkInCourt(allSpaces[0]);
-                setSelectedWalkInHour("16:00");
-                setIsWalkInOpen(true);
-              }
-            }}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-3.5 py-2 text-xs font-bold text-accent-foreground shadow-xs hover:brightness-105 transition-all active:scale-95"
-          >
-            <Calendar className="size-4" />
-            <span>{t("btnNewWalkin")}</span>
-          </button>
+          {!isValidator && (
+            <button
+              type="button"
+              onClick={() => {
+                if (allSpaces[0]) {
+                  setSelectedWalkInCourt(allSpaces[0]);
+                  setSelectedWalkInHour("16:00");
+                  setIsWalkInOpen(true);
+                }
+              }}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-3.5 py-2 text-xs font-bold text-accent-foreground shadow-xs hover:brightness-105 transition-all active:scale-95"
+            >
+              <Calendar className="size-4" />
+              <span>{t("btnNewWalkin")}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -250,15 +256,17 @@ export function AgendaPage({ initialAgenda, initialVenues }: AgendaPageProps) {
       />
 
       {/* Walk-In Booking Side Drawer */}
-      <WalkInDrawer
-        isOpen={isWalkInOpen}
-        onClose={() => setIsWalkInOpen(false)}
-        court={selectedWalkInCourt}
-        selectedDate={selectedDate}
-        startTime={selectedWalkInHour}
-        onSuccess={refreshAgenda}
-        bcvRate={agenda?.bcvRate}
-      />
+      {!isValidator && (
+        <WalkInDrawer
+          isOpen={isWalkInOpen}
+          onClose={() => setIsWalkInOpen(false)}
+          court={selectedWalkInCourt}
+          selectedDate={selectedDate}
+          startTime={selectedWalkInHour}
+          onSuccess={refreshAgenda}
+          bcvRate={agenda?.bcvRate}
+        />
+      )}
 
       {/* Express Check-In Modal */}
       <ExpressCheckInModal

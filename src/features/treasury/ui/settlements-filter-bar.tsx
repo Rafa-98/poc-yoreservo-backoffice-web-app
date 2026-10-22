@@ -3,11 +3,15 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 import type { SettlementDirection, SettlementFilter } from "../model/types";
+import {
+  OrganizationAdvancedSelector,
+  type SelectableOrganizationItem,
+} from "@/features/venues/ui/organization-advanced-selector";
 
 interface SettlementsFilterBarProps {
   filter: SettlementFilter;
   onChangeFilter: (upd: Partial<SettlementFilter>) => void;
-  organizations: { id: string; name: string }[];
+  organizations: SelectableOrganizationItem[];
   periodRangeLabel: string;
   directionCounts: {
     platformToAllyBatches: number;
@@ -120,7 +124,7 @@ export function SettlementsFilterBar({
         <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
           {/* Search */}
           <div className="relative flex-1 min-w-[210px] max-w-xs">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
               🔍
             </span>
             <input
@@ -129,7 +133,7 @@ export function SettlementsFilterBar({
               value={filter.search}
               onChange={(e) => onChangeFilter({ search: e.target.value })}
               placeholder={t("searchPlaceholder")}
-              className="form-input pl-9 text-xs h-9"
+              className="form-input !pl-9 text-xs h-9"
             />
           </div>
 
@@ -177,25 +181,22 @@ export function SettlementsFilterBar({
             <span>{periodRangeLabel}</span>
           </div>
 
-          {/* Org / Venue selector */}
+          {/* Advanced Org / Venue selector with Search & State/Mode/Currency filters */}
           {organizations.length > 1 && (
-            <div className="min-w-[190px]">
-              <select
-                value={filter.organizationId}
-                onChange={(e) =>
-                  onChangeFilter({ organizationId: e.target.value })
-                }
-                className="form-select text-xs h-9"
-                id="settlements-org-filter"
-              >
-                <option value="ALL">{t("filterAllVenues")}</option>
-                {organizations.map((org) => (
-                  <option key={org.id} value={org.id}>
-                    {org.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <OrganizationAdvancedSelector
+              id="settlements-org-filter"
+              organizations={organizations}
+              selectedOrganizationId={filter.organizationId}
+              onSelectOrganization={(orgId) =>
+                onChangeFilter({ organizationId: orgId })
+              }
+              allowAll
+              allLabel={t("filterAllVenues")}
+              selectedStateFilter={filter.stateFilter || "ALL"}
+              onChangeStateFilter={(state) =>
+                onChangeFilter({ stateFilter: state })
+              }
+            />
           )}
         </div>
 

@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
+  const session = await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
 
   const [agendaRes, venuesRes] = await Promise.all([
     getAgendaAction(),
@@ -33,6 +33,7 @@ export default async function Page() {
     <AgendaPage
       initialAgenda={initialAgenda}
       initialVenues={initialVenues}
+      userRole={session.user.role}
     />
   );
 }

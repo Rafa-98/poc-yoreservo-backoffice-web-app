@@ -336,6 +336,7 @@ export async function getExchangeRatesAction(params?: {
     "PLATFORM_ACCOUNTING",
     "ALLY_ADMIN",
     "ALLY_ACCOUNTING",
+    "ALLY_VALIDATOR",
   ]);
   try {
     const query = new URLSearchParams();
@@ -533,7 +534,23 @@ export async function getSettlementsAction(filters?: {
     items: SettlementBatchItem[];
     total: number;
     kpis: SettlementsKpis;
-    organizations: Array<{ id: string; name: string }>;
+    organizations: Array<{
+      id: string;
+      name: string;
+      tradeName?: string;
+      legalName?: string;
+      rif?: string;
+      fiscalAddress?: string;
+      referenceCurrencyCode?: string;
+      paymentCollectionMode?: string;
+      venuesCount?: number;
+      venues?: Array<{
+        id?: string;
+        name?: string;
+        address?: string;
+        location?: any;
+      }>;
+    }>;
     unsettledPools: UnsettledPoolItem[];
     autoBatchSchedule?: {
       morningTime: string;
@@ -574,7 +591,23 @@ export async function getSettlementsAction(filters?: {
       total: number;
       items: any[];
       cycleDeadline?: string;
-      organizations?: Array<{ id: string; name?: string; tradeName?: string }>;
+      organizations?: Array<{
+        id: string;
+        name?: string;
+        tradeName?: string;
+        legalName?: string;
+        rif?: string;
+        fiscalAddress?: string;
+        referenceCurrencyCode?: string;
+        paymentCollectionMode?: string;
+        venuesCount?: number;
+        venues?: Array<{
+          id?: string;
+          name?: string;
+          address?: string;
+          location?: any;
+        }>;
+      }>;
       unsettledPools?: any[];
       autoBatchSchedule?: {
         morningTime?: string;
@@ -610,7 +643,26 @@ export async function getSettlementsAction(filters?: {
     let disbursedCount = 0;
     let totalReservations = 0;
 
-    const orgMap = new Map<string, { id: string; name: string }>();
+    const orgMap = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        tradeName?: string;
+        legalName?: string;
+        rif?: string;
+        fiscalAddress?: string;
+        referenceCurrencyCode?: string;
+        paymentCollectionMode?: string;
+        venuesCount?: number;
+        venues?: Array<{
+          id?: string;
+          name?: string;
+          address?: string;
+          location?: any;
+        }>;
+      }
+    >();
 
     if (Array.isArray(data?.organizations)) {
       for (const org of data.organizations) {
@@ -618,6 +670,14 @@ export async function getSettlementsAction(filters?: {
           orgMap.set(org.id, {
             id: org.id,
             name: org.tradeName || org.name || "Organización Aliada",
+            tradeName: org.tradeName || org.name,
+            legalName: org.legalName,
+            rif: org.rif,
+            fiscalAddress: org.fiscalAddress,
+            referenceCurrencyCode: org.referenceCurrencyCode || "USD",
+            paymentCollectionMode: org.paymentCollectionMode || "PLATFORM_CUSTODY",
+            venuesCount: org.venuesCount ?? (Array.isArray(org.venues) ? org.venues.length : undefined),
+            venues: Array.isArray(org.venues) ? org.venues : [],
           });
         }
       }
@@ -634,8 +694,35 @@ export async function getSettlementsAction(filters?: {
         const orgId = v.organizationId || v.organization?.id;
         const orgName =
           v.organization?.tradeName || v.organization?.legalName || v.organizationName;
-        if (orgId && orgName && !orgMap.has(orgId)) {
-          orgMap.set(orgId, { id: String(orgId), name: String(orgName) });
+        if (!orgId) continue;
+
+        const venueEntry = {
+          id: v.id,
+          name: v.name,
+          address: v.address,
+          location: v.location,
+        };
+
+        const existing = orgMap.get(String(orgId));
+        if (existing) {
+          const existingVenues = existing.venues ?? [];
+          if (!existingVenues.some((ev) => ev.id === v.id)) {
+            existingVenues.push(venueEntry);
+          }
+          existing.venues = existingVenues;
+          existing.venuesCount = existingVenues.length;
+        } else if (orgName) {
+          orgMap.set(String(orgId), {
+            id: String(orgId),
+            name: String(orgName),
+            tradeName: String(orgName),
+            legalName: v.organization?.legalName,
+            rif: v.organization?.rif,
+            referenceCurrencyCode: v.organization?.referenceCurrencyCode || "USD",
+            paymentCollectionMode: v.organization?.paymentCollectionMode || "PLATFORM_CUSTODY",
+            venuesCount: 1,
+            venues: [venueEntry],
+          });
         }
       }
     }
@@ -661,7 +748,14 @@ export async function getSettlementsAction(filters?: {
       const orgId = b.organization?.id ?? b.organizationId;
       const orgTradeName = b.organization?.tradeName ?? "Organización Aliada";
       if (orgId && !orgMap.has(orgId)) {
-        orgMap.set(orgId, { id: String(orgId), name: String(orgTradeName) });
+        orgMap.set(orgId, {
+          id: String(orgId),
+          name: String(orgTradeName),
+          tradeName: String(orgTradeName),
+          legalName: b.organization?.legalName,
+          rif: b.organization?.rif,
+          referenceCurrencyCode: b.organization?.referenceCurrencyCode ?? b.currencyCode ?? "USD",
+        });
       }
 
       return {

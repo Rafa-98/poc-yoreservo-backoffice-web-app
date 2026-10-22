@@ -12,6 +12,13 @@
     "securityBcryptActive": "✓ Active bcrypt password",
     "changePhoto": "Change Profile Picture"
   },
+  "roles": {
+    "PLATFORM_ADMIN": "YoReservo Global Administrator",
+    "PLATFORM_ACCOUNTING": "YoReservo Accounting & Finance",
+    "ALLY_ADMIN": "Ally Administrator",
+    "ALLY_ACCOUNTING": "Ally Accounting & Finance",
+    "ALLY_VALIDATOR": "Frontdesk & Access Control"
+  },
   "tabs": {
     "general": "Personal Details",
     "security": "Security & Password",

@@ -35,7 +35,8 @@ export function VenueHeaderSelector() {
 
   const isGlobalPageLocked = Boolean(
     pathname?.startsWith(ROUTES.settlements) ||
-      pathname?.startsWith(ROUTES.exchangeRate),
+      pathname?.startsWith(ROUTES.exchangeRate) ||
+      pathname?.startsWith(ROUTES.organization),
   );
   const isSelectorLocked = isManagedLocked || isGlobalPageLocked;
 

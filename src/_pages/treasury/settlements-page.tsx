@@ -28,12 +28,16 @@ import type {
   SettlementsKpis,
   UnsettledPoolItem,
 } from "@/features/treasury/model/types";
+import {
+  extractOrganizationLocationMeta,
+  type SelectableOrganizationItem,
+} from "@/features/venues/ui/organization-advanced-selector";
 
 interface SettlementsPageProps {
   initialBatches: SettlementBatchItem[];
   initialKpis?: SettlementsKpis;
   initialUnsettledPools?: UnsettledPoolItem[];
-  organizations: Array<{ id: string; name: string }>;
+  organizations: SelectableOrganizationItem[];
   bcvRate: number;
   bcvEurRate?: number;
   userRole?: BackofficeRole;
@@ -158,9 +162,20 @@ export function SettlementsPage({
     fromDate: defaultFrom,
     toDate: defaultTo,
     organizationId: "ALL",
+    stateFilter: "ALL",
     direction: "PLATFORM_TO_ALLY",
     status: "ALL",
   });
+
+  // Map organizationId -> states[] so selecting a State filter in the advanced selector filters batches & pools
+  const orgStatesMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const org of organizations) {
+      const meta = extractOrganizationLocationMeta(org);
+      map.set(org.id, meta.states);
+    }
+    return map;
+  }, [organizations]);
 
   const [selectedForDrawer, setSelectedForDrawer] =
     useState<SettlementBatchItem | null>(null);
@@ -177,7 +192,7 @@ export function SettlementsPage({
     [filter.period, filter.fromDate, filter.toDate],
   );
 
-  // Filter unsettled pools by active direction and selected organization
+  // Filter unsettled pools by active direction, selected organization, and state filter
   const activeUnsettledPools = useMemo(() => {
     return unsettledPools.filter((pool) => {
       if (pool.direction !== filter.direction) return false;
@@ -187,11 +202,23 @@ export function SettlementsPage({
       ) {
         return false;
       }
+      if (filter.stateFilter && filter.stateFilter !== "ALL") {
+        const states = orgStatesMap.get(pool.organizationId) ?? [];
+        if (!states.includes(filter.stateFilter)) {
+          return false;
+        }
+      }
       return pool.reservationsCount > 0;
     });
-  }, [unsettledPools, filter.direction, filter.organizationId]);
+  }, [
+    unsettledPools,
+    filter.direction,
+    filter.organizationId,
+    filter.stateFilter,
+    orgStatesMap,
+  ]);
 
-  // Batches matching Organization + Period + Direction (used for KPI strip and status chip counts)
+  // Batches matching Organization + State + Period + Direction (used for KPI strip and status chip counts)
   const scopedBatches = useMemo(() => {
     return batches.filter((b) => {
       const batchDir = b.direction || "PLATFORM_TO_ALLY";
@@ -202,6 +229,13 @@ export function SettlementsPage({
         b.organizationId !== filter.organizationId
       ) {
         return false;
+      }
+
+      if (filter.stateFilter && filter.stateFilter !== "ALL") {
+        const states = orgStatesMap.get(b.organizationId) ?? [];
+        if (!states.includes(filter.stateFilter)) {
+          return false;
+        }
       }
 
       if (fromIso && toIso) {
@@ -239,7 +273,16 @@ export function SettlementsPage({
 
       return true;
     });
-  }, [batches, filter.direction, filter.organizationId, filter.search, fromIso, toIso]);
+  }, [
+    batches,
+    filter.direction,
+    filter.organizationId,
+    filter.stateFilter,
+    filter.search,
+    fromIso,
+    toIso,
+    orgStatesMap,
+  ]);
 
   // Final displayed batches after applying status chip filter
   const displayedBatches = useMemo(() => {
@@ -279,6 +322,12 @@ export function SettlementsPage({
       ) {
         continue;
       }
+      if (filter.stateFilter && filter.stateFilter !== "ALL") {
+        const states = orgStatesMap.get(b.organizationId) ?? [];
+        if (!states.includes(filter.stateFilter)) {
+          continue;
+        }
+      }
       if (fromIso && toIso) {
         const refDate = b.createdAt
           ? getCaracasDateIso(new Date(b.createdAt))
@@ -305,6 +354,12 @@ export function SettlementsPage({
       ) {
         continue;
       }
+      if (filter.stateFilter && filter.stateFilter !== "ALL") {
+        const states = orgStatesMap.get(p.organizationId) ?? [];
+        if (!states.includes(filter.stateFilter)) {
+          continue;
+        }
+      }
       if (p.direction === "ALLY_TO_PLATFORM") {
         allyToPlatformUnsettledUsd += p.netAmount;
       } else {
@@ -318,7 +373,15 @@ export function SettlementsPage({
       allyToPlatformBatches,
       allyToPlatformUnsettledUsd,
     };
-  }, [batches, unsettledPools, filter.organizationId, fromIso, toIso]);
+  }, [
+    batches,
+    unsettledPools,
+    filter.organizationId,
+    filter.stateFilter,
+    fromIso,
+    toIso,
+    orgStatesMap,
+  ]);
 
   // Dynamic KPIs for the 3 top cards (100% live, currency-accurate & date-filtered)
   const dynamicKpis = useMemo<SettlementsDynamicKpis>(() => {

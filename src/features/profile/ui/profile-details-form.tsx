@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Save, CheckCircle, Camera, Loader2 } from "lucide-react";
-import { uploadBackofficeFileAction } from "@/shared/api/upload-action";
+import { Save, CheckCircle, Loader2 } from "lucide-react";
 import type { UpdateProfileInput, UserProfileData } from "../model/types";
 
 interface ProfileDetailsFormProps {
@@ -63,30 +62,11 @@ export function ProfileDetailsForm({
   const [operator, setOperator] = useState(parsedPhone.operator);
   const [phoneNum, setPhoneNum] = useState(parsedPhone.phoneNum);
   const [prefLang, setPrefLang] = useState(profile.preferredLanguage || "es");
-  const [avatarUrl, setAvatarUrl] = useState(profile.imageUrl || "");
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-
-  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploadingAvatar(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("category", "AVATAR");
-      const res = await uploadBackofficeFileAction(fd);
-      if (res.ok && res.data.url) {
-        setAvatarUrl(res.data.url);
-      }
-    } finally {
-      setIsUploadingAvatar(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const fullPhone = `${countryCode}${operator === "OTRO" ? "" : operator}${phoneNum}`.trim();
-    const cleanAvatar = avatarUrl.trim() || undefined;
+    const cleanAvatar = profile.imageUrl?.trim() || undefined;
 
     await onSubmit({
       name,
@@ -102,51 +82,6 @@ export function ProfileDetailsForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Avatar Upload Field */}
-      <div className="flex items-center gap-4 rounded-xl border border-border bg-surface-muted p-3.5">
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={name}
-            className="size-12 rounded-full object-cover border-2 border-accent shrink-0"
-          />
-        ) : (
-          <div className="size-12 rounded-full border-2 border-accent bg-forest-900 text-white flex items-center justify-center font-bold text-sm shrink-0">
-            {name?.[0]?.toUpperCase() || "U"}
-            {lastName?.[0]?.toUpperCase() || ""}
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <label className="block text-xs font-bold text-foreground mb-1">
-            {t("sidebar.changePhoto")}
-          </label>
-          <div className="flex gap-2 items-center">
-            <input
-              type="url"
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://..."
-              className="flex-1 px-3 py-1.5 rounded-lg border border-border bg-surface text-foreground text-xs focus:outline-hidden focus:ring-2 focus:ring-accent/40"
-            />
-            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-surface hover:bg-muted text-xs font-semibold cursor-pointer shrink-0">
-              {isUploadingAvatar ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Camera className="size-3.5" />
-              )}
-              <span>{isUploadingAvatar ? "..." : "Subir"}</span>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="hidden"
-                disabled={isUploadingAvatar}
-                onChange={handleAvatarFileChange}
-              />
-            </label>
-          </div>
-        </div>
-      </div>
-
       {/* Name & Last Name */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -295,7 +230,7 @@ export function ProfileDetailsForm({
       <div className="flex justify-end pt-2">
         <button
           type="submit"
-          disabled={isSubmitting || isUploadingAvatar}
+          disabled={isSubmitting}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-accent-foreground font-bold text-xs sm:text-sm shadow-xs hover:brightness-105 active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
         >
           {isSubmitting ? (

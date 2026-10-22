@@ -2,8 +2,9 @@
 
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Camera, Loader2, ShieldCheck, MapPin, Calendar, Lock } from "lucide-react";
+import { Camera, Loader2, ShieldCheck, MapPin, Calendar } from "lucide-react";
 import { uploadBackofficeFileAction } from "@/shared/api/upload-action";
+import { isBackofficeRole } from "@/shared/config";
 import type { UserProfileData } from "../model/types";
 
 interface ProfileUserCardProps {
@@ -41,6 +42,15 @@ export function ProfileUserCard({
     }
   };
 
+  const firstInitial =
+    profile.name?.replace(/[^a-zA-ZÀ-ÿ]/g, "")?.[0]?.toUpperCase() || "U";
+  const secondInitial =
+    profile.lastName?.replace(/[^a-zA-ZÀ-ÿ]/g, "")?.[0]?.toUpperCase() || "";
+
+  const friendlyRoleLabel = isBackofficeRole(profile.role)
+    ? t(`roles.${profile.role}`)
+    : profile.role;
+
   return (
     <div className="rounded-2xl border border-border bg-surface p-6 shadow-xs text-center">
       {/* Avatar Container */}
@@ -53,8 +63,8 @@ export function ProfileUserCard({
           />
         ) : (
           <div className="size-full rounded-full border-3 border-accent bg-gradient-to-br from-forest-800 to-forest-950 flex items-center justify-center text-white text-2xl font-bold">
-            {profile.name?.[0]?.toUpperCase() || "U"}
-            {profile.lastName?.[0]?.toUpperCase() || ""}
+            {firstInitial}
+            {secondInitial}
           </div>
         )}
 
@@ -93,14 +103,14 @@ export function ProfileUserCard({
       <div className="mb-5">
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-accent/20 text-accent-foreground border border-accent/40">
           <ShieldCheck className="size-3.5" />
-          <span>{profile.role}</span>
+          <span>{friendlyRoleLabel}</span>
         </span>
         <p className="text-[11px] text-muted-foreground mt-1.5">
           {t("sidebar.roleDisclaimer")}
         </p>
       </div>
 
-      {/* Affiliation & Security Details Box */}
+      {/* Affiliation Details Box */}
       <div className="rounded-xl border border-border bg-surface-muted p-4 text-left space-y-3 text-xs">
         <div>
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
@@ -136,16 +146,6 @@ export function ProfileUserCard({
                   ).format(new Date(profile.createdAt))
                 : "—"}
             </span>
-          </div>
-        </div>
-
-        <div>
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-            {t("sidebar.securityStatus")}
-          </span>
-          <div className="font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1.5">
-            <Lock className="size-3.5 shrink-0" />
-            <span>{t("sidebar.securityBcryptActive")}</span>
           </div>
         </div>
       </div>

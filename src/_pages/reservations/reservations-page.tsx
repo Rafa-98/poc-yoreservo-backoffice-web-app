@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import type { BackofficeRole } from "@/shared/config";
 import { Button } from "@/shared/ui/button";
 import { ReservationsKpiStrip } from "@/features/reservations/ui/reservations-kpi-strip";
 import { ReservationsFilterBar } from "@/features/reservations/ui/reservations-filter-bar";
@@ -22,9 +23,12 @@ import { addDaysToIsoDate, todayInTimezone } from "@/shared/lib";
 interface ReservationsPageProps {
   initialReservations: ReservationItem[];
   initialKpis: ReservationKpis;
-  venues: Array<{ id: string; name: string }>;
+  venues: Array<{ id: string; name: string; referenceCurrencyCode?: string }>;
   spaces: Array<{ id: string; name: string; venueId: string; pricePerHour: number }>;
   bcvRate: number;
+  bcvEurRate?: number;
+  referenceCurrencyCode?: string;
+  userRole?: BackofficeRole;
 }
 
 export function ReservationsPage({
@@ -33,12 +37,16 @@ export function ReservationsPage({
   venues,
   spaces,
   bcvRate,
+  bcvEurRate,
+  referenceCurrencyCode = "USD",
+  userRole,
 }: ReservationsPageProps) {
   const t = useTranslations("reservations");
   const { activeVenueId } = useActiveVenue();
+  const isValidator = userRole === "ALLY_VALIDATOR";
+  const effectiveEurRate = bcvEurRate ?? bcvRate;
 
   const [reservations, setReservations] = useState<ReservationItem[]>(initialReservations);
-  const [kpis, setKpis] = useState<ReservationKpis>(initialKpis);
 
   const [filter, setFilter] = useState<ReservationFilter>({
     dateFilter: "all",
@@ -64,11 +72,11 @@ export function ReservationsPage({
   const [selectedForCancel, setSelectedForCancel] = useState<ReservationItem | null>(null);
   const [isWalkInOpen, setIsWalkInOpen] = useState(false);
 
-  // Distinct sports in the reservations set
+  // Distinct sports in the reservations set (excluding empty placeholder)
   const sports = useMemo(() => {
     const set = new Set<string>();
     reservations.forEach((r) => {
-      if (r.sport) set.add(r.sport);
+      if (r.sport && r.sport !== "—") set.add(r.sport);
     });
     return Array.from(set);
   }, [reservations]);
@@ -82,7 +90,8 @@ export function ReservationsPage({
         const matchesCode = res.code.toLowerCase().includes(q);
         const matchesName = res.clientName.toLowerCase().includes(q);
         const matchesPhone = res.phone.includes(q);
-        if (!matchesCode && !matchesName && !matchesPhone) return false;
+        const matchesDni = res.dni.toLowerCase().includes(q);
+        if (!matchesCode && !matchesName && !matchesPhone && !matchesDni) return false;
       }
 
       // 2. Venue
@@ -131,11 +140,75 @@ export function ReservationsPage({
     });
   }, [reservations, filter]);
 
+  // Determine active currency code (USD, EUR, or MIXED) based on selected venue / organization
+  const activeCurrencyCode = useMemo(() => {
+    if (filter.venueId && filter.venueId !== "all") {
+      const selectedVenue = venues.find((v) => v.id === filter.venueId);
+      if (selectedVenue?.referenceCurrencyCode) {
+        return selectedVenue.referenceCurrencyCode;
+      }
+    }
+
+    const venueCurrencies = new Set(
+      venues
+        .map((v) => v.referenceCurrencyCode)
+        .filter((c): c is string => Boolean(c)),
+    );
+    if (venueCurrencies.size === 1) {
+      return Array.from(venueCurrencies)[0];
+    }
+
+    const resCurrencies = new Set(
+      displayedReservations
+        .map((r) => r.currencyCode)
+        .filter((c): c is string => Boolean(c)),
+    );
+    if (resCurrencies.size === 1) {
+      return Array.from(resCurrencies)[0];
+    }
+    if (resCurrencies.size > 1 || venueCurrencies.size > 1) {
+      return "MIXED";
+    }
+
+    return referenceCurrencyCode || "USD";
+  }, [filter.venueId, venues, displayedReservations, referenceCurrencyCode]);
+
+  // Compute live KPIs directly from real filtered reservations
+  const liveKpis = useMemo<ReservationKpis>(() => {
+    let confirmedCount = 0;
+    let walkinCount = 0;
+    let volumeRef = 0;
+    let volumeVes = 0;
+
+    for (const r of displayedReservations) {
+      const isPaidOrConfirmed =
+        r.status === "CONFIRMED" || r.status === "COMPLETED";
+      if (isPaidOrConfirmed) {
+        confirmedCount++;
+        volumeRef += r.priceUsd;
+        volumeVes += r.priceBs;
+      }
+      if (r.origin === "walk-in") {
+        walkinCount++;
+      }
+    }
+
+    return {
+      totalBookings: displayedReservations.length,
+      confirmedCount,
+      walkinCount,
+      volumeUsd: volumeRef,
+      volumeVes,
+      confirmedGrowthPct: initialKpis.confirmedGrowthPct,
+      referenceCurrencyCode:
+        activeCurrencyCode === "EUR" ? "EUR" : "USD",
+    };
+  }, [displayedReservations, initialKpis.confirmedGrowthPct, activeCurrencyCode]);
+
   async function refreshReservations() {
     const res = await getReservationsAction();
     if (res.ok && res.data) {
       setReservations(res.data.items);
-      setKpis(res.data.kpis);
     }
   }
 
@@ -152,7 +225,8 @@ export function ReservationsPage({
       "Fecha",
       "Horario",
       "Duración",
-      "Monto_USD",
+      "Moneda",
+      "Monto_Divisa",
       "Tasa_BCV",
       "Monto_Bs",
       "Metodo_Pago",
@@ -172,6 +246,7 @@ export function ReservationsPage({
       r.date,
       `"${r.timeSlot}"`,
       r.duration,
+      r.currencyCode || "USD",
       r.priceUsd.toFixed(2),
       r.rateBcv.toFixed(2),
       r.priceBs.toFixed(2),
@@ -211,33 +286,41 @@ export function ReservationsPage({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={() => setIsWalkInOpen(true)}
-            id="btn-walkin"
-          >
-            <span>+</span> {t("btnWalkIn")}
-          </Button>
+        {!isValidator && (
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => setIsWalkInOpen(true)}
+              id="btn-walkin"
+            >
+              <span>+</span> {t("btnWalkIn")}
+            </Button>
 
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={handleExportCsv}
-            id="btn-export-csv"
-          >
-            <span>📊</span> {t("btnExportCsv")}
-          </Button>
-        </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleExportCsv}
+              id="btn-export-csv"
+            >
+              <span>📊</span> {t("btnExportCsv")}
+            </Button>
+          </div>
+        )}
       </header>
 
       {/* MAIN CONTENT AREA */}
       <main className="p-6 space-y-6">
         {/* KPI SUMMARY STRIP */}
-        <ReservationsKpiStrip kpis={kpis} bcvRate={bcvRate} />
+        <ReservationsKpiStrip
+          kpis={liveKpis}
+          bcvRate={bcvRate}
+          bcvEurRate={effectiveEurRate}
+          currencyCode={activeCurrencyCode === "EUR" ? "EUR" : "USD"}
+          userRole={userRole}
+        />
 
         {/* ADVANCED FILTER TOOLBAR */}
         <ReservationsFilterBar
@@ -246,7 +329,7 @@ export function ReservationsPage({
           onResetFilter={() =>
             setFilter({
               dateFilter: "all",
-              venueId: "all",
+              venueId: activeVenueId && activeVenueId !== "ALL" ? activeVenueId : "all",
               sport: "all",
               paymentMethod: "all",
               status: "all",
@@ -256,6 +339,8 @@ export function ReservationsPage({
           venues={venues}
           sports={sports}
           bcvRate={bcvRate}
+          bcvEurRate={effectiveEurRate}
+          currencyCode={activeCurrencyCode}
         />
 
         {/* RESERVATIONS MASTER DATA TABLE */}
@@ -263,6 +348,8 @@ export function ReservationsPage({
           reservations={displayedReservations}
           onSelectReservation={(res) => setSelectedForDrawer(res)}
           onCancelReservation={(res) => setSelectedForCancel(res)}
+          currencyCode={activeCurrencyCode}
+          userRole={userRole}
         />
       </main>
 
@@ -279,19 +366,22 @@ export function ReservationsPage({
           setSelectedForDrawer(null);
           setSelectedForCancel(res);
         }}
+        userRole={userRole}
       />
 
       {/* MODAL: WALK-IN BOOKING */}
-      <WalkInModal
-        isOpen={isWalkInOpen}
-        onClose={() => setIsWalkInOpen(false)}
-        venues={venues}
-        spaces={spaces}
-        onSuccess={() => {
-          refreshReservations();
-          setIsWalkInOpen(false);
-        }}
-      />
+      {!isValidator && (
+        <WalkInModal
+          isOpen={isWalkInOpen}
+          onClose={() => setIsWalkInOpen(false)}
+          venues={venues}
+          spaces={spaces}
+          onSuccess={() => {
+            refreshReservations();
+            setIsWalkInOpen(false);
+          }}
+        />
+      )}
 
       {/* MODAL: AUDIT CANCELLATION */}
       <CancelBookingModal

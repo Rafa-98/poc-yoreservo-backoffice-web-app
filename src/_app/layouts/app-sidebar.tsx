@@ -32,7 +32,12 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { SessionUser } from "@/shared/auth";
-import { ROUTE_ALLOWED_ROLES, ROUTES, type BackofficeRole } from "@/shared/config";
+import {
+  getDefaultRouteForRole,
+  ROUTE_ALLOWED_ROLES,
+  ROUTES,
+  type BackofficeRole,
+} from "@/shared/config";
 import { logoutAction } from "@/features/auth/actions/logout-action";
 import { getPaymentsInboxAction } from "@/features/treasury/actions/treasury-actions";
 import { useActiveVenue } from "@/features/venues/context/venue-context";
@@ -106,9 +111,7 @@ const NAV_SECTIONS: readonly NavSectionDef[] = [
         icon: <LayoutDashboard className="size-4" />,
         roles: [
           "PLATFORM_ADMIN",
-          "PLATFORM_ACCOUNTING",
           "ALLY_ADMIN",
-          "ALLY_ACCOUNTING",
         ],
       },
     ],
@@ -194,19 +197,19 @@ const NAV_SECTIONS: readonly NavSectionDef[] = [
         labelKey: "navVenues",
         href: ROUTES.venues,
         icon: <Building2 className="size-4" />,
-        roles: ["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING", "ALLY_ADMIN"],
+        roles: ["PLATFORM_ADMIN", "ALLY_ADMIN"],
       },
       {
         labelKey: "navSpaces",
         href: ROUTES.spaces,
         icon: <Settings2 className="size-4" />,
-        roles: ["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING", "ALLY_ADMIN"],
+        roles: ["PLATFORM_ADMIN", "ALLY_ADMIN"],
       },
       {
         labelKey: "navSchedules",
         href: ROUTES.schedules,
         icon: <Clock className="size-4" />,
-        roles: ["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING", "ALLY_ADMIN"],
+        roles: ["PLATFORM_ADMIN", "ALLY_ADMIN"],
       },
       {
         labelKey: "navStaff",
@@ -223,7 +226,7 @@ const NAV_SECTIONS: readonly NavSectionDef[] = [
         labelKey: "navSupport",
         href: ROUTES.support,
         icon: <LifeBuoy className="size-4" />,
-        roles: ["PLATFORM_ADMIN", "PLATFORM_ACCOUNTING", "ALLY_ADMIN"],
+        roles: ["PLATFORM_ADMIN", "ALLY_ADMIN"],
       },
       {
         labelKey: "navCatalogs",
@@ -303,7 +306,22 @@ export function AppSidebar({
     };
   }, [activeVenueId, pathname, user.role, setPendingPaymentsCount]);
 
-  const initials = `${user.name?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() || "YO";
+  const firstInit =
+    user.name?.replace(/[^a-zA-ZÀ-ÿ]/g, "")?.[0]?.toUpperCase() ?? "";
+  const secondInit =
+    user.lastName?.replace(/[^a-zA-ZÀ-ÿ]/g, "")?.[0]?.toUpperCase() ?? "";
+  const initials = `${firstInit}${secondInit}` || "YO";
+
+  const roleTranslationKeyMap: Record<BackofficeRole, string> = {
+    PLATFORM_ADMIN: "roleAdmin",
+    PLATFORM_ACCOUNTING: "roleAccounting",
+    ALLY_ADMIN: "roleAlly",
+    ALLY_ACCOUNTING: "roleAllyAccounting",
+    ALLY_VALIDATOR: "roleValidator",
+  };
+  const friendlyRole = roleTranslationKeyMap[user.role]
+    ? t(roleTranslationKeyMap[user.role] as any)
+    : user.role;
 
   return (
     <>
@@ -323,7 +341,10 @@ export function AppSidebar({
       >
         {/* Brand Header */}
         <div className="flex h-16 items-center justify-between px-5 border-b border-sidebar-border">
-          <Link href={ROUTES.dashboard} className="flex items-center gap-2.5">
+          <Link
+            href={getDefaultRouteForRole(user.role)}
+            className="flex items-center gap-2.5"
+          >
             <div className="relative h-7 w-28">
               <Image
                 src="/yoreservo-logo-transparent.png"
@@ -432,7 +453,7 @@ export function AppSidebar({
                 {user.name} {user.lastName}
               </div>
               <div className="text-[10px] text-accent font-medium truncate">
-                {user.role}
+                {friendlyRole}
               </div>
             </Link>
 

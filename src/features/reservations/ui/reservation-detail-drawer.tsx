@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
+import type { BackofficeRole } from "@/shared/config";
 import { useTimeFormat } from "@/shared/lib/time-format";
 import { Button } from "@/shared/ui/button";
 import { checkInReservationAction } from "../actions/reservations-actions";
@@ -13,6 +14,7 @@ interface ReservationDetailDrawerProps {
   onClose: () => void;
   onRefresh: () => void;
   onOpenCancel: (res: ReservationItem) => void;
+  userRole?: BackofficeRole;
 }
 
 export function ReservationDetailDrawer({
@@ -21,12 +23,18 @@ export function ReservationDetailDrawer({
   onClose,
   onRefresh,
   onOpenCancel,
+  userRole,
 }: ReservationDetailDrawerProps) {
   const t = useTranslations("reservations.drawer");
   const { formatTime } = useTimeFormat();
   const [checkingIn, setCheckingIn] = useState(false);
+  const isValidator = userRole === "ALLY_VALIDATOR";
 
   if (!isOpen || !reservation) return null;
+
+  const isEur = reservation.currencyCode === "EUR";
+  const currencySymbol = isEur ? "€" : "$";
+  const currencyLabel = isEur ? "EUR" : "USD";
 
   async function handleCheckIn() {
     if (!reservation) return;
@@ -196,12 +204,19 @@ export function ReservationDetailDrawer({
             </div>
             <div className="rounded-xl border border-border bg-muted/40 p-3.5 space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">{t("courtRateLabel")}</span>
-                <span className="font-bold text-foreground">${reservation.priceUsd.toFixed(2)}</span>
+                <span className="text-muted-foreground">
+                  Tarifa de Cancha ({currencyLabel}):
+                </span>
+                <span className="font-bold text-foreground">
+                  {currencySymbol}
+                  {reservation.priceUsd.toFixed(2)} {currencyLabel}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t("bcvRateLabel")}</span>
-                <span className="text-foreground">{reservation.rateBcv.toFixed(2)} Bs. / USD</span>
+                <span className="text-foreground">
+                  {reservation.rateBcv.toFixed(2)} Bs. / {currencyLabel}
+                </span>
               </div>
               <div className="flex justify-between border-t border-border pt-2 text-sm">
                 <span className="font-bold text-foreground">{t("totalBsLabel")}</span>
@@ -235,7 +250,7 @@ export function ReservationDetailDrawer({
             {t("btnClose")}
           </Button>
 
-          {reservation.status !== "CANCELLED" && (
+          {!isValidator && reservation.status !== "CANCELLED" && (
             <Button
               type="button"
               variant="destructive"
