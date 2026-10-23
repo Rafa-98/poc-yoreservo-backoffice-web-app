@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useTransition,
   type ReactNode,
@@ -24,6 +25,8 @@ import {
   LifeBuoy,
   Loader2,
   LogOut,
+  PanelLeftClose,
+  Pin,
   Settings2,
   TrendingUp,
   User,
@@ -85,6 +88,8 @@ export interface AppSidebarProps {
   user: SessionUser;
   isOpen: boolean;
   onClose: () => void;
+  isPinned?: boolean;
+  onTogglePinned?: () => void;
   pendingPaymentsCount?: number;
 }
 
@@ -226,13 +231,13 @@ const NAV_SECTIONS: readonly NavSectionDef[] = [
         labelKey: "navSupport",
         href: ROUTES.support,
         icon: <LifeBuoy className="size-4" />,
-        roles: ["PLATFORM_ADMIN", "ALLY_ADMIN"],
+        roles: ["PLATFORM_ADMIN"],
       },
       {
         labelKey: "navCatalogs",
         href: ROUTES.catalogs,
         icon: <BarChart3 className="size-4" />,
-        roles: ["PLATFORM_ADMIN", "ALLY_ADMIN"],
+        roles: ["PLATFORM_ADMIN"],
       },
       {
         labelKey: "navProfile",
@@ -254,6 +259,8 @@ export function AppSidebar({
   user,
   isOpen,
   onClose,
+  isPinned = false,
+  onTogglePinned,
   pendingPaymentsCount,
 }: AppSidebarProps) {
   const t = useTranslations("shell");
@@ -265,6 +272,12 @@ export function AppSidebar({
   } = useContext(SidebarBadgeContext);
   const resolvedPendingCount = pendingPaymentsCount ?? contextPendingCount;
   const [isLoggingOut, startLogoutTransition] = useTransition();
+
+  const [isHovered, setIsHovered] = useState(false);
+  const ignoreHoverUntilLeaveRef = useRef(false);
+
+  // Effective desktop expanded state: open if pinned OR if currently hovered while collapsed
+  const isExpanded = isPinned || isHovered;
 
   useEffect(() => {
     if (!ROUTE_ALLOWED_ROLES[ROUTES.paymentsInbox].includes(user.role)) {
@@ -306,11 +319,14 @@ export function AppSidebar({
     };
   }, [activeVenueId, pathname, user.role, setPendingPaymentsCount]);
 
-  const firstInit =
-    user.name?.replace(/[^a-zA-ZÀ-ÿ]/g, "")?.[0]?.toUpperCase() ?? "";
-  const secondInit =
-    user.lastName?.replace(/[^a-zA-ZÀ-ÿ]/g, "")?.[0]?.toUpperCase() ?? "";
-  const initials = `${firstInit}${secondInit}` || "YO";
+  const cleanLastName = (user.lastName ?? "").replace(/\s*\([^)]*\)\s*/g, "").trim();
+  const displayName = `${user.name ?? ""} ${cleanLastName}`.trim() || user.email;
+  const nameWords = displayName.split(/\s+/).filter(Boolean);
+  const initials =
+    (nameWords.length >= 2
+      ? `${nameWords[0][0]}${nameWords[1][0]}`
+      : nameWords[0]?.slice(0, 2) || "YO"
+    ).toUpperCase();
 
   const roleTranslationKeyMap: Record<BackofficeRole, string> = {
     PLATFORM_ADMIN: "roleAdmin",
@@ -335,30 +351,95 @@ export function AppSidebar({
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 flex w-64 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
+        onMouseEnter={() => {
+          if (!ignoreHoverUntilLeaveRef.current) {
+            setIsHovered(true);
+          }
+        }}
+        onMouseLeave={() => {
+          ignoreHoverUntilLeaveRef.current = false;
+          setIsHovered(false);
+        }}
+        className={`fixed top-0 bottom-0 left-0 z-50 flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-[width,transform,box-shadow] duration-200 ease-in-out lg:static lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
+        } ${isExpanded ? "lg:w-64" : "lg:w-[4.5rem]"} ${
+          !isPinned && isHovered ? "lg:shadow-2xl" : ""
         }`}
       >
         {/* Brand Header */}
-        <div className="flex h-16 items-center justify-between px-5 border-b border-sidebar-border">
+        <div
+          className={`flex h-16 shrink-0 items-center border-b border-sidebar-border transition-all ${
+            isExpanded
+              ? "justify-between px-4"
+              : "justify-between px-5 lg:justify-center lg:px-2"
+          }`}
+        >
+          {/* Expanded Brand Logo (always on mobile, and on desktop when expanded) */}
           <Link
             href={getDefaultRouteForRole(user.role)}
-            className="flex items-center gap-2.5"
+            className={`flex min-w-0 items-center gap-2 ${
+              !isExpanded ? "lg:hidden" : ""
+            }`}
           >
-            <div className="relative h-7 w-28">
+            <div className="relative h-6 w-24 shrink-0">
               <Image
                 src="/yoreservo-logo-transparent.png"
                 alt="YoReservo"
                 fill
+                sizes="96px"
                 className="object-contain brightness-0 invert"
                 priority
               />
             </div>
-            <span className="rounded bg-accent/20 px-1.5 py-0.5 font-display text-[10px] font-extrabold uppercase tracking-wider text-accent border border-accent/30">
+            <span className="shrink-0 rounded bg-accent/20 px-1.5 py-0.5 font-display text-[9px] font-extrabold uppercase tracking-wider text-accent border border-accent/30">
               {t("brandBadge")}
             </span>
           </Link>
 
+          {/* Collapsed Icon-Only Brand Monogram (desktop only when collapsed) */}
+          {!isExpanded && (
+            <Link
+              href={getDefaultRouteForRole(user.role)}
+              title="YoReservo"
+              className="hidden lg:flex size-10 items-center justify-center rounded-xl border border-accent/30 bg-accent/15 font-display text-xs font-black tracking-tight text-accent hover:bg-accent/25 transition-colors"
+            >
+              YR
+            </Link>
+          )}
+
+          {/* Desktop Keep Open / Collapse Toggle Button (visible when expanded) */}
+          {isExpanded && onTogglePinned && (
+            <button
+              type="button"
+              id="sidebar-pin-toggle"
+              onClick={() => {
+                if (isPinned) {
+                  // Collapsing: immediately collapse even while cursor is still inside sidebar
+                  ignoreHoverUntilLeaveRef.current = true;
+                  setIsHovered(false);
+                }
+                onTogglePinned();
+              }}
+              title={isPinned ? t("collapseMenu") : t("keepMenuOpen")}
+              aria-label={isPinned ? t("collapseMenu") : t("keepMenuOpen")}
+              className={`hidden lg:inline-flex shrink-0 items-center justify-center gap-1 rounded-lg transition-all cursor-pointer ${
+                isPinned
+                  ? "size-8 text-sidebar-foreground hover:bg-sidebar-hover hover:text-white"
+                  : "border border-accent/40 bg-accent/15 px-2 py-1 text-[10px] font-extrabold text-accent hover:bg-accent hover:text-accent-foreground shadow-xs"
+              }`}
+            >
+              {isPinned ? (
+                <PanelLeftClose className="size-4" />
+              ) : (
+                <>
+                  <Pin className="size-3" />
+                  <span>{t("keepOpenShort")}</span>
+                </>
+              )}
+            </button>
+          )}
+
+          {/* Mobile Close Button */}
           <button
             type="button"
             onClick={onClose}
@@ -370,8 +451,12 @@ export function AppSidebar({
         </div>
 
         {/* Navigation Sections */}
-        <nav className="flex-1 space-y-6 overflow-y-auto px-3.5 py-5">
-          {NAV_SECTIONS.map((section) => {
+        <nav
+          className={`flex-1 overflow-y-auto overflow-x-hidden py-4 transition-all ${
+            isExpanded ? "space-y-5 px-3.5" : "space-y-5 px-3.5 lg:space-y-3 lg:px-2"
+          }`}
+        >
+          {NAV_SECTIONS.map((section, sectionIdx) => {
             // Filter section items by current user's role
             const visibleItems = section.items.filter((item) =>
               item.roles.includes(user.role),
@@ -381,9 +466,18 @@ export function AppSidebar({
 
             return (
               <div key={section.titleKey} className="space-y-1">
-                <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#697566]">
+                {/* Section Header (expanded) or Divider (collapsed on desktop) */}
+                <div
+                  className={`px-3 text-[10px] font-bold uppercase tracking-wider text-[#697566] whitespace-nowrap ${
+                    !isExpanded ? "lg:hidden" : ""
+                  }`}
+                >
                   {t(section.titleKey as any)}
                 </div>
+
+                {!isExpanded && sectionIdx > 0 && (
+                  <div className="hidden lg:block mx-auto my-2 h-px w-8 bg-sidebar-border" />
+                )}
 
                 <div className="space-y-0.5">
                   {visibleItems.map((item) => {
@@ -400,32 +494,55 @@ export function AppSidebar({
                           : undefined
                         : item.badge;
 
+                    const itemLabel = t(item.labelKey as any);
+
                     return (
                       <Link
                         key={item.href}
                         href={item.href}
                         onClick={onClose}
-                        className={`group flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                        title={!isExpanded ? itemLabel : undefined}
+                        className={`group relative flex items-center rounded-xl text-xs font-semibold transition-all ${
+                          isExpanded
+                            ? "justify-between px-3 py-2"
+                            : "justify-between px-3 py-2 lg:justify-center lg:px-0 lg:py-2.5"
+                        } ${
                           isActive
                             ? "bg-sidebar-active text-sidebar-foreground-active shadow-xs"
                             : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-white"
                         }`}
                       >
-                        <div className="flex items-center gap-3">
+                        <div
+                          className={`flex min-w-0 items-center ${
+                            isExpanded ? "gap-3" : "gap-3 lg:gap-0"
+                          }`}
+                        >
                           <span
-                            className={
+                            className={`shrink-0 ${
                               isActive
                                 ? "text-accent"
                                 : "text-sidebar-foreground group-hover:text-white"
-                            }
+                            }`}
                           >
                             {item.icon}
                           </span>
-                          <span>{t(item.labelKey as any)}</span>
+                          <span
+                            className={`truncate whitespace-nowrap ${
+                              !isExpanded ? "lg:hidden" : ""
+                            }`}
+                          >
+                            {itemLabel}
+                          </span>
                         </div>
 
                         {itemBadge && (
-                          <span className="rounded-full bg-accent px-1.5 py-0.2 font-mono text-[10px] font-extrabold text-accent-foreground">
+                          <span
+                            className={`rounded-full bg-accent font-mono font-extrabold text-accent-foreground ${
+                              isExpanded
+                                ? "px-1.5 py-0.2 text-[10px]"
+                                : "px-1.5 py-0.2 text-[10px] lg:absolute lg:top-1 lg:right-1.5 lg:px-1 lg:py-0 lg:text-[9px] lg:leading-tight"
+                            }`}
+                          >
                             {itemBadge}
                           </span>
                         )}
@@ -439,18 +556,32 @@ export function AppSidebar({
         </nav>
 
         {/* User Card Footer */}
-        <div className="border-t border-sidebar-border p-3.5">
-          <div className="flex items-center gap-3 rounded-xl bg-sidebar-hover/80 p-2.5">
+        <div
+          className={`border-t border-sidebar-border transition-all ${
+            isExpanded ? "p-3.5" : "p-3.5 lg:p-2"
+          }`}
+        >
+          <div
+            className={`flex items-center rounded-xl bg-sidebar-hover/80 transition-all ${
+              isExpanded
+                ? "gap-3 p-2.5"
+                : "gap-3 p-2.5 lg:flex-col lg:justify-center lg:gap-2 lg:p-2"
+            }`}
+          >
             <Link
               href={ROUTES.profile}
+              title={!isExpanded ? `${displayName} (${friendlyRole})` : undefined}
               className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent/20 font-display text-xs font-bold text-accent border border-accent/25"
             >
               {initials}
             </Link>
 
-            <Link href={ROUTES.profile} className="min-w-0 flex-1">
+            <Link
+              href={ROUTES.profile}
+              className={`min-w-0 flex-1 ${!isExpanded ? "lg:hidden" : ""}`}
+            >
               <div className="text-xs font-bold text-white truncate">
-                {user.name} {user.lastName}
+                {displayName}
               </div>
               <div className="text-[10px] text-accent font-medium truncate">
                 {friendlyRole}
@@ -466,7 +597,7 @@ export function AppSidebar({
                 });
               }}
               title={t("navLogout")}
-              className="flex size-8 items-center justify-center rounded-lg text-sidebar-foreground hover:bg-status-cancelled-bg/20 hover:text-status-cancelled-fg transition-colors disabled:opacity-50 cursor-pointer"
+              className="flex size-8 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground hover:bg-status-cancelled-bg/20 hover:text-status-cancelled-fg transition-colors disabled:opacity-50 cursor-pointer"
             >
               {isLoggingOut ? (
                 <Loader2 className="size-4 animate-spin" />

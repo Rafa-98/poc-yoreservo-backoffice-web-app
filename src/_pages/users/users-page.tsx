@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import { UsersKpiStrip } from "@/features/users/ui/users-kpi-strip";
@@ -10,6 +10,8 @@ import { ActiveSessionsTable } from "@/features/users/ui/active-sessions-table";
 import { InviteUserModal } from "@/features/users/ui/invite-user-modal";
 import { EditUserModal } from "@/features/users/ui/edit-user-modal";
 import { ResetPasswordModal } from "@/features/users/ui/reset-password-modal";
+import { UserDetailDrawer } from "@/features/users/ui/user-detail-drawer";
+import { SearchableSelect } from "@/features/users/ui/searchable-select";
 import {
   getSessionsAction,
   getUsersAction,
@@ -32,7 +34,6 @@ interface UsersPageProps {
 }
 
 export function UsersPage({
-  initialKpi,
   initialUsers,
   initialSessions,
   venues,
@@ -48,22 +49,44 @@ export function UsersPage({
     // Fallback when rendered outside VenueProvider in isolated tests
   }
 
+  const isAllyRole =
+    currentUserRole === "ALLY_ADMIN" ||
+    currentUserRole === "ALLY_ACCOUNTING" ||
+    currentUserRole === "ALLY_VALIDATOR";
+
   const [activeTab, setActiveTab] = useState<"directory" | "matrix" | "sessions">("directory");
 
-  const [kpi, setKpi] = useState<UsersKpi>(initialKpi);
   const [users, setUsers] = useState<UserItem[]>(initialUsers);
   const [sessions, setSessions] = useState<ActiveSessionItem[]>(initialSessions);
 
-  // Modals state
+  // Filter state (placed at top of Directory tab before KPI cards & Table)
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [venueFilter, setVenueFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  useEffect(() => {
+    if (activeVenueId && activeVenueId !== "ALL") {
+      setVenueFilter(activeVenueId);
+    } else {
+      setVenueFilter("all");
+    }
+  }, [activeVenueId]);
+
+  // Modals & Drawer state
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [selectedUserForDetail, setSelectedUserForDetail] = useState<UserItem | null>(null);
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
   const [resettingUser, setResettingUser] = useState<UserItem | null>(null);
 
   async function refreshUsers() {
     const res = await getUsersAction();
     if (res.ok && res.data) {
-      setKpi(res.data.kpi);
       setUsers(res.data.users);
+      if (selectedUserForDetail) {
+        const updatedDetail = res.data.users.find((u) => u.id === selectedUserForDetail.id);
+        setSelectedUserForDetail(updatedDetail || null);
+      }
     }
   }
 
@@ -89,6 +112,132 @@ export function UsersPage({
       await refreshUsers();
     }
   }
+
+  function clearFilters() {
+    setSearch("");
+    setRoleFilter("all");
+    setVenueFilter("all");
+    setStatusFilter("all");
+  }
+
+  const hasActiveFilters =
+    search.trim() !== "" ||
+    roleFilter !== "all" ||
+    venueFilter !== "all" ||
+    statusFilter !== "all";
+
+  // Normalize user scope: only ALLY_VALIDATOR is venue-specific
+  const normalizedUsers = useMemo(() => {
+    return users.map((u) => {
+      if (u.role !== "ALLY_VALIDATOR") {
+        return {
+          ...u,
+          scopeType: "ORGANIZATION" as const,
+          venueId: null,
+          venueName:
+            u.role === "PLATFORM_ADMIN" || u.role === "PLATFORM_ACCOUNTING"
+              ? "Global"
+              : "Toda la Organización",
+        };
+      }
+      return u;
+    });
+  }, [users]);
+
+  const filteredUsers = useMemo(() => {
+    return normalizedUsers.filter((u) => {
+      const q = search.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        u.name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        u.dni.toLowerCase().includes(q) ||
+        (u.phone && u.phone.toLowerCase().includes(q));
+
+      const matchesRole = roleFilter === "all" || u.role === roleFilter;
+
+      const matchesVenue =
+        venueFilter === "all" ||
+        (venueFilter === "org-all" && u.scopeType === "ORGANIZATION") ||
+        u.venueId === venueFilter;
+
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "PENDING" && u.status === "INVITATION_PENDING") ||
+        u.status === statusFilter;
+
+      return matchesSearch && matchesRole && matchesVenue && matchesStatus;
+    });
+  }, [normalizedUsers, search, roleFilter, venueFilter, statusFilter]);
+
+  // Compute scope-aware KPIs from the active venue/scope + filtered list
+  const kpiStats = useMemo(() => {
+    const totalStaff = filteredUsers.length;
+    const frontdeskValidators = filteredUsers.filter((u) => u.role === "ALLY_VALIDATOR").length;
+    const pendingInvitations = filteredUsers.filter(
+      (u) => u.status === "INVITATION_PENDING",
+    ).length;
+    const activeSessions = filteredUsers.reduce((acc, u) => acc + (u.activeSessions || 0), 0);
+    const orgWideStaffCount = filteredUsers.filter(
+      (u) => u.scopeType === "ORGANIZATION",
+    ).length;
+    const venueAssignedStaffCount = filteredUsers.filter(
+      (u) => u.scopeType === "VENUE",
+    ).length;
+
+    return {
+      kpi: {
+        totalStaff,
+        frontdeskValidators,
+        pendingInvitations,
+        activeSessions,
+      },
+      orgWideStaffCount,
+      venueAssignedStaffCount,
+    };
+  }, [filteredUsers]);
+
+  const selectedVenueName = useMemo(() => {
+    if (venueFilter === "all" || venueFilter === "org-all") return undefined;
+    return venues.find((v) => v.id === venueFilter)?.name;
+  }, [venueFilter, venues]);
+
+  const roleOptions = useMemo(() => {
+    const base = [
+      { value: "all", label: t("filters.allRoles") },
+      { value: "ALLY_ADMIN", label: t("roles.ALLY_ADMIN"), icon: "🏢" },
+      { value: "ALLY_ACCOUNTING", label: t("roles.ALLY_ACCOUNTING"), icon: "📊" },
+      { value: "ALLY_VALIDATOR", label: t("roles.ALLY_VALIDATOR"), icon: "🎟️" },
+    ];
+    if (!isAllyRole) {
+      base.push(
+        { value: "PLATFORM_ACCOUNTING", label: t("roles.PLATFORM_ACCOUNTING"), icon: "💳" },
+        { value: "PLATFORM_ADMIN", label: t("roles.PLATFORM_ADMIN"), icon: "👑" },
+      );
+    }
+    return base;
+  }, [isAllyRole, t]);
+
+  const venueOptions = useMemo(() => {
+    return [
+      { value: "all", label: t("filters.allScopes") },
+      { value: "org-all", label: t("filters.onlyOrgWide"), icon: "🏢" },
+      ...venues.map((v) => ({
+        value: v.id,
+        label: v.name,
+        icon: "📍",
+      })),
+    ];
+  }, [venues, t]);
+
+  const statusOptions = useMemo(() => {
+    return [
+      { value: "all", label: t("filters.allStatus") },
+      { value: "ACTIVE", label: t("filters.active"), icon: "🟢" },
+      { value: "PENDING", label: t("filters.pending"), icon: "⏳" },
+      { value: "INACTIVE", label: t("filters.inactive"), icon: "⚪" },
+    ];
+  }, [t]);
 
   return (
     <div className="space-y-0">
@@ -120,11 +269,11 @@ export function UsersPage({
       </header>
 
       {/* SUBNAV TABS */}
-      <nav className="flex gap-2 border-b border-border bg-surface px-6">
+      <nav className="flex gap-2 border-b border-border bg-surface px-6 overflow-x-auto">
         <button
           type="button"
           onClick={() => setActiveTab("directory")}
-          className={`inline-flex items-center gap-2 border-b-2 py-3.5 px-3 text-sm font-semibold transition-all cursor-pointer ${
+          className={`inline-flex items-center gap-2 border-b-2 py-3.5 px-3 text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
             activeTab === "directory"
               ? "border-accent text-foreground font-bold"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -138,7 +287,7 @@ export function UsersPage({
         <button
           type="button"
           onClick={() => setActiveTab("matrix")}
-          className={`inline-flex items-center gap-2 border-b-2 py-3.5 px-3 text-sm font-semibold transition-all cursor-pointer ${
+          className={`inline-flex items-center gap-2 border-b-2 py-3.5 px-3 text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
             activeTab === "matrix"
               ? "border-accent text-foreground font-bold"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -152,7 +301,7 @@ export function UsersPage({
         <button
           type="button"
           onClick={() => setActiveTab("sessions")}
-          className={`inline-flex items-center gap-2 border-b-2 py-3.5 px-3 text-sm font-semibold transition-all cursor-pointer ${
+          className={`inline-flex items-center gap-2 border-b-2 py-3.5 px-3 text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
             activeTab === "sessions"
               ? "border-accent text-foreground font-bold"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -168,19 +317,129 @@ export function UsersPage({
       <main className="p-6">
         {activeTab === "directory" && (
           <div className="space-y-6">
-            <UsersKpiStrip kpi={kpi} />
+            {/* 1. MODERN FILTER BAR FIRST */}
+            <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-12 items-end">
+                {/* Search Input */}
+                <div className="md:col-span-4">
+                  <label
+                    htmlFor="users-search-input"
+                    className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5"
+                  >
+                    🔍 {t("filters.searchPlaceholder")}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder={t("filters.searchPlaceholder")}
+                      className="h-10 w-full rounded-xl border border-border bg-surface pl-3.5 pr-8 text-xs text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all"
+                      id="users-search-input"
+                    />
+                    {search && (
+                      <button
+                        type="button"
+                        onClick={() => setSearch("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                        aria-label="Limpiar búsqueda"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Role Filter (SearchableSelect) */}
+                <div className="md:col-span-3">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                    🛡️ {t("filters.roleLabel")}
+                  </label>
+                  <SearchableSelect
+                    id="users-role-filter"
+                    value={roleFilter}
+                    onChange={setRoleFilter}
+                    options={roleOptions}
+                    searchPlaceholder={t("filters.searchOptionPlaceholder")}
+                    emptyText={t("filters.noOptionsFound")}
+                  />
+                </div>
+
+                {/* Scope / Venue Filter (SearchableSelect) */}
+                <div className="md:col-span-3">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                    📍 {t("filters.scopeLabel")}
+                  </label>
+                  <SearchableSelect
+                    id="users-venue-filter"
+                    value={venueFilter}
+                    onChange={setVenueFilter}
+                    options={venueOptions}
+                    searchPlaceholder={t("filters.searchOptionPlaceholder")}
+                    emptyText={t("filters.noOptionsFound")}
+                  />
+                </div>
+
+                {/* Status Filter (SearchableSelect) */}
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                    ⚡ {t("filters.statusLabel")}
+                  </label>
+                  <SearchableSelect
+                    id="users-status-filter"
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    options={statusOptions}
+                    searchPlaceholder={t("filters.searchOptionPlaceholder")}
+                    emptyText={t("filters.noOptionsFound")}
+                  />
+                </div>
+              </div>
+
+              {hasActiveFilters && (
+                <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-3">
+                  <span className="text-xs text-muted-foreground">
+                    {t("table.showing")}{" "}
+                    <strong className="text-foreground">{filteredUsers.length}</strong>{" "}
+                    {t("table.of")}{" "}
+                    <strong className="text-foreground">{normalizedUsers.length}</strong>{" "}
+                    {t("table.staffUnitPlural")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+                    id="btn-clear-user-filters"
+                  >
+                    <span>↺</span>
+                    <span>{t("filters.clearFilters")}</span>
+                  </button>
+                </div>
+              )}
+            </section>
+
+            {/* 2. EXPLICIT SCOPE KPI STRIP */}
+            <UsersKpiStrip
+              kpi={kpiStats.kpi}
+              orgWideStaffCount={kpiStats.orgWideStaffCount}
+              venueAssignedStaffCount={kpiStats.venueAssignedStaffCount}
+              totalVenuesCount={venues.length}
+              selectedScope={venueFilter}
+              selectedVenueName={selectedVenueName}
+            />
+
+            {/* 3. SIMPLIFIED DIRECTORY TABLE WITH PAGINATION & DETAILS ACTION */}
             <UsersTable
-              users={users}
-              venues={venues}
-              activeVenueId={activeVenueId}
+              users={filteredUsers}
+              onViewDetails={(u) => setSelectedUserForDetail(u)}
               onEditUser={(u) => setEditingUser(u)}
-              onResetPassword={(u) => setResettingUser(u)}
-              onInviteClick={() => setIsInviteOpen(true)}
             />
           </div>
         )}
 
-        {activeTab === "matrix" && <RbacMatrixTable />}
+        {activeTab === "matrix" && (
+          <RbacMatrixTable currentUserRole={currentUserRole} />
+        )}
 
         {activeTab === "sessions" && (
           <ActiveSessionsTable
@@ -190,6 +449,21 @@ export function UsersPage({
           />
         )}
       </main>
+
+      {/* USER DETAIL DRAWER */}
+      <UserDetailDrawer
+        isOpen={!!selectedUserForDetail}
+        user={selectedUserForDetail}
+        onClose={() => setSelectedUserForDetail(null)}
+        onEdit={(u) => {
+          setSelectedUserForDetail(null);
+          setEditingUser(u);
+        }}
+        onResetPassword={(u) => {
+          setSelectedUserForDetail(null);
+          setResettingUser(u);
+        }}
+      />
 
       {/* MODALS */}
       <InviteUserModal

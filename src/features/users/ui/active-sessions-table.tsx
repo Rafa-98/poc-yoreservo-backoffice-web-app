@@ -18,9 +18,58 @@ export function ActiveSessionsTable({
   onRevokeAllSessions,
 }: ActiveSessionsTableProps) {
   const t = useTranslations("users.sessions");
+  const tRoles = useTranslations("users.roles");
   const { formatTime } = useTimeFormat();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [revokingAll, setRevokingAll] = useState(false);
+
+  function renderFriendlyRole(role: string) {
+    if (role === "PLATFORM_ADMIN") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-500 border border-amber-500/30">
+          <span>👑</span>
+          <span>{tRoles("PLATFORM_ADMIN")}</span>
+        </span>
+      );
+    }
+    if (role === "PLATFORM_ACCOUNTING") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
+          <span>💳</span>
+          <span>{tRoles("PLATFORM_ACCOUNTING")}</span>
+        </span>
+      );
+    }
+    if (role === "ALLY_ADMIN") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
+          <span>🏢</span>
+          <span>{tRoles("ALLY_ADMIN")}</span>
+        </span>
+      );
+    }
+    if (role === "ALLY_ACCOUNTING") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
+          <span>📊</span>
+          <span>{tRoles("ALLY_ACCOUNTING")}</span>
+        </span>
+      );
+    }
+    if (role === "ALLY_VALIDATOR") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+          <span>🎟️</span>
+          <span>{tRoles("ALLY_VALIDATOR")}</span>
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted text-foreground border border-border">
+        {role}
+      </span>
+    );
+  }
 
   async function handleRevoke(sessionId: string) {
     setLoadingId(sessionId);
@@ -99,9 +148,7 @@ export function ActiveSessionsTable({
                     <div className="text-xs text-muted-foreground">{s.userEmail}</div>
                   </td>
                   <td className="px-4 py-3.5">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-muted text-foreground border border-border">
-                      {s.role}
-                    </span>
+                    {renderFriendlyRole(s.role)}
                   </td>
                   <td className="px-5 py-3.5 text-xs text-foreground">
                     <div className="font-medium">{s.userAgent}</div>

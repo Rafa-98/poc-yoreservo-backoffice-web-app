@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 /*
  * =============================================================================
@@ -444,7 +445,8 @@
 }
 
 /* ---------- Executive Design System Components ---------- */
-.btn {
+@layer components {
+  .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -630,6 +632,7 @@
     color: var(--status-blocked-fg);
     border: 1px solid var(--status-blocked-border);
   }
+}
 
 /* ---------- Official PDF / Print Styles (Finiquito & Estado de Cuenta) ---------- */
 @page {

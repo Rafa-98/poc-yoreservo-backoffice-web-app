@@ -774,6 +774,23 @@ export async function getSettlementsAction(filters?: {
           payoutAccountType: b.organization?.payoutAccountType ?? null,
           payoutIdDocument: b.organization?.payoutIdDocument ?? null,
           payoutAccountHolder: b.organization?.payoutAccountHolder ?? null,
+          payoutPhoneNumber: b.organization?.payoutPhoneNumber ?? null,
+          preferredPayoutMethod:
+            b.organization?.preferredPayoutMethod === "PAGO_MOVIL"
+              ? "PAGO_MOVIL"
+              : "BANK_TRANSFER",
+          payoutPagoMovilBank:
+            b.organization?.payoutPagoMovilBank ?? b.organization?.payoutBank ?? null,
+          payoutPagoMovilIdDocument:
+            b.organization?.payoutPagoMovilIdDocument ??
+            b.organization?.payoutIdDocument ??
+            b.organization?.rif ??
+            null,
+          payoutPagoMovilHolder:
+            b.organization?.payoutPagoMovilHolder ??
+            b.organization?.payoutAccountHolder ??
+            b.organization?.legalName ??
+            null,
           contactPhone: b.organization?.contactPhone ?? null,
         },
         venueId: b.venueId ?? null,
@@ -817,6 +834,10 @@ export async function getSettlementsAction(filters?: {
           : null,
         notes: b.notes ?? null,
         createdAt: b.createdAt ? String(b.createdAt) : "",
+        platformPaymentCoordinates:
+          b.platformPaymentCoordinates ??
+          (data as any)?.platformPaymentCoordinates ??
+          null,
       };
     });
 
@@ -889,11 +910,30 @@ export async function getSettlementDetailAction(
         tradeName: b.organization?.tradeName ?? "Organización Aliada",
         legalName: b.organization?.legalName ?? "Razón Social",
         rif: b.organization?.rif ?? "J-00000000-0",
+        referenceCurrencyCode:
+          b.organization?.referenceCurrencyCode ?? b.currencyCode ?? "USD",
         payoutBank: b.organization?.payoutBank ?? null,
         payoutAccountNumber: b.organization?.payoutAccountNumber ?? null,
         payoutAccountType: b.organization?.payoutAccountType ?? null,
         payoutIdDocument: b.organization?.payoutIdDocument ?? null,
         payoutAccountHolder: b.organization?.payoutAccountHolder ?? null,
+        payoutPhoneNumber: b.organization?.payoutPhoneNumber ?? null,
+        preferredPayoutMethod:
+          b.organization?.preferredPayoutMethod === "PAGO_MOVIL"
+            ? "PAGO_MOVIL"
+            : "BANK_TRANSFER",
+        payoutPagoMovilBank:
+          b.organization?.payoutPagoMovilBank ?? b.organization?.payoutBank ?? null,
+        payoutPagoMovilIdDocument:
+          b.organization?.payoutPagoMovilIdDocument ??
+          b.organization?.payoutIdDocument ??
+          b.organization?.rif ??
+          null,
+        payoutPagoMovilHolder:
+          b.organization?.payoutPagoMovilHolder ??
+          b.organization?.payoutAccountHolder ??
+          b.organization?.legalName ??
+          null,
         contactPhone: b.organization?.contactPhone ?? null,
       },
       venueId: b.venueId ?? null,
@@ -937,6 +977,7 @@ export async function getSettlementDetailAction(
         : null,
       notes: b.notes ?? null,
       createdAt: b.createdAt ? String(b.createdAt) : "",
+      platformPaymentCoordinates: b.platformPaymentCoordinates ?? null,
       items: (b.items ?? []).map((it: any) => {
         const resolveName = (val: unknown, fallback = ""): string => {
           if (!val) return fallback;

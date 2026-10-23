@@ -2,12 +2,15 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   CalendarPlus,
   ChevronDown,
   Loader2,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   QrCode,
   Shield,
   User,
@@ -25,14 +28,19 @@ import { VenueHeaderSelector } from "@/features/venues/ui/venue-header-selector"
 export interface AppHeaderProps {
   user: SessionUser;
   onToggleSidebar: () => void;
+  isSidebarPinned?: boolean;
+  onToggleSidebarPinned?: () => void;
   activeVenueName?: string;
 }
 
 export function AppHeader({
   user,
   onToggleSidebar,
+  isSidebarPinned = false,
+  onToggleSidebarPinned,
 }: AppHeaderProps) {
   const t = useTranslations("shell");
+  const pathname = usePathname();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isLoggingOut, startLogoutTransition] = useTransition();
 
@@ -53,7 +61,7 @@ export function AppHeader({
       case "ALLY_ADMIN":
         return {
           label: t("roleAlly"),
-          color: "bg-accent/20 text-accent-foreground border-accent/40 font-bold",
+          color: "bg-accent/20 text-foreground border-accent/40 font-bold",
           dotColor: "bg-accent",
         };
       case "ALLY_ACCOUNTING":
@@ -80,28 +88,53 @@ export function AppHeader({
   const roleBadge = getRoleBadge(user.role);
   const cleanLastName = (user.lastName ?? "").replace(/\s*\([^)]*\)\s*/g, "").trim();
   const displayName = `${user.name ?? ""} ${cleanLastName}`.trim() || user.email;
+  const nameWords = displayName.split(/\s+/).filter(Boolean);
   const initials =
-    `${user.name?.[0] ?? ""}${cleanLastName?.[0] ?? user.lastName?.[0] ?? ""}`.toUpperCase() ||
-    "YO";
+    (nameWords.length >= 2
+      ? `${nameWords[0][0]}${nameWords[1][0]}`
+      : nameWords[0]?.slice(0, 2) || "YO"
+    ).toUpperCase();
 
   const canOperateBookings =
     user.role === "ALLY_VALIDATOR" ||
     user.role === "ALLY_ADMIN" ||
     user.role === "PLATFORM_ADMIN";
 
+  const canCreateBookings =
+    user.role === "ALLY_ADMIN" ||
+    user.role === "PLATFORM_ADMIN";
+
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between gap-4 border-b border-border bg-surface/95 px-4 sm:px-6 backdrop-blur-md">
-      {/* LEFT SECTION: Mobile Toggle & Active Venue Context */}
+      {/* LEFT SECTION: Mobile/Desktop Sidebar Toggle & Active Venue Context */}
       <div className="flex min-w-0 items-center gap-3">
         {/* Mobile Hamburger */}
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-foreground hover:bg-muted lg:hidden"
+          className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-foreground hover:bg-muted lg:hidden cursor-pointer"
           aria-label={t("openMenu")}
         >
           <Menu className="size-5" />
         </button>
+
+        {/* Desktop Sidebar Collapse / Keep Open Toggle */}
+        {onToggleSidebarPinned && (
+          <button
+            type="button"
+            id="header-sidebar-toggle"
+            onClick={onToggleSidebarPinned}
+            title={isSidebarPinned ? t("collapseMenu") : t("keepMenuOpen")}
+            aria-label={isSidebarPinned ? t("collapseMenu") : t("keepMenuOpen")}
+            className="hidden lg:inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-foreground hover:bg-muted transition-colors cursor-pointer"
+          >
+            {isSidebarPinned ? (
+              <PanelLeftClose className="size-4 text-muted-foreground" />
+            ) : (
+              <PanelLeftOpen className="size-4 text-accent-foreground dark:text-accent" />
+            )}
+          </button>
+        )}
 
         {/* Interactive Multi-Branch Venue Selector */}
         <VenueHeaderSelector />
@@ -114,19 +147,33 @@ export function AppHeader({
           <div className="flex items-center gap-2">
             <Link
               href={`${ROUTES.agenda}?qr=open`}
+              onClick={(e) => {
+                if (pathname === ROUTES.agenda) {
+                  e.preventDefault();
+                  window.dispatchEvent(new CustomEvent("yoreservo:open-checkin-qr"));
+                }
+              }}
               className="hidden sm:inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-surface px-3 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted active:scale-95 transition-all"
             >
               <QrCode className="size-3.5 text-muted-foreground shrink-0" />
               <span>{t("btnScanQr")}</span>
             </Link>
 
-            <Link
-              href={`${ROUTES.agenda}?drawer=open`}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-accent px-3.5 text-xs font-bold text-accent-foreground shadow-2xs hover:brightness-105 active:scale-95 transition-all"
-            >
-              <CalendarPlus className="size-3.5 shrink-0" />
-              <span className="hidden sm:inline">{t("btnNewWalkin")}</span>
-            </Link>
+            {canCreateBookings && (
+              <Link
+                href={`${ROUTES.agenda}?drawer=open`}
+                onClick={(e) => {
+                  if (pathname === ROUTES.agenda) {
+                    e.preventDefault();
+                    window.dispatchEvent(new CustomEvent("yoreservo:open-walkin-drawer"));
+                  }
+                }}
+                className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-accent px-3.5 text-xs font-bold text-accent-foreground shadow-2xs hover:brightness-105 active:scale-95 transition-all"
+              >
+                <CalendarPlus className="size-3.5 shrink-0" />
+                <span className="hidden sm:inline">{t("btnNewWalkin")}</span>
+              </Link>
+            )}
           </div>
         )}
 
@@ -157,7 +204,7 @@ export function AppHeader({
             className="flex h-10 shrink-0 items-center gap-2.5 rounded-xl border border-transparent px-2 py-1 text-left transition-all hover:border-border hover:bg-muted/60 focus:outline-none"
             aria-expanded={isUserMenuOpen}
           >
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/25 font-display text-xs font-bold text-accent-foreground border border-accent/30">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/25 font-display text-xs font-bold text-foreground border border-accent/30">
               {initials}
             </div>
             <div className="hidden text-left lg:block">
@@ -165,7 +212,7 @@ export function AppHeader({
                 {displayName}
               </div>
               <div className="mt-0.5 flex items-center gap-1 text-[10px] font-semibold text-muted-foreground whitespace-nowrap">
-                <Shield className="size-2.5 text-accent-foreground shrink-0" />
+                <Shield className="size-2.5 text-foreground shrink-0" />
                 <span>{roleBadge.label}</span>
               </div>
             </div>

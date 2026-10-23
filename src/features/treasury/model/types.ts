@@ -144,6 +144,26 @@ export type SettlementDirection = "PLATFORM_TO_ALLY" | "ALLY_TO_PLATFORM";
 
 export type SettlementPayoutMethod = "BANK_TRANSFER" | "PAGO_MOVIL";
 
+export interface PlatformPaymentCoordinates {
+  pagoMovil: {
+    bankCode: string;
+    bankName: string;
+    bankFullName: string;
+    phone: string;
+    documentId: string;
+    beneficiaryName: string;
+  };
+  bankTransfer: {
+    bankCode: string;
+    bankName: string;
+    bankFullName: string;
+    accountNumber: string;
+    accountType: string;
+    documentId: string;
+    beneficiaryName: string;
+  };
+}
+
 export interface SettlementOrganizationRef {
   id: string;
   tradeName: string;
@@ -155,6 +175,11 @@ export interface SettlementOrganizationRef {
   payoutAccountType?: string | null;
   payoutIdDocument?: string | null;
   payoutAccountHolder?: string | null;
+  payoutPhoneNumber?: string | null;
+  preferredPayoutMethod?: SettlementPayoutMethod | null;
+  payoutPagoMovilBank?: string | null;
+  payoutPagoMovilIdDocument?: string | null;
+  payoutPagoMovilHolder?: string | null;
   contactPhone?: string | null;
 }
 
@@ -234,6 +259,7 @@ export interface SettlementBatchItem {
   notes?: string | null;
   createdAt?: string;
   items?: SettlementItemDetail[];
+  platformPaymentCoordinates?: PlatformPaymentCoordinates | null;
 }
 
 export type SettlementBatch = SettlementBatchItem;

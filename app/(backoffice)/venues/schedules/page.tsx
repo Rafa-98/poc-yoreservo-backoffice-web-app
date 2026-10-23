@@ -23,14 +23,27 @@ export default async function Page({ searchParams }: PageProps) {
   await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.schedules]);
   const params = await searchParams;
 
-  const venuesRes = await getVenuesListAction();
+  const [venuesRes, spacesRes] = await Promise.all([
+    getVenuesListAction(),
+    getSpacesAction("ALL"),
+  ]);
+
   const venues = venuesRes.ok && venuesRes.data ? venuesRes.data : [];
+  const spaces = spacesRes.ok && spacesRes.data ? spacesRes.data : [];
 
-  const targetVenueId = params.venueId || venues[0]?.id || "";
-  const spacesRes = targetVenueId ? await getSpacesAction(targetVenueId) : null;
-  const spaces = spacesRes?.ok && spacesRes.data ? spacesRes.data : [];
+  const matchedSpaceById = params.spaceId
+    ? spaces.find((s) => s.id === params.spaceId)
+    : undefined;
+  const matchedSpaceByVenue =
+    !matchedSpaceById && params.venueId
+      ? spaces.find((s) => s.venueId === params.venueId)
+      : undefined;
 
-  const targetSpaceId = params.spaceId || spaces[0]?.id || "";
+  const targetSpace = matchedSpaceById || matchedSpaceByVenue || spaces[0];
+  const targetSpaceId = targetSpace?.id || "";
+  const targetVenueId =
+    targetSpace?.venueId || params.venueId || venues[0]?.id || "";
+
   const schedulesRes = targetSpaceId
     ? await getSpaceSchedulesAction(targetSpaceId)
     : null;

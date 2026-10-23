@@ -126,10 +126,20 @@ export async function createWalkInAction(
     "ALLY_ADMIN",
   ]);
   try {
+    const normalizedMethod =
+      input.paymentMethod === "POS"
+        ? "CARD"
+        : input.paymentMethod === "PENDING"
+          ? "CASH"
+          : input.paymentMethod;
+
     const res = await backendRequest("/backoffice/agenda/walk-in", {
       method: "POST",
       accessToken,
-      body: input,
+      body: {
+        ...input,
+        paymentMethod: normalizedMethod,
+      },
     });
 
     if (!res.ok) {
@@ -137,6 +147,7 @@ export async function createWalkInAction(
     }
 
     revalidatePath(ROUTES.agenda);
+    revalidatePath(ROUTES.reservations);
     return ok(res.body as { id: string; shortCode: string });
   } catch (error) {
     console.error("[agenda] Walk-in booking error:", error);
@@ -172,6 +183,13 @@ export async function checkInAction(
     }
 
     if (!res.ok) {
+      const msg = String((res.body as any)?.message || "");
+      if (msg.includes("PENDING_PAYMENT") || msg.includes("PAYMENT_UNDER_REVIEW")) {
+        return fail("CHECK_IN_PENDING_PAYMENT", undefined, res.correlationId);
+      }
+      if (msg.includes("CANCELLED")) {
+        return fail("CHECK_IN_CANCELLED", undefined, res.correlationId);
+      }
       return fail("CHECK_IN_FAILED", undefined, res.correlationId);
     }
 

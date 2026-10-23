@@ -99,7 +99,10 @@ function mapReservationRow(
   const latestPayment =
     Array.isArray(row.payments) && row.payments.length > 0 ? row.payments[0] : null;
 
-  const priceUsd = Number(row.totalAmount ?? row.subtotal ?? 0);
+  const subtotalUsd = Number(row.subtotal ?? row.totalAmount ?? 0);
+  const serviceFeeUsd = Number(row.serviceFee ?? 0);
+  const allyCommissionUsd = Number(row.allyCommissionAmount ?? 0);
+  const priceUsd = Number(row.totalAmount ?? subtotalUsd + serviceFeeUsd);
   const rateBcv = Number(
     row.exchangeRateValue ||
       latestPayment?.exchangeRate ||
@@ -111,35 +114,67 @@ function mapReservationRow(
       priceUsd * rateBcv,
   );
 
-  // Determine payment method and meta from actual payment record
+  // Determine friendly payment method and meta from actual payment record
+  const rawStatus = String(row.status || "").toUpperCase();
+  const isCancelledOrRejected =
+    rawStatus === "CANCELLED" || rawStatus === "REJECTED";
+
   let paymentMethod = "pending";
-  let paymentMeta = "Sin pago registrado";
+  let paymentMethodLabel = isCancelledOrRejected
+    ? "Sin pago registrado (Cancelada)"
+    : "Pendiente de Pago";
+  let paymentBank: string | undefined;
+  let paymentReference: string | undefined;
+  let paymentMeta = isCancelledOrRejected
+    ? "Reserva cancelada sin pago procesado"
+    : "Sin pago registrado";
 
   if (latestPayment && latestPayment.paymentMethod) {
     const rawMethod = String(latestPayment.paymentMethod).toUpperCase();
     if (rawMethod === "PAGO_MOVIL") {
       paymentMethod = "pago_movil";
+      paymentMethodLabel = "Pago Móvil";
     } else if (rawMethod === "CASH") {
       paymentMethod = "cash";
-    } else if (
-      rawMethod === "POS" ||
-      rawMethod === "CARD" ||
-      rawMethod === "ZELLE" ||
-      rawMethod === "PIPOL_PAY" ||
-      rawMethod === "BANK_TRANSFER"
-    ) {
+      paymentMethodLabel = "Efectivo en Taquilla";
+    } else if (rawMethod === "POS" || rawMethod === "CARD") {
       paymentMethod = "pos";
+      paymentMethodLabel = "Tarjeta / Punto de Venta";
+    } else if (rawMethod === "ZELLE") {
+      paymentMethod = "pos";
+      paymentMethodLabel = "Zelle";
+    } else if (rawMethod === "PIPOL_PAY") {
+      paymentMethod = "pos";
+      paymentMethodLabel = "PipolPay";
+    } else if (rawMethod === "BANK_TRANSFER") {
+      paymentMethod = "pos";
+      paymentMethodLabel = "Transferencia Bancaria";
     } else {
       paymentMethod = rawMethod.toLowerCase();
+      paymentMethodLabel = "Pago Verificado";
     }
-    const bankPart = latestPayment.originBank ? ` (${latestPayment.originBank})` : "";
-    const refPart = latestPayment.referenceNumber
-      ? ` • Ref: #${latestPayment.referenceNumber}`
-      : "";
-    paymentMeta = `${latestPayment.paymentMethod}${bankPart}${refPart}`;
+
+    if (latestPayment.originBank) {
+      paymentBank = String(latestPayment.originBank).trim();
+    } else if (latestPayment.destinationBank) {
+      paymentBank = String(latestPayment.destinationBank).trim();
+    }
+
+    if (latestPayment.referenceNumber) {
+      const cleanRef = String(latestPayment.referenceNumber).trim().replace(/^#/, "");
+      if (cleanRef) {
+        paymentReference = `#${cleanRef}`;
+      }
+    }
+
+    const parts = [paymentMethodLabel];
+    if (paymentBank) parts.push(`Banco: ${paymentBank}`);
+    if (paymentReference) parts.push(`Ref: ${paymentReference}`);
+    paymentMeta = parts.join(" • ");
   } else if (isWalkIn) {
     paymentMethod = "cash";
-    paymentMeta = "Cobro en Mostrador (Taquilla)";
+    paymentMethodLabel = "Efectivo en Taquilla";
+    paymentMeta = "Efectivo en Taquilla • Cobro presencial en mostrador";
   }
 
   // Sport name resolution from real activity / category
@@ -184,10 +219,16 @@ function mapReservationRow(
     timeSlot,
     duration,
     currencyCode,
+    subtotalUsd,
+    serviceFeeUsd,
+    allyCommissionUsd,
     priceUsd,
     rateBcv,
     priceBs,
     paymentMethod,
+    paymentMethodLabel,
+    paymentBank,
+    paymentReference,
     paymentMeta,
     status: row.status,
     checkedIn: isCheckedIn,
@@ -337,6 +378,13 @@ export async function checkInReservationAction(
     });
 
     if (!res.ok) {
+      const msg = String((res.body as any)?.message || "");
+      if (msg.includes("PENDING_PAYMENT") || msg.includes("PAYMENT_UNDER_REVIEW")) {
+        return fail("CHECK_IN_PENDING_PAYMENT");
+      }
+      if (msg.includes("CANCELLED")) {
+        return fail("CHECK_IN_CANCELLED");
+      }
       return fail("CHECK_IN_FAILED");
     }
 
@@ -383,14 +431,41 @@ export async function createWalkInReservationAction(
     "ALLY_ADMIN",
   ]);
   try {
+    const normalizedPaymentMethod =
+      input.paymentMethod === "POS" ? "CARD" : input.paymentMethod;
+
+    const payload = {
+      spaceId: input.spaceId,
+      reservationDate: input.reservationDate,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      customerName: input.customerName,
+      customerPhone: input.customerPhone,
+      customerDocumentType: input.customerDocumentType,
+      customerDocumentNumber: input.customerDocumentNumber,
+      paymentMethod: normalizedPaymentMethod,
+      referenceNumber: input.referenceNumber,
+      originBank: input.originBank,
+      internalNotes: input.notes,
+      ...(input.subtotalOverride !== undefined
+        ? { subtotalOverride: Number(input.subtotalOverride) }
+        : {}),
+    };
+
     const res = await backendRequest("/backoffice/agenda/walk-in", {
       method: "POST",
       accessToken,
-      body: input,
+      body: payload,
     });
 
     if (!res.ok) {
-      return fail("WALK_IN_FAILED");
+      const backendMsg = (res.body as any)?.message;
+      const errMsg = Array.isArray(backendMsg)
+        ? backendMsg.join(", ")
+        : typeof backendMsg === "string" && backendMsg
+          ? backendMsg
+          : "WALK_IN_FAILED";
+      return fail(errMsg);
     }
 
     revalidatePath(ROUTES.reservations);

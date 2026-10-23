@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
+import { SearchableSelect } from "./searchable-select";
 import { updateUserPrivilegesAction } from "../actions/users-actions";
 import type { GeneralStatus, UpdateUserPrivilegesInput, UserItem, UserRole } from "../model/types";
 
@@ -24,6 +25,8 @@ export function EditUserModal({
   currentUserRole,
 }: EditUserModalProps) {
   const t = useTranslations("users.modalEdit");
+  const tFilters = useTranslations("users.filters");
+  const tInvite = useTranslations("users.modalInvite");
 
   const [role, setRole] = useState<UserRole>("ALLY_VALIDATOR");
   const [venueScope, setVenueScope] = useState<string>("org-all");
@@ -31,13 +34,88 @@ export function EditUserModal({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const isAllyCaller =
+    currentUserRole === "ALLY_ADMIN" ||
+    currentUserRole === "ALLY_ACCOUNTING" ||
+    currentUserRole === "ALLY_VALIDATOR";
+
   useEffect(() => {
     if (user) {
       setRole(user.role);
-      setVenueScope(user.venueId || "org-all");
+      if (user.role === "ALLY_VALIDATOR") {
+        setVenueScope(user.venueId || venues[0]?.id || "");
+      } else {
+        setVenueScope("org-all");
+      }
       setStatus((user.status === "INVITATION_PENDING" ? "ACTIVE" : user.status) as GeneralStatus);
+      setErrorMsg(null);
     }
-  }, [user]);
+  }, [user, venues]);
+
+  function handleRoleChange(nextRole: string) {
+    const casted = nextRole as UserRole;
+    setRole(casted);
+    setErrorMsg(null);
+    if (casted === "ALLY_VALIDATOR") {
+      setVenueScope((prev) =>
+        prev && prev !== "org-all" ? prev : user?.venueId || venues[0]?.id || "",
+      );
+    } else {
+      setVenueScope("org-all");
+    }
+  }
+
+  const roleOptions = useMemo(() => {
+    const opts = [
+      { value: "ALLY_VALIDATOR", label: t("roleValidator"), icon: "🎟️" },
+      { value: "ALLY_ADMIN", label: t("roleAlly"), icon: "🏢" },
+      { value: "ALLY_ACCOUNTING", label: t("roleAllyAccounting"), icon: "📊" },
+    ];
+    if (!isAllyCaller) {
+      opts.push(
+        { value: "PLATFORM_ACCOUNTING", label: t("roleAccounting"), icon: "💳" },
+        { value: "PLATFORM_ADMIN", label: t("roleAdmin"), icon: "👑" },
+      );
+    }
+    return opts;
+  }, [isAllyCaller, t]);
+
+  const isValidatorRole = role === "ALLY_VALIDATOR";
+  const isPlatformRole =
+    role === "PLATFORM_ADMIN" || role === "PLATFORM_ACCOUNTING";
+
+  const scopeOptions = useMemo(() => {
+    if (isValidatorRole) {
+      return venues.map((v) => ({
+        value: v.id,
+        label: v.name,
+        icon: "📍",
+      }));
+    }
+    if (isPlatformRole) {
+      return [
+        {
+          value: "org-all",
+          label: t("global"),
+          icon: "🌐",
+        },
+      ];
+    }
+    return [
+      {
+        value: "org-all",
+        label: t("orgWide"),
+        icon: "🏢",
+      },
+    ];
+  }, [isValidatorRole, isPlatformRole, venues, t]);
+
+  const statusOptions = useMemo(() => {
+    return [
+      { value: "ACTIVE", label: t("statusActive") },
+      { value: "INACTIVE", label: t("statusInactive") },
+    ];
+  }, [t]);
 
   if (!isOpen || !user) return null;
 
@@ -45,12 +123,18 @@ export function EditUserModal({
     e.preventDefault();
     if (!user) return;
 
-    setLoading(true);
     setErrorMsg(null);
+
+    if (role === "ALLY_VALIDATOR" && (!venueScope || venueScope === "org-all")) {
+      setErrorMsg(t("errorVenueRequired"));
+      return;
+    }
+
+    setLoading(true);
 
     const input: UpdateUserPrivilegesInput = {
       role,
-      managedVenueId: venueScope === "org-all" ? null : venueScope,
+      managedVenueId: role === "ALLY_VALIDATOR" ? venueScope : null,
       status,
     };
 
@@ -72,13 +156,13 @@ export function EditUserModal({
       onClick={onClose}
     >
       <div
-        className="modal-card"
+        className="modal-card overflow-visible"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: "480px" }}
+        style={{ maxWidth: "480px", width: "100%" }}
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <div>
-            <h3 className="font-display text-lg font-bold text-foreground">
+          <div className="min-w-0">
+            <h3 className="font-display text-lg font-bold text-foreground truncate">
               {t("title")}
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -88,7 +172,7 @@ export function EditUserModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground text-lg cursor-pointer p-1"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
           >
             ✕
           </button>
@@ -117,56 +201,49 @@ export function EditUserModal({
             <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               {t("roleLabel")}
             </label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as UserRole)}
-              className="form-select"
+            <SearchableSelect
               id="edit-user-role"
-            >
-              <option value="ALLY_ADMIN">🏢 {t("roleAlly")}</option>
-              <option value="ALLY_ACCOUNTING">📊 {t("roleAllyAccounting")}</option>
-              <option value="ALLY_VALIDATOR">🎟️ {t("roleValidator")}</option>
-              {currentUserRole !== "ALLY_ADMIN" && (
-                <>
-                  <option value="PLATFORM_ACCOUNTING">💳 {t("roleAccounting")}</option>
-                  <option value="PLATFORM_ADMIN">👑 {t("roleAdmin")}</option>
-                </>
-              )}
-            </select>
+              value={role}
+              onChange={handleRoleChange}
+              options={roleOptions}
+              searchPlaceholder={tFilters("searchOptionPlaceholder")}
+              emptyText={tFilters("noOptionsFound")}
+            />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               {t("scopeLabel")}
             </label>
-            <select
-              value={venueScope}
-              onChange={(e) => setVenueScope(e.target.value)}
-              className="form-select"
+            <SearchableSelect
               id="edit-user-venue"
-            >
-              <option value="org-all">{t("orgWide")}</option>
-              {venues.map((v) => (
-                <option key={v.id} value={v.id}>
-                  📍 {v.name}
-                </option>
-              ))}
-            </select>
+              value={isValidatorRole ? venueScope : "org-all"}
+              onChange={setVenueScope}
+              options={scopeOptions}
+              placeholder={tInvite("selectVenuePlaceholder")}
+              searchPlaceholder={tFilters("searchOptionPlaceholder")}
+              emptyText={tFilters("noOptionsFound")}
+              disabled={!isValidatorRole}
+            />
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              {isValidatorRole
+                ? t("scopeHintValidator")
+                : t("scopeHintOrgWide")}
+            </p>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
               {t("statusLabel")}
             </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as GeneralStatus)}
-              className="form-select"
+            <SearchableSelect
               id="edit-user-status"
-            >
-              <option value="ACTIVE">{t("statusActive")}</option>
-              <option value="INACTIVE">{t("statusInactive")}</option>
-            </select>
+              value={status}
+              onChange={(val) => setStatus(val as GeneralStatus)}
+              options={statusOptions}
+              searchPlaceholder={tFilters("searchOptionPlaceholder")}
+              emptyText={tFilters("noOptionsFound")}
+            />
           </div>
 
           <div className="flex justify-end gap-3 pt-3 border-t border-border">

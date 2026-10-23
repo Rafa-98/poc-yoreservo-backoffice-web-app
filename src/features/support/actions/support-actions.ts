@@ -61,7 +61,6 @@ export async function getSupportTicketsAction(filters?: {
 }): Promise<ActionResult<SupportTicketsData>> {
   const { accessToken } = await requireSessionWithToken([
     "PLATFORM_ADMIN",
-    "ALLY_ADMIN",
   ]);
 
   try {
@@ -120,7 +119,6 @@ export async function updateSupportTicketAction(
 ): Promise<ActionResult<SupportTicketItem>> {
   const { accessToken } = await requireSessionWithToken([
     "PLATFORM_ADMIN",
-    "ALLY_ADMIN",
   ]);
 
   try {

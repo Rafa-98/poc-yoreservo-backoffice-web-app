@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, CheckCircle2, QrCode, ScanLine, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useTimeFormat } from "@/shared/lib";
@@ -32,6 +32,16 @@ export function ExpressCheckInModal({
     message: string;
     details?: any;
   } | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setCode("");
+      setFeedback(null);
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -65,6 +75,16 @@ export function ExpressCheckInModal({
         setFeedback({
           type: "error",
           message: t("checkInNotFound"),
+        });
+      } else if (res.error.code === "CHECK_IN_PENDING_PAYMENT") {
+        setFeedback({
+          type: "error",
+          message: t("checkInPendingPayment"),
+        });
+      } else if (res.error.code === "CHECK_IN_CANCELLED") {
+        setFeedback({
+          type: "error",
+          message: t("checkInCancelled"),
         });
       } else {
         setFeedback({
@@ -105,7 +125,7 @@ export function ExpressCheckInModal({
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border pb-4">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-accent/20 text-accent-foreground border border-accent/30">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-accent/20 text-foreground border border-accent/30">
                 <QrCode className="size-5" />
               </div>
               <div>

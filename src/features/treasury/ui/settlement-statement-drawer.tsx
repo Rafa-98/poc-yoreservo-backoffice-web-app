@@ -263,8 +263,48 @@ export function SettlementStatementDrawer({
                   <span className="text-muted-foreground">Cuenta Destino: </span>
                   <span className="font-semibold text-foreground">
                     {current.direction === "ALLY_TO_PLATFORM"
-                      ? "Banesco (0134) — YoReservo C.A. (J-50123456-7 • 0414-9001122)"
-                      : `${current.organization?.payoutBank || "—"} ${
+                      ? current.payoutMethod === "BANK_TRANSFER"
+                        ? `🏦 Transferencia: ${
+                            current.platformPaymentCoordinates?.bankTransfer?.bankName || "Banesco"
+                          } (${
+                            current.platformPaymentCoordinates?.bankTransfer?.bankCode || "0134"
+                          }) — ${
+                            current.platformPaymentCoordinates?.bankTransfer?.beneficiaryName || "YoReservo C.A."
+                          } (${
+                            current.platformPaymentCoordinates?.bankTransfer?.documentId || "J-50123456-7"
+                          } • Cta: ${
+                            current.platformPaymentCoordinates?.bankTransfer?.accountNumber || "01340001920001298491"
+                          })`
+                        : `📲 Pago Móvil: ${
+                            current.platformPaymentCoordinates?.pagoMovil?.bankName || "Banesco"
+                          } (${
+                            current.platformPaymentCoordinates?.pagoMovil?.bankCode || "0134"
+                          }) — ${
+                            current.platformPaymentCoordinates?.pagoMovil?.beneficiaryName || "YoReservo C.A."
+                          } (${
+                            current.platformPaymentCoordinates?.pagoMovil?.documentId || "J-50123456-7"
+                          } • Tel: ${
+                            current.platformPaymentCoordinates?.pagoMovil?.phone || "+58 412 123 4567"
+                          })`
+                      : (current.payoutMethod ||
+                          current.organization?.preferredPayoutMethod) ===
+                        "PAGO_MOVIL"
+                      ? `📲 Pago Móvil: ${
+                          current.organization?.payoutPagoMovilBank ||
+                          current.organization?.payoutBank ||
+                          "—"
+                        } • Tel: ${
+                          current.organization?.payoutPhoneNumber ||
+                          current.organization?.contactPhone ||
+                          "—"
+                        } (${
+                          current.organization?.payoutPagoMovilIdDocument ||
+                          current.organization?.payoutIdDocument ||
+                          current.organization?.rif
+                        })`
+                      : `🏦 Transferencia: ${
+                          current.organization?.payoutBank || "—"
+                        } ${
                           current.organization?.payoutAccountNumber
                             ? `• ${current.organization.payoutAccountNumber}`
                             : ""

@@ -88,7 +88,7 @@ export function WalkInDrawer({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border pb-4">
           <div>
-            <div className="inline-block rounded bg-accent/20 px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-wider text-accent-foreground border border-accent/30 mb-1">
+            <div className="inline-block rounded bg-accent/20 px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-wider text-foreground border border-accent/30 mb-1">
               {t("drawerBadge")}
             </div>
             <h3 className="font-display text-lg font-bold text-foreground">

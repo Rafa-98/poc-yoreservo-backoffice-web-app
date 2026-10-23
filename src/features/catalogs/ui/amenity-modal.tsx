@@ -1,21 +1,35 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
-import { createAmenityAction } from "../actions/catalogs-actions";
-import type { CreateAmenityInput } from "../model/types";
+import {
+  createAmenityAction,
+  updateAmenityAction,
+} from "../actions/catalogs-actions";
+import type { AmenityItem, CreateAmenityInput } from "../model/types";
 
 interface AmenityModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (amenity: any) => void;
+  onSuccess: (amenity: AmenityItem) => void;
+  initialData?: AmenityItem | null;
 }
+
+const AVAILABLE_SPORTS = [
+  "Fútbol",
+  "Pádel",
+  "Tenis",
+  "Pickleball",
+  "Ping-pong",
+  "Voleibol",
+];
 
 export function AmenityModal({
   isOpen,
   onClose,
   onSuccess,
+  initialData,
 }: AmenityModalProps) {
   const t = useTranslations("catalogs.modalAmenity");
 
@@ -23,10 +37,38 @@ export function AmenityModal({
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("✨");
   const [description, setDescription] = useState("");
+  const [suitedSports, setSuitedSports] = useState<string[]>(AVAILABLE_SPORTS);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (initialData) {
+      setCode(initialData.code);
+      setName(initialData.name);
+      setIcon(initialData.icon || "✨");
+      setDescription(initialData.description || "");
+      setSuitedSports(
+        initialData.suitedSports && initialData.suitedSports.length > 0
+          ? initialData.suitedSports
+          : AVAILABLE_SPORTS
+      );
+    } else {
+      setCode("");
+      setName("");
+      setIcon("✨");
+      setDescription("");
+      setSuitedSports(AVAILABLE_SPORTS);
+    }
+    setErrorMsg(null);
+  }, [initialData, isOpen]);
+
   if (!isOpen) return null;
+
+  function toggleSport(sport: string) {
+    setSuitedSports((prev) =>
+      prev.includes(sport) ? prev.filter((s) => s !== sport) : [...prev, sport]
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,15 +80,18 @@ export function AmenityModal({
       name: name.trim(),
       icon: icon.trim(),
       description: description.trim(),
+      suitedSports: suitedSports.length > 0 ? suitedSports : AVAILABLE_SPORTS,
     };
 
-    const res = await createAmenityAction(input);
+    const res = initialData
+      ? await updateAmenityAction(initialData.id, input)
+      : await createAmenityAction(input);
     setLoading(false);
 
-    if (res.ok) {
+    if (res.ok && res.data) {
       onSuccess(res.data);
       onClose();
-    } else {
+    } else if (!res.ok) {
       setErrorMsg(res.error.code || t("errorCreate"));
     }
   }
@@ -60,14 +105,14 @@ export function AmenityModal({
       <div
         className="modal-card"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: "460px" }}
+        style={{ maxWidth: "500px" }}
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-2.5">
             <span className="text-2xl">{icon || "✨"}</span>
             <div>
               <h3 className="font-display text-lg font-bold text-foreground">
-                {t("title")}
+                {initialData ? "Editar Amenidad / Equipamiento" : t("title")}
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {t("desc")}
@@ -97,10 +142,11 @@ export function AmenityModal({
             <input
               type="text"
               required
+              disabled={Boolean(initialData)}
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="AMN_SAUNA_PRO"
-              className="form-input font-mono uppercase text-xs"
+              className="form-input font-mono uppercase text-xs disabled:opacity-65"
             />
           </div>
 
@@ -145,6 +191,51 @@ export function AmenityModal({
               placeholder={t("placeholderDesc")}
               className="form-input text-xs"
             />
+          </div>
+
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Deportes Compatibles
+              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  setSuitedSports(
+                    suitedSports.length === AVAILABLE_SPORTS.length
+                      ? []
+                      : [...AVAILABLE_SPORTS]
+                  )
+                }
+                className="cursor-pointer text-[11px] font-bold text-link hover:underline"
+              >
+                {suitedSports.length === AVAILABLE_SPORTS.length
+                  ? "Desmarcar todos"
+                  : "Seleccionar todos"}
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {AVAILABLE_SPORTS.map((sport) => {
+                const isSelected = suitedSports.some((s) =>
+                  s.toLowerCase().includes(sport.toLowerCase())
+                );
+                return (
+                  <button
+                    key={sport}
+                    type="button"
+                    onClick={() => toggleSport(sport)}
+                    className={`cursor-pointer rounded-xl border px-3 py-1.5 text-xs font-bold transition-all ${
+                      isSelected
+                        ? "border-accent bg-accent/20 text-foreground"
+                        : "border-border bg-muted/40 text-muted-foreground hover:border-border-medium"
+                    }`}
+                  >
+                    {isSelected ? "✓ " : "+ "}
+                    {sport}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-3 border-t border-border">

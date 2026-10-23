@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
+import type { BackofficeRole } from "@/shared/config";
 import type {
   LocationNode,
   VenueItem,
@@ -13,11 +14,13 @@ import { VenueModal } from "@/features/venues/ui/venue-modal";
 interface VenuesPageProps {
   initialVenues: VenueItem[];
   locationsTree: LocationNode[];
+  userRole?: BackofficeRole;
 }
 
 export function VenuesPage({
   initialVenues,
   locationsTree,
+  userRole = "ALLY_ADMIN",
 }: VenuesPageProps) {
   const t = useTranslations("venues.top");
   const [venues, setVenues] = useState<VenueItem[]>(initialVenues);
@@ -114,6 +117,7 @@ export function VenuesPage({
         onClose={() => setIsVenueModalOpen(false)}
         venue={editingVenue}
         locationsTree={locationsTree}
+        userRole={userRole}
         onSuccess={handleVenueSaved}
       />
     </div>

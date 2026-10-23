@@ -136,7 +136,7 @@ export function AgendaKpiStrip({
           <span className="text-xs font-semibold uppercase tracking-wider">
             {t("kpiRevenue")}
           </span>
-          <div className="flex size-7 items-center justify-center rounded-lg bg-accent/20 text-accent-foreground">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-accent/20 text-foreground">
             <DollarSign className="size-4" />
           </div>
         </div>

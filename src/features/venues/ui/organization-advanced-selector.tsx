@@ -380,7 +380,7 @@ export function OrganizationAdvancedSelector({
         className="group inline-flex h-9 min-w-[240px] max-w-[380px] items-center justify-between gap-2.5 rounded-xl border border-border-medium bg-surface px-3 text-xs font-semibold text-foreground shadow-2xs transition-all hover:border-accent/60 hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/30 cursor-pointer"
       >
         <div className="flex items-center gap-2 min-w-0">
-          <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-accent/20 text-accent-foreground">
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-accent/20 text-foreground">
             {selectedOrganizationId === "ALL" ? (
               <Globe className="size-3.5" />
             ) : (
@@ -406,7 +406,7 @@ export function OrganizationAdvancedSelector({
               📍 {selectedOrg.primaryState}
             </span>
           )}
-          <span className="rounded-full bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold text-accent-foreground">
+          <span className="rounded-full bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold text-foreground">
             {enrichedOrgs.length}
           </span>
           <ChevronDown

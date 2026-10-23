@@ -84,6 +84,8 @@
   "checkInSuccess": "Check-in validated! The player may enter the court.",
   "checkInAlready": "This booking was already checked-in previously.",
   "checkInNotFound": "Reservation code not found or invalid.",
+  "checkInPendingPayment": "Cannot validate check-in: booking payment is still pending verification.",
+  "checkInCancelled": "Cannot validate check-in: this booking was cancelled.",
   "checkInError": "Error validating check-in.",
   "checkInHolder": "Holder",
   "checkInCode": "Code",

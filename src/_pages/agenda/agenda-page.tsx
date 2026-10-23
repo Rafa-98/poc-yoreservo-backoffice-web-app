@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Calendar, QrCode, RefreshCw } from "lucide-react";
 import { AgendaControlsBar } from "@/features/agenda/ui/agenda-controls-bar";
@@ -24,7 +24,7 @@ import type {
 } from "@/features/agenda/model/types";
 
 import { useActiveVenue } from "@/features/venues/context/venue-context";
-import type { BackofficeRole } from "@/shared/config";
+import { ROUTES, type BackofficeRole } from "@/shared/config";
 import { todayInTimezone } from "@/shared/lib";
 
 export interface AgendaPageProps {
@@ -35,6 +35,7 @@ export interface AgendaPageProps {
 
 export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPageProps) {
   const t = useTranslations("agenda");
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { activeVenueId: globalVenueId, setActiveVenueId: setGlobalVenueId } = useActiveVenue();
   const isValidator = userRole === "ALLY_VALIDATOR";
@@ -87,14 +88,41 @@ export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPag
   const [selectedBlockHour, setSelectedBlockHour] = useState("09:00");
   const [isBlockOpen, setIsBlockOpen] = useState(false);
 
+  // Auto-open QR check-in modal if URL query `?qr=open`
+  useEffect(() => {
+    if (searchParams.get("qr") === "open") {
+      setIsCheckInOpen(true);
+      router.replace(ROUTES.agenda, { scroll: false });
+    }
+  }, [searchParams, router]);
+
   // Auto-open walk-in drawer if URL query `?drawer=open` (not for validators)
   useEffect(() => {
     if (!isValidator && searchParams.get("drawer") === "open" && agenda?.spaces?.[0]) {
       setSelectedWalkInCourt(agenda.spaces[0]);
       setSelectedWalkInHour("16:00");
       setIsWalkInOpen(true);
+      router.replace(ROUTES.agenda, { scroll: false });
     }
-  }, [searchParams, agenda, isValidator]);
+  }, [searchParams, agenda, isValidator, router]);
+
+  // Listen for top header quick-action events when already on /agenda
+  useEffect(() => {
+    const handleOpenQr = () => setIsCheckInOpen(true);
+    const handleOpenDrawer = () => {
+      if (!isValidator && agenda?.spaces?.[0]) {
+        setSelectedWalkInCourt(agenda.spaces[0]);
+        setSelectedWalkInHour("16:00");
+        setIsWalkInOpen(true);
+      }
+    };
+    window.addEventListener("yoreservo:open-checkin-qr", handleOpenQr);
+    window.addEventListener("yoreservo:open-walkin-drawer", handleOpenDrawer);
+    return () => {
+      window.removeEventListener("yoreservo:open-checkin-qr", handleOpenQr);
+      window.removeEventListener("yoreservo:open-walkin-drawer", handleOpenDrawer);
+    };
+  }, [agenda, isValidator]);
 
   // Refresh agenda data
   const refreshAgenda = () => {
@@ -178,7 +206,7 @@ export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPag
       {/* Top Banner & Fast Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-accent/15 px-3 py-1 text-xs font-bold text-accent-foreground border border-accent/30 mb-1.5">
+          <div className="inline-flex items-center gap-2 rounded-full bg-accent/15 px-3 py-1 text-xs font-bold text-foreground border border-accent/30 mb-1.5">
             <span>{agenda?.venue?.name || t("defaultVenue")}</span>
           </div>
           <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground">

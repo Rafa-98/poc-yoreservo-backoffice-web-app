@@ -84,6 +84,8 @@
   "checkInSuccess": "¡Entrada validada correctamente! El jugador puede ingresar a la cancha.",
   "checkInAlready": "Esta reserva ya realizó su check-in anteriormente.",
   "checkInNotFound": "Código de reserva no encontrado o inválido.",
+  "checkInPendingPayment": "No se puede validar la entrada: la reserva tiene un pago pendiente de verificación.",
+  "checkInCancelled": "No se puede validar la entrada: esta reserva fue cancelada.",
   "checkInError": "Error al validar la entrada.",
   "checkInHolder": "Titular",
   "checkInCode": "Código",

@@ -1,14 +1,18 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
-import { useActiveVenue } from "@/features/venues/context/venue-context";
 import type {
   SpaceItem,
   SportCategoryItem,
   VenueItem,
 } from "@/features/venues/model/types";
+import type {
+  AmenityItem,
+  SurfaceItem,
+} from "@/features/catalogs/model/types";
 import { CourtCardsGrid } from "@/features/venues/ui/court-cards-grid";
 import { CourtModal } from "@/features/venues/ui/court-modal";
 import { SafetyDisableModal } from "@/features/venues/ui/safety-disable-modal";
@@ -22,6 +26,8 @@ interface SpacesPageProps {
   initialVenueId: string;
   initialSpaces: SpaceItem[];
   categories: SportCategoryItem[];
+  surfaces?: SurfaceItem[];
+  amenities?: AmenityItem[];
   bcvRate?: number;
   referenceCurrencyCode?: string;
 }
@@ -31,24 +37,17 @@ export function SpacesPage({
   initialVenueId,
   initialSpaces,
   categories,
+  surfaces = [],
+  amenities = [],
   bcvRate = DEFAULT_BCV_USD_RATE,
   referenceCurrencyCode = "USD",
 }: SpacesPageProps) {
   const t = useTranslations("venues.top");
-
-  let activeVenueId = "ALL";
-  let setActiveVenueId: ((id: string) => void) | undefined;
-  try {
-    const venueCtx = useActiveVenue();
-    activeVenueId = venueCtx.activeVenueId;
-    setActiveVenueId = venueCtx.setActiveVenueId;
-  } catch {
-    // Fallback if rendered outside VenueProvider
-  }
+  const router = useRouter();
 
   const [venues] = useState<VenueItem[]>(initialVenues);
   const [selectedVenueId, setSelectedVenueId] = useState<string>(
-    initialVenueId || activeVenueId || initialVenues[0]?.id || "ALL"
+    initialVenueId || initialVenues[0]?.id || "ALL"
   );
   const [spaces, setSpaces] = useState<SpaceItem[]>(initialSpaces);
   const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
@@ -72,11 +71,8 @@ export function SpacesPage({
     setTimeout(() => setToast(null), 4000);
   }
 
-  async function handleSelectVenue(venueId: string, syncContext = true) {
+  async function handleSelectVenue(venueId: string) {
     setSelectedVenueId(venueId);
-    if (syncContext && setActiveVenueId && venueId && venueId !== activeVenueId) {
-      setActiveVenueId(venueId);
-    }
     const res = await getSpacesAction(venueId);
     if (res.ok && res.data) {
       setSpaces(res.data);
@@ -84,16 +80,6 @@ export function SpacesPage({
       showToast(t("errorLoadSpaces", { code: res.error.code }), true);
     }
   }
-
-  useEffect(() => {
-    if (
-      activeVenueId &&
-      activeVenueId !== selectedVenueId &&
-      (activeVenueId === "ALL" || venues.some((v) => v.id === activeVenueId))
-    ) {
-      handleSelectVenue(activeVenueId, false);
-    }
-  }, [activeVenueId, selectedVenueId, venues]);
 
 
   function handleOpenCreateCourt() {
@@ -106,16 +92,39 @@ export function SpacesPage({
     setIsCourtModalOpen(true);
   }
 
-  function handleCourtSaved(saved: SpaceItem) {
+  function handleCourtSaved(saved: SpaceItem, isNew?: boolean) {
     setSpaces((prev) => {
       const idx = prev.findIndex((s) => s.id === saved.id);
       if (idx >= 0) {
         const next = [...prev];
-        next[idx] = saved;
+        next[idx] = {
+          ...prev[idx],
+          ...saved,
+          venueName: saved.venueName || prev[idx].venueName,
+          activeBookingsCount:
+            saved.activeBookingsCount || prev[idx].activeBookingsCount || 0,
+          pricePerHour: Number(saved.pricePerHour ?? prev[idx].pricePerHour ?? 0),
+          imageUrl: saved.imageUrl || prev[idx].imageUrl || null,
+        };
         return next;
       }
-      return [...prev, saved];
+      return [
+        ...prev,
+        {
+          ...saved,
+          pricePerHour: Number(saved.pricePerHour ?? 0),
+        },
+      ];
     });
+
+    if (isNew || !editingCourt) {
+      const targetVenue = saved.venueId || selectedVenueId;
+      router.push(
+        `/venues/schedules?venueId=${encodeURIComponent(targetVenue)}&spaceId=${encodeURIComponent(saved.id)}`
+      );
+      return;
+    }
+
     showToast(t("toastCourtSaved"), false);
   }
 
@@ -214,6 +223,7 @@ export function SpacesPage({
         selectedVenueId={selectedVenueId}
         onSelectVenueId={handleSelectVenue}
         spaces={spaces}
+        amenitiesCatalog={amenities}
         bcvRate={bcvRate}
         referenceCurrencyCode={referenceCurrencyCode}
         onOpenCreateCourt={handleOpenCreateCourt}
@@ -231,6 +241,8 @@ export function SpacesPage({
         }
         space={editingCourt}
         categories={categories}
+        surfaces={surfaces}
+        amenitiesCatalog={amenities}
         onSuccess={handleCourtSaved}
       />
 

@@ -1,12 +1,70 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Lock, Mail, Phone, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
-import { COMMON_IANA_TIMEZONES, DEFAULT_VENUE_TIMEZONE } from "@/shared/lib";
+import { DEFAULT_VENUE_TIMEZONE } from "@/shared/lib";
 import { uploadBackofficeFileAction } from "@/shared/api/upload-action";
-import type { CreateVenueInput, LocationNode, UpdateVenueInput, VenueItem } from "../model/types";
+import type { BackofficeRole } from "@/shared/config";
+import {
+  SearchableSelect,
+  type SearchableOption,
+} from "@/features/users/ui/searchable-select";
+import type {
+  CreateVenueInput,
+  LocationNode,
+  UpdateVenueInput,
+  VenueItem,
+  VenueStatusType,
+} from "../model/types";
 import { createVenueAction, updateVenueAction } from "../actions/venues-actions";
+import { VenueLocationMapPicker } from "./venue-location-map-picker";
+
+function onlyDigits(val: string): string {
+  return val.replace(/\D/g, "");
+}
+
+interface PhoneEntry {
+  operator: string;
+  number: string;
+}
+
+function parsePhoneToEntry(rawPhone: string): PhoneEntry {
+  const trimmed = (rawPhone || "").trim();
+  if (!trimmed) {
+    return { operator: "0212", number: "" };
+  }
+  const digits = onlyDigits(trimmed);
+  const localDigits = digits.startsWith("58") ? digits.slice(2) : digits;
+  const normalizedLocal =
+    localDigits.length === 10 && !localDigits.startsWith("0")
+      ? `0${localDigits}`
+      : localDigits;
+
+  if (normalizedLocal.length >= 11 && normalizedLocal.startsWith("0")) {
+    return {
+      operator: normalizedLocal.slice(0, 4),
+      number: normalizedLocal.slice(4, 11),
+    };
+  }
+
+  const parts = trimmed.split(/[\s-]+/);
+  if (parts.length >= 3) {
+    const rawOp = onlyDigits(parts[1]);
+    const normOp =
+      rawOp.length === 3 && !rawOp.startsWith("0") ? `0${rawOp}` : rawOp;
+    return {
+      operator: normOp || "0212",
+      number: onlyDigits(parts.slice(2).join("")).slice(0, 7),
+    };
+  }
+
+  return {
+    operator: "0212",
+    number: onlyDigits(trimmed).slice(-7),
+  };
+}
 
 interface VenueModalProps {
   isOpen: boolean;
@@ -14,7 +72,24 @@ interface VenueModalProps {
   venue: VenueItem | null;
   locationsTree: LocationNode[];
   onSuccess: (savedVenue: VenueItem) => void;
+  userRole?: BackofficeRole;
 }
+
+const PHONE_OPERATOR_OPTIONS: SearchableOption[] = [
+  { value: "0212", label: "0212", subtitle: "Caracas / Gran Caracas (Fijo)" },
+  { value: "0412", label: "0412", subtitle: "Digitel" },
+  { value: "0422", label: "0422", subtitle: "Digitel" },
+  { value: "0414", label: "0414", subtitle: "Movistar" },
+  { value: "0424", label: "0424", subtitle: "Movistar" },
+  { value: "0416", label: "0416", subtitle: "Movilnet" },
+  { value: "0426", label: "0426", subtitle: "Movilnet" },
+  { value: "0241", label: "0241", subtitle: "Valencia / Carabobo (Fijo)" },
+  { value: "0251", label: "0251", subtitle: "Barquisimeto / Lara (Fijo)" },
+  { value: "0261", label: "0261", subtitle: "Maracaibo / Zulia (Fijo)" },
+  { value: "0281", label: "0281", subtitle: "Lechería / Anzoátegui (Fijo)" },
+];
+
+const DEFAULT_CARACAS_COORDS = { lat: 10.4806, lng: -66.9036 };
 
 export function VenueModal({
   isOpen,
@@ -22,28 +97,44 @@ export function VenueModal({
   venue,
   locationsTree,
   onSuccess,
+  userRole = "ALLY_ADMIN",
 }: VenueModalProps) {
   const t = useTranslations("venues.venues");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [name, setName] = useState("");
-  const [rif, setRif] = useState("");
+  const [rifDigits, setRifDigits] = useState("");
   const [address, setAddress] = useState("");
-  const [timezone, setTimezone] = useState<string>(DEFAULT_VENUE_TIMEZONE);
-  const [status, setStatus] = useState<"ACTIVE" | "PENDING_VERIFICATION">("ACTIVE");
+  const [status, setStatus] = useState<VenueStatusType>("ACTIVE");
   const [imageUrl, setImageUrl] = useState("");
 
-  // Phone components
-  const [countryCode, setCountryCode] = useState("+58");
-  const [operator, setOperator] = useState("0212");
-  const [phoneNum, setPhoneNum] = useState("");
+  // Map coordinates
+  const [locationLat, setLocationLat] = useState<number>(
+    DEFAULT_CARACAS_COORDS.lat
+  );
+  const [locationLng, setLocationLng] = useState<number>(
+    DEFAULT_CARACAS_COORDS.lng
+  );
+
+  // Multiple Phone Entries (+58 fixed for VE, operator select, 7-digit number)
+  const [phoneEntries, setPhoneEntries] = useState<PhoneEntry[]>([
+    { operator: "0212", number: "" },
+  ]);
+
+  // Multiple Contact Email Entries
+  const [emailEntries, setEmailEntries] = useState<string[]>([""]);
 
   // Cascading Location Tree
   const [selectedStateId, setSelectedStateId] = useState<string>("");
   const [selectedCityId, setSelectedCityId] = useState<string>("");
   const [selectedHoodId, setSelectedHoodId] = useState<string>("");
+
+  const isPlatformStaff =
+    userRole === "PLATFORM_ADMIN" || userRole === "PLATFORM_ACCOUNTING";
 
   function getLocationNodeName(node: LocationNode): string {
     if (typeof node.name === "string") return node.name;
@@ -84,7 +175,6 @@ export function VenueModal({
       "";
     const targetCityName = (targetVenue.city || "").toLowerCase().trim();
 
-    // 1. Direct match if stateId, cityId, neighborhoodId are all known and valid in tree
     if (targetStateId) {
       const matchedState = tree.find((s) => s.id === targetStateId);
       if (matchedState) {
@@ -102,7 +192,6 @@ export function VenueModal({
       }
     }
 
-    // 2. Search tree by neighborhoodId, cityId, or city name
     for (const st of tree) {
       for (const ct of st.children || []) {
         for (const hd of ct.children || []) {
@@ -133,7 +222,6 @@ export function VenueModal({
       }
     }
 
-    // 3. If venue has explicit IDs even if tree is flat/partial
     if (targetStateId || targetCityId || targetHoodId) {
       return {
         stateId: targetStateId || fallback.stateId,
@@ -146,36 +234,70 @@ export function VenueModal({
   }
 
   useEffect(() => {
+    setErrorMsg(null);
     if (venue) {
       setName(venue.name || "");
-      setRif(venue.rif || "");
+      const rawRif = (venue.rif || "").trim();
+      const cleanedRif = rawRif.replace(/^[JjVGvgEe]\s*-?\s*/, "");
+      setRifDigits(cleanedRif);
       setAddress(venue.address || "");
-      setTimezone(venue.timezone || DEFAULT_VENUE_TIMEZONE);
-      setStatus(venue.status === "PENDING_VERIFICATION" ? "PENDING_VERIFICATION" : "ACTIVE");
+
+      const normalizedStatus: VenueStatusType =
+        venue.status === "PENDING_VERIFICATION" ||
+        venue.status === "IN_VERIFICATION"
+          ? "IN_VERIFICATION"
+          : venue.status === "INACTIVE"
+            ? "INACTIVE"
+            : "ACTIVE";
+      setStatus(normalizedStatus);
       setImageUrl(venue.imageUrl || "");
 
-      if (venue.contactPhone) {
-        const parts = venue.contactPhone.split(" ");
-        if (parts.length >= 3) {
-          setCountryCode(parts[0]);
-          setOperator(parts[1]);
-          setPhoneNum(parts.slice(2).join(""));
-        } else {
-          setPhoneNum(venue.contactPhone);
-        }
+      setLocationLat(
+        typeof venue.locationLat === "number" &&
+          Math.abs(venue.locationLat) > 0.0001
+          ? venue.locationLat
+          : DEFAULT_CARACAS_COORDS.lat
+      );
+      setLocationLng(
+        typeof venue.locationLng === "number" &&
+          Math.abs(venue.locationLng) > 0.0001
+          ? venue.locationLng
+          : DEFAULT_CARACAS_COORDS.lng
+      );
+
+      const rawPhones =
+        venue.contactPhones && venue.contactPhones.length > 0
+          ? venue.contactPhones
+          : venue.contactPhone
+            ? [venue.contactPhone]
+            : [];
+      if (rawPhones.length > 0) {
+        setPhoneEntries(rawPhones.map(parsePhoneToEntry));
       } else {
-        setPhoneNum("");
+        setPhoneEntries([{ operator: "0212", number: "" }]);
+      }
+
+      const rawEmails =
+        venue.contactEmails && venue.contactEmails.length > 0
+          ? venue.contactEmails
+          : venue.contactEmail
+            ? [venue.contactEmail]
+            : [];
+      if (rawEmails.length > 0) {
+        setEmailEntries(rawEmails);
+      } else {
+        setEmailEntries([""]);
       }
     } else {
       setName("");
-      setRif("");
+      setRifDigits("");
       setAddress("");
-      setTimezone(DEFAULT_VENUE_TIMEZONE);
       setStatus("ACTIVE");
       setImageUrl("");
-      setCountryCode("+58");
-      setOperator("0212");
-      setPhoneNum("");
+      setLocationLat(DEFAULT_CARACAS_COORDS.lat);
+      setLocationLng(DEFAULT_CARACAS_COORDS.lng);
+      setPhoneEntries([{ operator: "0212", number: "" }]);
+      setEmailEntries([""]);
     }
 
     const resolved = resolveInitialLocationIds(venue, locationsTree);
@@ -188,6 +310,62 @@ export function VenueModal({
   const cities = currentState?.children || [];
   const currentCity = cities.find((c) => c.id === selectedCityId);
   const hoods = currentCity?.children || [];
+
+  const stateOptions = useMemo<SearchableOption[]>(
+    () =>
+      (locationsTree || []).map((s) => ({
+        value: s.id,
+        label: getLocationNodeName(s) || "Estado",
+      })),
+    [locationsTree]
+  );
+
+  const cityOptions = useMemo<SearchableOption[]>(
+    () =>
+      cities.map((c) => ({
+        value: c.id,
+        label: getLocationNodeName(c) || "Ciudad",
+      })),
+    [cities]
+  );
+
+  const hoodOptions = useMemo<SearchableOption[]>(
+    () =>
+      hoods.map((h) => ({
+        value: h.id,
+        label: getLocationNodeName(h) || "Urbanización / Zona",
+      })),
+    [hoods]
+  );
+
+  const statusOptions = useMemo<SearchableOption[]>(() => {
+    const baseOptions: SearchableOption[] = [
+      {
+        value: "ACTIVE",
+        label: "Habilitado (Activo en App)",
+        subtitle: "Visible y disponible para reservas de jugadores",
+        icon: "🟢",
+      },
+      {
+        value: "INACTIVE",
+        label: "Deshabilitado (Inactivo)",
+        subtitle: "Pausado temporalmente para nuevas reservas",
+        icon: "🔴",
+      },
+    ];
+    if (isPlatformStaff) {
+      baseOptions.push({
+        value: "IN_VERIFICATION",
+        label: "En Revisión / Auditoría (YoReservo)",
+        subtitle: "Exclusivo Staff YoReservo · En validación operativa",
+        icon: "⏳",
+      });
+    }
+    return baseOptions;
+  }, [isPlatformStaff]);
+
+  const isLockedInReviewForAlly =
+    !isPlatformStaff && status === "IN_VERIFICATION";
 
   function handleStateChange(newStateId: string) {
     setSelectedStateId(newStateId);
@@ -202,6 +380,49 @@ export function VenueModal({
     const ct = cities.find((c) => c.id === newCityId);
     const firstHood = ct?.children?.[0];
     setSelectedHoodId(firstHood?.id || "");
+  }
+
+  function handlePhoneOperatorChange(index: number, newOp: string) {
+    setPhoneEntries((prev) =>
+      prev.map((item, idx) =>
+        idx === index ? { ...item, operator: newOp } : item
+      )
+    );
+  }
+
+  function handlePhoneNumberChange(index: number, newNum: string) {
+    const digits = onlyDigits(newNum).slice(0, 7);
+    setPhoneEntries((prev) =>
+      prev.map((item, idx) =>
+        idx === index ? { ...item, number: digits } : item
+      )
+    );
+  }
+
+  function handleAddPhone() {
+    setPhoneEntries((prev) => [...prev, { operator: "0412", number: "" }]);
+  }
+
+  function handleRemovePhone(index: number) {
+    setPhoneEntries((prev) =>
+      prev.length > 1 ? prev.filter((_, idx) => idx !== index) : prev
+    );
+  }
+
+  function handleEmailChange(index: number, value: string) {
+    setEmailEntries((prev) =>
+      prev.map((item, idx) => (idx === index ? value : item))
+    );
+  }
+
+  function handleAddEmail() {
+    setEmailEntries((prev) => [...prev, ""]);
+  }
+
+  function handleRemoveEmail(index: number) {
+    setEmailEntries((prev) =>
+      prev.length > 1 ? prev.filter((_, idx) => idx !== index) : [""]
+    );
   }
 
   if (!isOpen) return null;
@@ -223,6 +444,9 @@ export function VenueModal({
       }
     } finally {
       setUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   }
 
@@ -231,19 +455,44 @@ export function VenueModal({
     setLoading(true);
     setErrorMsg(null);
 
-    const chosenLocationId = selectedHoodId || selectedCityId || selectedStateId;
-    const formattedPhone = `${countryCode} ${operator} ${phoneNum}`.trim();
+    const chosenLocationId =
+      selectedHoodId || selectedCityId || selectedStateId;
+
+    const formattedPhones = phoneEntries
+      .map((entry) =>
+        entry.number.trim()
+          ? `+58 ${entry.operator} ${entry.number.trim()}`
+          : ""
+      )
+      .filter(Boolean);
+
+    if (formattedPhones.length === 0) {
+      setLoading(false);
+      setErrorMsg("Debes indicar al menos un número de teléfono de contacto.");
+      return;
+    }
+
+    const formattedEmails = emailEntries
+      .map((em) => em.trim().toLowerCase())
+      .filter(Boolean);
+
+    const formattedRif = rifDigits.trim() ? `J-${rifDigits.trim()}` : "";
 
     if (venue) {
       const updateDto: UpdateVenueInput = {
-        name,
-        rif,
-        address,
-        contactPhone: formattedPhone,
+        name: name.trim(),
+        rif: formattedRif,
+        address: address.trim(),
+        contactPhone: formattedPhones[0],
+        contactPhones: formattedPhones,
+        contactEmail: formattedEmails[0] || "",
+        contactEmails: formattedEmails,
         locationId: chosenLocationId,
-        timezone,
+        timezone: DEFAULT_VENUE_TIMEZONE,
         status,
         imageUrl: imageUrl.trim() || undefined,
+        locationLat,
+        locationLng,
       };
 
       const res = await updateVenueAction(venue.id, updateDto);
@@ -256,14 +505,19 @@ export function VenueModal({
       }
     } else {
       const createDto: CreateVenueInput = {
-        name,
-        rif,
-        address,
-        contactPhone: formattedPhone,
+        name: name.trim(),
+        rif: formattedRif || undefined,
+        address: address.trim(),
+        contactPhone: formattedPhones[0],
+        contactPhones: formattedPhones,
+        contactEmail: formattedEmails[0] || undefined,
+        contactEmails: formattedEmails,
         locationId: chosenLocationId,
-        timezone,
+        timezone: DEFAULT_VENUE_TIMEZONE,
         status,
         imageUrl: imageUrl.trim() || undefined,
+        locationLat,
+        locationLng,
       };
 
       const res = await createVenueAction(createDto);
@@ -277,10 +531,15 @@ export function VenueModal({
     }
   }
 
-  function getLocationName(node: LocationNode): string {
-    if (typeof node.name === "string") return node.name;
-    return node.name?.es || node.name?.en || t("defaultLocationName");
-  }
+  const currentHood = hoods.find((h) => h.id === selectedHoodId);
+  const contextSearchAddress = [
+    currentHood ? getLocationNodeName(currentHood) : "",
+    currentCity ? getLocationNodeName(currentCity) : "",
+    currentState ? getLocationNodeName(currentState) : "",
+    "Venezuela",
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <div
@@ -289,10 +548,11 @@ export function VenueModal({
       onClick={onClose}
     >
       <div
-        className="modal-card flex max-h-[90vh] w-full max-w-[600px] flex-col overflow-hidden rounded-2xl border border-border-medium bg-surface shadow-card"
+        className="modal-card flex max-h-[92vh] w-full max-w-[660px] flex-col overflow-hidden rounded-2xl border border-border-medium bg-surface shadow-card"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-border px-6 py-4.5">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-2.5">
             <span className="text-xl">🏟️</span>
             <h3
@@ -311,14 +571,81 @@ export function VenueModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5">
+        <form
+          onSubmit={handleSubmit}
+          className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-5 space-y-4"
+        >
           {errorMsg && (
-            <div className="mb-4 rounded-lg border border-status-cancelled-border bg-status-cancelled-bg px-3.5 py-2.5 text-[13px] text-status-cancelled-fg">
+            <div className="rounded-xl border border-status-cancelled-border bg-status-cancelled-bg px-3.5 py-2.5 text-[13px] font-semibold text-status-cancelled-fg">
               {errorMsg}
             </div>
           )}
 
-          <div className="form-group mb-3.5">
+          {/* 1. FIRST INPUT: CLICKABLE VENUE PICTURE (No URL text input) */}
+          <div className="form-group">
+            <div className="mb-1.5 flex items-center justify-between">
+              <label className="text-xs font-semibold text-foreground">
+                📷 Foto Principal de la Sede
+              </label>
+              <span className="text-[11px] font-medium text-muted-foreground">
+                Haz clic en la imagen para cambiarla
+              </span>
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={handleImageFileChange}
+              disabled={uploadingImage}
+              id="venue-image-file"
+            />
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingImage}
+              className="group relative flex h-44 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border-medium bg-muted/40 text-center transition-all hover:border-accent"
+            >
+              {imageUrl ? (
+                <>
+                  <img
+                    src={imageUrl}
+                    alt={name || "Foto de la sede"}
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    <span className="rounded-xl bg-surface/95 px-4 py-2 text-xs font-bold text-foreground shadow-md">
+                      {uploadingImage
+                        ? "⏳ Subiendo imagen..."
+                        : "📷 Cambiar foto de la sede"}
+                    </span>
+                  </div>
+                  <div className="absolute bottom-2.5 right-2.5 rounded-lg bg-black/65 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-xs">
+                    ✏️ Clic para editar foto
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center gap-1.5 px-4 py-6">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-accent/20 text-xl">
+                    📷
+                  </div>
+                  <span className="text-xs font-bold text-foreground">
+                    {uploadingImage
+                      ? "⏳ Subiendo imagen..."
+                      : "Haz clic aquí para subir la foto de la sede"}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    Formatos permitidos: JPG, PNG o WEBP
+                  </span>
+                </div>
+              )}
+            </button>
+          </div>
+
+          {/* 2. VENUE NAME */}
+          <div className="form-group">
             <label
               className="form-label mb-1 block text-xs font-semibold text-foreground"
               htmlFor="venue-name-input"
@@ -336,23 +663,48 @@ export function VenueModal({
             />
           </div>
 
-          <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+          {/* 3. RIF (J Disabled Select + Optional Number) & ESTATUS OPERATIVO (Styled + Role-Aware) */}
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+            {/* Optional RIF with disabled J select */}
             <div className="form-group">
-              <label
-                className="form-label mb-1 block text-xs font-semibold text-foreground"
-                htmlFor="venue-rif-input"
-              >
-                {t("rifLabel")}
-              </label>
-              <input
-                type="text"
-                id="venue-rif-input"
-                className="input-field form-input"
-                required
-                value={rif}
-                onChange={(e) => setRif(e.target.value)}
-              />
+              <div className="mb-1 flex items-center justify-between">
+                <label
+                  className="text-xs font-semibold text-foreground"
+                  htmlFor="venue-rif-input"
+                >
+                  RIF de la Sede
+                </label>
+                <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                  Opcional
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <select
+                  id="venue-rif-prefix"
+                  disabled
+                  value="J"
+                  aria-label="Tipo de RIF"
+                  className="h-10 w-[64px] shrink-0 cursor-not-allowed rounded-xl border border-border bg-muted/70 px-2.5 text-xs font-bold text-muted-foreground opacity-90"
+                >
+                  <option value="J">J -</option>
+                </select>
+                <input
+                  type="text"
+                  id="venue-rif-input"
+                  className="h-10 min-w-0 flex-1 rounded-xl border border-border-medium bg-surface px-3 font-mono text-xs font-semibold text-foreground placeholder:font-sans placeholder:font-normal placeholder:text-muted-foreground focus:border-accent focus:outline-none"
+                  placeholder="30000001-1 (o usar el de la Org.)"
+                  value={rifDigits}
+                  onChange={(e) =>
+                    setRifDigits(e.target.value.replace(/[^0-9-]/g, ""))
+                  }
+                />
+              </div>
+              <p className="mt-1 text-[10.5px] text-muted-foreground">
+                Déjalo en blanco si opera bajo el mismo RIF de la organización.
+              </p>
             </div>
+
+            {/* Styled Operational Status */}
             <div className="form-group">
               <label
                 className="form-label mb-1 block text-xs font-semibold text-foreground"
@@ -360,110 +712,251 @@ export function VenueModal({
               >
                 {t("statusLabel")}
               </label>
-              <select
-                id="venue-status-select"
-                className="input-field form-select"
-                value={status}
-                onChange={(e) =>
-                  setStatus(e.target.value as "ACTIVE" | "PENDING_VERIFICATION")
-                }
-              >
-                <option value="ACTIVE">{t("statusOptionActive")}</option>
-                <option value="PENDING_VERIFICATION">{t("statusOptionReview")}</option>
-              </select>
+
+              {isLockedInReviewForAlly ? (
+                <div className="flex h-10 items-center justify-between rounded-xl border border-status-hold-border bg-status-hold-bg px-3 text-xs font-bold text-status-hold-fg">
+                  <span className="flex items-center gap-1.5 truncate">
+                    <span>⏳</span>
+                    <span className="truncate">
+                      En Revisión (YoReservo Staff)
+                    </span>
+                  </span>
+                  <Lock className="size-3.5 shrink-0" />
+                </div>
+              ) : (
+                <SearchableSelect
+                  id="venue-status-select"
+                  options={statusOptions}
+                  value={status}
+                  onChange={(val) => setStatus(val as VenueStatusType)}
+                  placeholder="Seleccionar estatus..."
+                  searchPlaceholder="Buscar estatus..."
+                />
+              )}
+              <p className="mt-1 text-[10.5px] text-muted-foreground">
+                {isPlatformStaff
+                  ? "Como Staff YoReservo puedes gestionar todos los estados."
+                  : "Puedes habilitar o deshabilitar tu sede en cualquier momento."}
+              </p>
             </div>
           </div>
 
-          <div className="form-group mb-3.5">
+          {/* 4. DISABLED TIMEZONE INPUT */}
+          <div className="form-group">
             <label
               className="form-label mb-1 block text-xs font-semibold text-foreground"
-              htmlFor="venue-timezone-select"
+              htmlFor="venue-timezone-input"
             >
               🌎 {t("timezoneLabel")}
             </label>
-            <select
-              id="venue-timezone-select"
-              className="input-field form-select"
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-            >
-              {!COMMON_IANA_TIMEZONES.some((tz) => tz.value === timezone) && (
-                <option value={timezone}>{timezone}</option>
-              )}
-              {COMMON_IANA_TIMEZONES.map((tz) => (
-                <option key={tz.value} value={tz.value}>
-                  {tz.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <input
+                type="text"
+                id="venue-timezone-input"
+                disabled
+                readOnly
+                value="America/Caracas (GMT-4 · Venezuela)"
+                className="h-10 w-full cursor-not-allowed rounded-xl border border-border bg-muted/70 px-3.5 pr-9 text-xs font-semibold text-muted-foreground"
+              />
+              <Lock className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            </div>
           </div>
 
-          {/* CASCADING GEOGRAPHY SELECTOR */}
-          <div className="mb-4 rounded-xl border border-border bg-muted p-4">
+          {/* 5. CONTACT PHONES & EMAILS (BEFORE LOCATION!) */}
+          <div className="rounded-xl border border-border bg-muted/35 p-4 space-y-4">
+            {/* Multiple Contact Phones */}
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                  <Phone className="size-3.5 text-link" />
+                  <span>Teléfonos de Recepción / Mostrador *</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAddPhone}
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-border-medium bg-surface px-2.5 py-1 text-[11px] font-bold text-foreground transition-colors hover:border-accent hover:bg-accent/15"
+                >
+                  <Plus className="size-3" />
+                  <span>Agregar teléfono</span>
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {phoneEntries.map((entry, idx) => (
+                  <div
+                    key={`phone-row-${idx}`}
+                    className="grid grid-cols-12 items-center gap-2"
+                  >
+                    <div className="col-span-3 sm:col-span-3">
+                      <div
+                        className="flex h-10 items-center justify-center rounded-xl border border-border bg-muted/60 px-2 text-xs font-semibold text-muted-foreground select-none"
+                        title="Código de país (Venezuela)"
+                      >
+                        🇻🇪 +58
+                      </div>
+                    </div>
+
+                    <div className="col-span-4 sm:col-span-4">
+                      <SearchableSelect
+                        id={idx === 0 ? "venue-phone-operator" : undefined}
+                        options={PHONE_OPERATOR_OPTIONS}
+                        value={entry.operator}
+                        onChange={(val) => handlePhoneOperatorChange(idx, val)}
+                        placeholder="Operadora"
+                        searchPlaceholder="Ej. 0212, 0414..."
+                      />
+                    </div>
+
+                    <div
+                      className={
+                        phoneEntries.length > 1
+                          ? "col-span-4 sm:col-span-4"
+                          : "col-span-5 sm:col-span-5"
+                      }
+                    >
+                      <input
+                        type="tel"
+                        id={idx === 0 ? "venue-phone-num" : undefined}
+                        inputMode="numeric"
+                        className="h-10 w-full rounded-xl border border-border-medium bg-surface px-3 font-mono text-xs font-semibold text-foreground placeholder:font-sans placeholder:font-normal placeholder:text-muted-foreground focus:border-accent focus:outline-none"
+                        placeholder="1234567"
+                        maxLength={7}
+                        required={idx === 0}
+                        value={entry.number}
+                        onChange={(e) =>
+                          handlePhoneNumberChange(idx, e.target.value)
+                        }
+                      />
+                    </div>
+
+                    {phoneEntries.length > 1 && (
+                      <div className="col-span-1 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePhone(idx)}
+                          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface text-muted-foreground transition-colors hover:border-status-cancelled-border hover:bg-status-cancelled-bg hover:text-status-cancelled-fg"
+                          title="Eliminar teléfono"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Multiple Contact Emails */}
+            <div className="border-t border-border pt-3.5">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                    <Mail className="size-3.5 text-link" />
+                    <span>Correos Electrónicos de Contacto</span>
+                  </label>
+                  <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                    Opcional
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddEmail}
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-border-medium bg-surface px-2.5 py-1 text-[11px] font-bold text-foreground transition-colors hover:border-accent hover:bg-accent/15"
+                >
+                  <Plus className="size-3" />
+                  <span>Agregar correo</span>
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {emailEntries.map((emailVal, idx) => (
+                  <div
+                    key={`email-row-${idx}`}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="email"
+                      id={idx === 0 ? "venue-contact-email" : undefined}
+                      className="h-10 min-w-0 flex-1 rounded-xl border border-border-medium bg-surface px-3 text-xs font-semibold text-foreground placeholder:font-normal placeholder:text-muted-foreground focus:border-accent focus:outline-none"
+                      placeholder={
+                        idx === 0
+                          ? "ej. recepcion@complejodeportivo.com"
+                          : "ej. reservas@complejodeportivo.com"
+                      }
+                      value={emailVal}
+                      onChange={(e) => handleEmailChange(idx, e.target.value)}
+                    />
+                    {(emailEntries.length > 1 || emailVal.trim() !== "") && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveEmail(idx)}
+                        className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface text-muted-foreground transition-colors hover:border-status-cancelled-border hover:bg-status-cancelled-bg hover:text-status-cancelled-fg"
+                        title="Eliminar correo"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 6. CASCADING GEOGRAPHY SELECTOR */}
+          <div className="rounded-xl border border-border bg-muted/40 p-4">
             <div className="mb-2.5 text-[11px] font-bold text-link uppercase">
               🗺️ {t("geoTitle")}
             </div>
 
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2.5">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
               <div>
-                <label className="form-label mb-1 block text-[11px] font-medium text-muted-foreground">
+                <label className="form-label mb-1 block text-[11px] font-semibold text-muted-foreground">
                   {t("state")}
                 </label>
-                <select
+                <SearchableSelect
                   id="geo-state"
-                  className="input-field form-select px-2.5 py-2 text-[12.5px]"
+                  options={stateOptions}
                   value={selectedStateId}
-                  onChange={(e) => handleStateChange(e.target.value)}
-                >
-                  {locationsTree?.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {getLocationName(s)}
-                    </option>
-                  ))}
-                </select>
+                  onChange={handleStateChange}
+                  placeholder="Estado..."
+                  searchPlaceholder="Buscar estado..."
+                />
               </div>
 
               <div>
-                <label className="form-label mb-1 block text-[11px] font-medium text-muted-foreground">
+                <label className="form-label mb-1 block text-[11px] font-semibold text-muted-foreground">
                   {t("city")}
                 </label>
-                <select
+                <SearchableSelect
                   id="geo-city"
-                  className="input-field form-select px-2.5 py-2 text-[12.5px]"
+                  options={cityOptions}
                   value={selectedCityId}
-                  onChange={(e) => handleCityChange(e.target.value)}
-                  disabled={cities.length === 0}
-                >
-                  {cities.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {getLocationName(c)}
-                    </option>
-                  ))}
-                </select>
+                  onChange={handleCityChange}
+                  disabled={cityOptions.length === 0}
+                  placeholder="Ciudad..."
+                  searchPlaceholder="Buscar ciudad..."
+                />
               </div>
 
               <div>
-                <label className="form-label mb-1 block text-[11px] font-medium text-muted-foreground">
+                <label className="form-label mb-1 block text-[11px] font-semibold text-muted-foreground">
                   {t("neighborhood")}
                 </label>
-                <select
+                <SearchableSelect
                   id="geo-hood"
-                  className="input-field form-select px-2.5 py-2 text-[12.5px]"
+                  options={hoodOptions}
                   value={selectedHoodId}
-                  onChange={(e) => setSelectedHoodId(e.target.value)}
-                  disabled={hoods.length === 0}
-                >
-                  {hoods.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      {getLocationName(h)}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setSelectedHoodId}
+                  disabled={hoodOptions.length === 0}
+                  placeholder="Zona / Urb..."
+                  searchPlaceholder="Buscar urbanización..."
+                />
               </div>
             </div>
           </div>
 
-          <div className="form-group mb-3.5">
+          {/* 7. EXACT ADDRESS & INTERACTIVE MAP LOCATION PICKER */}
+          <div className="form-group">
             <label
               className="form-label mb-1 block text-xs font-semibold text-foreground"
               htmlFor="venue-address-input"
@@ -481,95 +974,18 @@ export function VenueModal({
             />
           </div>
 
-          <div className="form-group mb-3.5">
-            <label className="form-label mb-1 block text-xs font-semibold text-foreground">
-              {t("phone")}
-            </label>
-            <div className="flex items-center gap-1.5">
-              <select
-                id="venue-phone-country"
-                className="input-field form-select w-[135px] shrink-0 px-2.5 py-2 text-[12.5px]"
-                value={countryCode}
-                onChange={(e) => setCountryCode(e.target.value)}
-              >
-                <option value="+58">🇻🇪 +58 (VEN)</option>
-                <option value="+1">🇺🇸 +1 (USA)</option>
-                <option value="+34">🇪🇸 +34 (ESP)</option>
-                <option value="+57">🇨🇴 +57 (COL)</option>
-                <option value="+507">🇵🇦 +507 (PAN)</option>
-                <option value="+52">🇲🇽 +52 (MEX)</option>
-              </select>
+          <VenueLocationMapPicker
+            lat={locationLat}
+            lng={locationLng}
+            onChange={({ lat: newLat, lng: newLng }) => {
+              setLocationLat(newLat);
+              setLocationLng(newLng);
+            }}
+            contextAddress={contextSearchAddress}
+          />
 
-              <select
-                id="venue-phone-operator"
-                className="input-field form-select w-[110px] shrink-0 px-2.5 py-2 text-[12.5px]"
-                value={operator}
-                onChange={(e) => setOperator(e.target.value)}
-              >
-                <option value="0212">{t("operatorLandline")}</option>
-                <option value="0412">0412 (Digitel)</option>
-                <option value="0422">0422 (Digitel)</option>
-                <option value="0414">0414 (Movistar)</option>
-                <option value="0424">0424 (Movistar)</option>
-                <option value="0416">0416 (Movilnet)</option>
-                <option value="0426">0426 (Movilnet)</option>
-                <option value="0241">0241 (Valencia)</option>
-              </select>
-
-              <input
-                type="tel"
-                id="venue-phone-num"
-                className="input-field form-input flex-1 text-[13px]"
-                placeholder="1234567"
-                maxLength={8}
-                required
-                value={phoneNum}
-                onChange={(e) => setPhoneNum(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* VENUE PHOTO UPLOAD & URL */}
-          <div className="form-group mb-4">
-            <label
-              className="form-label mb-1 block text-xs font-semibold text-foreground"
-              htmlFor="venue-image-url"
-            >
-              📷 Foto de la Sede (URL o Subir Imagen)
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                id="venue-image-url"
-                className="input-field form-input flex-1 text-xs"
-                placeholder="https://..."
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-              />
-              <label className="btn btn-outline shrink-0 cursor-pointer px-3 py-2 text-xs">
-                <span>{uploadingImage ? "Subiendo..." : "📤 Subir Foto"}</span>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="hidden"
-                  onChange={handleImageFileChange}
-                  disabled={uploadingImage}
-                  id="venue-image-file"
-                />
-              </label>
-            </div>
-            {imageUrl && (
-              <div className="mt-2 overflow-hidden rounded-xl border border-border bg-muted/40 p-1.5">
-                <img
-                  src={imageUrl}
-                  alt={name || "Vista previa de la sede"}
-                  className="h-32 w-full rounded-lg object-cover"
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="mt-6 flex justify-end gap-3">
+          {/* Actions */}
+          <div className="mt-6 flex justify-end gap-3 border-t border-border pt-4">
             <Button
               type="button"
               variant="secondary"

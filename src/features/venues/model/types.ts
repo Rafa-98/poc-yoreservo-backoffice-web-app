@@ -60,6 +60,11 @@ export interface OrganizationData {
   payoutAccountType: string;
   payoutAccountHolder: string;
   payoutIdDocument?: string;
+  payoutPhoneNumber?: string;
+  preferredPayoutMethod?: "BANK_TRANSFER" | "PAGO_MOVIL";
+  payoutPagoMovilBank?: string;
+  payoutPagoMovilIdDocument?: string;
+  payoutPagoMovilHolder?: string;
   commissionRate: number; // e.g. 0.05
   commissionPct?: number; // e.g. 5
   paymentCollectionMode: PaymentCollectionMode;
@@ -98,6 +103,10 @@ export interface CreateOrganizationInput {
   payoutAccountHolder?: string;
   payoutIdDocument?: string;
   payoutPhoneNumber?: string;
+  preferredPayoutMethod?: "BANK_TRANSFER" | "PAGO_MOVIL";
+  payoutPagoMovilBank?: string;
+  payoutPagoMovilIdDocument?: string;
+  payoutPagoMovilHolder?: string;
 }
 
 export interface UpdateOrganizationStatusInput {
@@ -121,6 +130,11 @@ export interface UpdateOrganizationInput {
   payoutAccountType?: string;
   payoutAccountHolder?: string;
   payoutIdDocument?: string;
+  payoutPhoneNumber?: string;
+  preferredPayoutMethod?: "BANK_TRANSFER" | "PAGO_MOVIL";
+  payoutPagoMovilBank?: string;
+  payoutPagoMovilIdDocument?: string;
+  payoutPagoMovilHolder?: string;
   paymentCollectionMode?: PaymentCollectionMode;
   manualCommissionRate?: number;
   minimumMonthlyFee?: number;
@@ -137,6 +151,12 @@ export interface LocationNode {
   children?: LocationNode[];
 }
 
+export type VenueStatusType =
+  | "ACTIVE"
+  | "INACTIVE"
+  | "IN_VERIFICATION"
+  | "PENDING_VERIFICATION";
+
 export interface VenueItem {
   id: string;
   organizationId: string;
@@ -145,9 +165,11 @@ export interface VenueItem {
   rif: string;
   address: string;
   contactPhone: string;
-  contactEmail?: string;
+  contactPhones?: string[];
+  contactEmail?: string | null;
+  contactEmails?: string[];
   timezone?: string;
-  status: "ACTIVE" | "INACTIVE" | "PENDING_VERIFICATION";
+  status: VenueStatusType;
   imageUrl: string | null;
   locationLat: number;
   locationLng: number;
@@ -165,12 +187,15 @@ export interface VenueItem {
 
 export interface CreateVenueInput {
   name: string;
-  rif: string;
+  rif?: string;
   locationId: string;
   address: string;
   contactPhone: string;
+  contactPhones?: string[];
+  contactEmail?: string;
+  contactEmails?: string[];
   timezone?: string;
-  status?: "ACTIVE" | "INACTIVE" | "PENDING_VERIFICATION";
+  status?: VenueStatusType;
   imageUrl?: string;
   locationLat?: number;
   locationLng?: number;
@@ -183,9 +208,14 @@ export interface UpdateVenueInput {
   locationId?: string;
   address?: string;
   contactPhone?: string;
+  contactPhones?: string[];
+  contactEmail?: string;
+  contactEmails?: string[];
   timezone?: string;
-  status?: "ACTIVE" | "INACTIVE" | "PENDING_VERIFICATION";
+  status?: VenueStatusType;
   imageUrl?: string;
+  locationLat?: number;
+  locationLng?: number;
   amenities?: string[];
 }
 
@@ -223,9 +253,13 @@ export interface SpaceItem {
   surfaceType: string | null;
   capacity: number | null;
   isCovered: boolean;
+  amenities?: string[];
   imageUrl?: string | null;
+  images?: string[];
   status: "ENABLED" | "DISABLED";
   activeBookingsCount: number;
+  openDaysCount?: number;
+  weeklyHours?: number;
 }
 
 export interface CreateSpaceInput {
@@ -235,6 +269,8 @@ export interface CreateSpaceInput {
   surfaceType?: string;
   capacity?: number;
   isCovered?: boolean;
+  amenities?: string[];
+  status?: "ENABLED" | "DISABLED";
   imageUrl?: string;
 }
 
@@ -245,6 +281,8 @@ export interface UpdateSpaceInput {
   surfaceType?: string;
   capacity?: number;
   isCovered?: boolean;
+  amenities?: string[];
+  status?: "ENABLED" | "DISABLED";
   imageUrl?: string;
 }
 
@@ -282,4 +320,7 @@ export interface WeeklyScheduleData {
 export interface WeeklySchedulesInput {
   days: DaySchedule[];
   applyToAllVenueSpaces?: boolean;
+  alsoApplyToSameSportInVenue?: boolean;
+  targetSpaceIds?: string[];
+  enableSpace?: boolean;
 }

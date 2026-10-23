@@ -9,6 +9,10 @@ import {
   getSpacesAction,
   getVenuesListAction,
 } from "@/features/venues/actions/venues-actions";
+import {
+  getAmenitiesAction,
+  getSurfacesAction,
+} from "@/features/catalogs/actions/catalogs-actions";
 import { getExchangeRatesAction } from "@/features/treasury/actions/treasury-actions";
 import { SpacesPage } from "@/_pages/venues/spaces-page";
 
@@ -26,15 +30,21 @@ export default async function Page({ searchParams }: PageProps) {
   await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.spaces]);
   const params = await searchParams;
 
-  const [venuesRes, catsRes, orgRes, ratesRes] = await Promise.all([
-    getVenuesListAction(),
-    getCategoriesAction(),
-    getOrganizationAction(),
-    getExchangeRatesAction(),
-  ]);
+  const [venuesRes, catsRes, orgRes, ratesRes, surfacesRes, amenitiesRes] =
+    await Promise.all([
+      getVenuesListAction(),
+      getCategoriesAction(),
+      getOrganizationAction(),
+      getExchangeRatesAction(),
+      getSurfacesAction(),
+      getAmenitiesAction(),
+    ]);
 
   const venues = venuesRes.ok && venuesRes.data ? venuesRes.data : [];
   const categories = catsRes.ok && catsRes.data ? catsRes.data : [];
+  const surfaces = surfacesRes.ok && surfacesRes.data ? surfacesRes.data : [];
+  const amenities =
+    amenitiesRes.ok && amenitiesRes.data ? amenitiesRes.data : [];
   const referenceCurrencyCode =
     orgRes.ok && orgRes.data ? orgRes.data.referenceCurrencyCode : "USD";
   const isEur = referenceCurrencyCode === "EUR";
@@ -56,6 +66,8 @@ export default async function Page({ searchParams }: PageProps) {
       initialVenueId={targetVenueId}
       initialSpaces={spaces}
       categories={categories}
+      surfaces={surfaces}
+      amenities={amenities}
       bcvRate={bcvRate}
       referenceCurrencyCode={referenceCurrencyCode}
     />

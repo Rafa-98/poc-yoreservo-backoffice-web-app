@@ -46,7 +46,9 @@ export interface AmenityItem {
   name: string;
   icon: string;
   description: string;
+  suitedSports?: string[];
   activeVenuesCount?: number;
+  spacesCount?: number;
   status: EntityStatus;
 }
 
@@ -77,4 +79,7 @@ export interface CreateAmenityInput {
   name: string;
   icon: string;
   description: string;
+  suitedSports?: string[];
 }
+
+export type UpdateAmenityInput = Partial<CreateAmenityInput>;

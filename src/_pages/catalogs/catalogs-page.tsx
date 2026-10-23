@@ -47,6 +47,7 @@ export function CatalogsPage({
   const [isSurfaceModalOpen, setIsSurfaceModalOpen] = useState(false);
   const [editingSurface, setEditingSurface] = useState<SurfaceItem | null>(null);
   const [isAmenityModalOpen, setIsAmenityModalOpen] = useState(false);
+  const [editingAmenity, setEditingAmenity] = useState<AmenityItem | null>(null);
 
   async function refreshTaxonomy() {
     const res = await getTaxonomyAction();
@@ -123,7 +124,14 @@ export function CatalogsPage({
         {activeTab === "amenities" && (
           <AmenitiesGrid
             amenities={amenities}
-            onAddAmenity={() => setIsAmenityModalOpen(true)}
+            onAddAmenity={() => {
+              setEditingAmenity(null);
+              setIsAmenityModalOpen(true);
+            }}
+            onEditAmenity={(amenity) => {
+              setEditingAmenity(amenity);
+              setIsAmenityModalOpen(true);
+            }}
           />
         )}
       </main>
@@ -172,9 +180,14 @@ export function CatalogsPage({
 
       <AmenityModal
         isOpen={isAmenityModalOpen}
-        onClose={() => setIsAmenityModalOpen(false)}
+        initialData={editingAmenity}
+        onClose={() => {
+          setIsAmenityModalOpen(false);
+          setEditingAmenity(null);
+        }}
         onSuccess={() => {
           setIsAmenityModalOpen(false);
+          setEditingAmenity(null);
           refreshAmenities();
         }}
       />

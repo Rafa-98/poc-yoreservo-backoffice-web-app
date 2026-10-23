@@ -1,94 +1,111 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { useTimeFormat } from "@/shared/lib/time-format";
+import { Eye, Pencil } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import type { UserItem, UserRole } from "../model/types";
 
 interface UsersTableProps {
   users: UserItem[];
-  venues: Array<{ id: string; name: string }>;
-  activeVenueId?: string;
+  onViewDetails: (user: UserItem) => void;
   onEditUser: (user: UserItem) => void;
-  onResetPassword: (user: UserItem) => void;
-  onInviteClick: () => void;
 }
 
 export function UsersTable({
   users,
-  venues,
-  activeVenueId,
+  onViewDetails,
   onEditUser,
-  onResetPassword,
-  onInviteClick,
 }: UsersTableProps) {
   const t = useTranslations("users");
-  const { formatTime } = useTimeFormat();
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRole, setSelectedRole] = useState<string>("all");
-  const [selectedVenue, setSelectedVenue] = useState<string>(
-    activeVenueId && activeVenueId !== "ALL" ? activeVenueId : "all"
-  );
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const topRef = useRef<HTMLDivElement | null>(null);
+
+  function handlePageChange(nextPage: number) {
+    setCurrentPage(nextPage);
+    if (topRef.current) {
+      topRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    if (typeof document !== "undefined") {
+      const mainEl = document.querySelector("main");
+      if (mainEl) {
+        mainEl.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
+  const totalItems = users.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   useEffect(() => {
-    if (!activeVenueId) return;
-    setSelectedVenue(activeVenueId === "ALL" ? "all" : activeVenueId);
-  }, [activeVenueId]);
+    setCurrentPage(1);
+  }, [users, pageSize]);
 
-  const filteredUsers = users.filter((u) => {
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      const matchName = u.name.toLowerCase().includes(term);
-      const matchEmail = u.email.toLowerCase().includes(term);
-      const matchDni = u.dni.toLowerCase().includes(term);
-      if (!matchName && !matchEmail && !matchDni) return false;
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedUsers = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return users.slice(start, start + pageSize);
+  }, [users, safeCurrentPage, pageSize]);
+
+  const startIndex = totalItems === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1;
+  const endIndex = Math.min(safeCurrentPage * pageSize, totalItems);
+
+  const pageNumbers = useMemo(() => {
+    const pages: number[] = [];
+    const maxButtons = 5;
+    let startPage = Math.max(1, safeCurrentPage - Math.floor(maxButtons / 2));
+    const endPage = Math.min(totalPages, startPage + maxButtons - 1);
+    if (endPage - startPage + 1 < maxButtons) {
+      startPage = Math.max(1, endPage - maxButtons + 1);
     }
-    if (selectedRole !== "all" && u.role !== selectedRole) {
-      return false;
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
     }
-    if (selectedVenue !== "all") {
-      if (selectedVenue === "org-all" && u.venueId) return false;
-      if (selectedVenue !== "org-all" && u.venueId !== selectedVenue) return false;
-    }
-    if (selectedStatus !== "all" && u.status !== selectedStatus) {
-      return false;
-    }
-    return true;
-  });
+    return pages;
+  }, [safeCurrentPage, totalPages]);
 
   function getRoleBadge(role: UserRole) {
     switch (role) {
       case "PLATFORM_ADMIN":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
-            👑 PLATFORM_ADMIN
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30">
+            <span>👑</span>
+            <span>{t("roles.PLATFORM_ADMIN")}</span>
           </span>
         );
       case "PLATFORM_ACCOUNTING":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">
-            💳 PLATFORM_ACCOUNTING
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+            <span>💳</span>
+            <span>{t("roles.PLATFORM_ACCOUNTING")}</span>
           </span>
         );
       case "ALLY_ADMIN":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-accent/20 text-foreground border border-accent/40">
-            🏢 ALLY_ADMIN
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-accent/20 text-foreground border border-accent/40">
+            <span>🏢</span>
+            <span>{t("roles.ALLY_ADMIN")}</span>
           </span>
         );
       case "ALLY_ACCOUNTING":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-500 border border-amber-500/30">
-            📊 ALLY_ACCOUNTING
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+            <span>📊</span>
+            <span>{t("roles.ALLY_ACCOUNTING")}</span>
           </span>
         );
       case "ALLY_VALIDATOR":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
-            🎟️ ALLY_VALIDATOR
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30">
+            <span>🎟️</span>
+            <span>{t("roles.ALLY_VALIDATOR")}</span>
           </span>
         );
       default:
@@ -103,7 +120,7 @@ export function UsersTable({
   function getStatusBadge(status: string) {
     if (status === "ACTIVE") {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
           <span className="size-1.5 rounded-full bg-emerald-500" />
           {t("filters.active")}
         </span>
@@ -111,14 +128,14 @@ export function UsersTable({
     }
     if (status === "INVITATION_PENDING") {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-500 border border-amber-500/30">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
           <span className="size-1.5 rounded-full bg-amber-500" />
           {t("filters.pending")}
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-500 border border-rose-500/30">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
         <span className="size-1.5 rounded-full bg-rose-500" />
         {t("filters.inactive")}
       </span>
@@ -126,183 +143,128 @@ export function UsersTable({
   }
 
   function getAvatarInitials(name: string) {
-    const parts = name.trim().split(" ");
+    const cleaned = name.replace(/\s*\([^)]*\)\s*/g, "").trim() || name;
+    const parts = cleaned.split(/\s+/).filter(Boolean);
     if (parts.length >= 2) {
       return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
-    return name.substring(0, 2).toUpperCase();
+    return cleaned.substring(0, 2).toUpperCase();
   }
 
   return (
-    <div className="space-y-4">
-      {/* FILTER TOOLBAR */}
-      <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex flex-wrap gap-3 flex-1 min-w-[300px]">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder={t("filters.searchPlaceholder")}
-            className="form-input max-w-xs"
-          />
-
-          <select
-            value={selectedRole}
-            onChange={(e) => setSelectedRole(e.target.value)}
-            className="form-select w-auto min-w-[160px]"
-          >
-            <option value="all">{t("filters.allRoles")}</option>
-            <option value="PLATFORM_ADMIN">{t("simulator.admin")}</option>
-            <option value="PLATFORM_ACCOUNTING">{t("simulator.accounting")}</option>
-            <option value="ALLY_ADMIN">{t("simulator.ally")}</option>
-            <option value="ALLY_ACCOUNTING">{t("simulator.allyAccounting")}</option>
-            <option value="ALLY_VALIDATOR">{t("simulator.validator")}</option>
-          </select>
-
-          <select
-            value={selectedVenue}
-            onChange={(e) => setSelectedVenue(e.target.value)}
-            className="form-select w-auto min-w-[180px]"
-          >
-            <option value="all">{t("filters.allScopes")}</option>
-            <option value="org-all">{t("filters.allOrg")}</option>
-            {venues.map((v) => (
-              <option key={v.id} value={v.id}>
-                📍 {v.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="form-select w-auto min-w-[150px]"
-          >
-            <option value="all">{t("filters.allStatus")}</option>
-            <option value="ACTIVE">{t("filters.active")}</option>
-            <option value="INVITATION_PENDING">{t("filters.pending")}</option>
-            <option value="INACTIVE">{t("filters.inactive")}</option>
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {(searchTerm || selectedRole !== "all" || selectedVenue !== "all" || selectedStatus !== "all") && (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setSearchTerm("");
-                setSelectedRole("all");
-                setSelectedVenue("all");
-                setSelectedStatus("all");
-              }}
-            >
-              🔄 {t("filters.clearFilters")}
-            </Button>
-          )}
-
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={onInviteClick}
-            id="btn-toolbar-invite"
-          >
-            + {t("btnInviteUser")}
-          </Button>
-        </div>
-      </div>
-
-      {/* DATA TABLE */}
-      <div className="overflow-x-auto rounded-2xl border border-border bg-surface shadow-sm">
+    <div
+      ref={topRef}
+      className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
+    >
+      <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="bg-muted text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border">
+          <thead className="bg-muted/60 text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border">
             <tr>
               <th className="px-5 py-3.5">{t("table.thUser")}</th>
-              <th className="px-5 py-3.5">{t("table.thContact")}</th>
               <th className="px-5 py-3.5">{t("table.thRole")}</th>
               <th className="px-5 py-3.5">{t("table.thScope")}</th>
               <th className="px-5 py-3.5">{t("table.thStatus")}</th>
-              <th className="px-5 py-3.5">{t("table.thLastSession")}</th>
               <th className="px-5 py-3.5 text-right">{t("table.thActions")}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
-            {filteredUsers.length === 0 ? (
+          <tbody className="divide-y divide-border text-xs">
+            {paginatedUsers.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-muted-foreground">
+                <td
+                  colSpan={5}
+                  className="px-5 py-12 text-center text-muted-foreground"
+                >
                   {t("table.empty")}
                 </td>
               </tr>
             ) : (
-              filteredUsers.map((u) => {
+              paginatedUsers.map((u) => {
                 const initials = getAvatarInitials(u.name);
                 const isOnline = u.status === "ACTIVE" && u.activeSessions > 0;
+                const isValidatorRole = u.role === "ALLY_VALIDATOR";
+                const isPlatformRole =
+                  u.role === "PLATFORM_ADMIN" ||
+                  u.role === "PLATFORM_ACCOUNTING";
+
+                const scopePrimary = isPlatformRole
+                  ? `🌐 ${t("filters.globalScope")}`
+                  : isValidatorRole &&
+                      u.venueName &&
+                      u.venueName !== "Toda la Organización"
+                    ? `📍 ${u.venueName}`
+                    : `🏢 ${t("filters.allOrg")}`;
+
+                const scopeSecondary = isPlatformRole
+                  ? t("table.globalPlatform")
+                  : isValidatorRole
+                    ? t("table.specificVenue")
+                    : t("table.entireOrg");
+
                 return (
-                  <tr key={u.id} className="transition-colors hover:bg-muted/40">
-                    {/* User & DNI */}
-                    <td className="px-5 py-4">
+                  <tr
+                    key={u.id}
+                    className="transition-colors hover:bg-muted/40"
+                  >
+                    {/* 1. Colaborador (Avatar + Name + Email) */}
+                    <td className="px-5 py-3.5 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <div className="relative flex size-9 items-center justify-center rounded-full bg-muted border border-border font-bold text-xs text-foreground">
+                        <div className="relative flex size-9 shrink-0 items-center justify-center rounded-full bg-muted border border-border font-bold text-xs text-foreground">
                           {initials}
                           <span
                             className={`absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-surface ${
                               isOnline
                                 ? "bg-emerald-500"
                                 : u.status === "INVITATION_PENDING"
-                                ? "bg-amber-500"
-                                : "bg-zinc-400"
+                                  ? "bg-amber-500"
+                                  : "bg-zinc-400"
                             }`}
                           />
                         </div>
-                        <div>
-                          <div className="font-bold text-foreground">{u.name}</div>
-                          <div className="text-xs text-muted-foreground">{u.dni}</div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-foreground text-sm truncate">
+                            {u.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {u.email}
+                          </div>
                         </div>
                       </div>
                     </td>
 
-                    {/* Contact & WhatsApp */}
-                    <td className="px-5 py-4">
-                      <div className="text-xs text-foreground">{u.email}</div>
-                      {u.phone && (
-                        <a
-                          href={`https://wa.me/${u.phone.replace(/[^0-9]/g, "")}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-emerald-500 hover:underline mt-0.5"
+                    {/* 2. Rol Asignado (Friendly Name) */}
+                    <td className="px-5 py-3.5 whitespace-nowrap">
+                      {getRoleBadge(u.role)}
+                    </td>
+
+                    {/* 3. Ámbito / Sede */}
+                    <td className="px-5 py-3.5 whitespace-nowrap">
+                      <div className="font-semibold text-foreground">
+                        {scopePrimary}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
+                        {scopeSecondary}
+                      </div>
+                    </td>
+
+                    {/* 4. Estado */}
+                    <td className="px-5 py-3.5 whitespace-nowrap">
+                      {getStatusBadge(u.status)}
+                    </td>
+
+                    {/* 5. Acciones (Detalles + Editar) */}
+                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                      <div className="inline-flex items-center justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => onViewDetails(u)}
+                          className="h-8 px-2.5 text-xs"
+                          id={`btn-details-user-${u.id}`}
                         >
-                          <span>💬</span>
-                          <span>{u.phone}</span>
-                        </a>
-                      )}
-                    </td>
-
-                    {/* Role */}
-                    <td className="px-5 py-4">{getRoleBadge(u.role)}</td>
-
-                    {/* Scope */}
-                    <td className="px-5 py-4">
-                      <div className="text-xs font-semibold text-foreground">
-                        {u.venueName || t("filters.allOrg")}
-                      </div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {u.scopeType === "VENUE" ? t("table.specificVenue") : t("table.entireOrg")}
-                      </div>
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-5 py-4">{getStatusBadge(u.status)}</td>
-
-                    {/* Last Session */}
-                    <td className="px-5 py-4 text-xs text-muted-foreground">
-                      {formatTime(u.lastSession)}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                          <Eye className="size-3.5" />
+                          <span>{t("table.btnDetails")}</span>
+                        </Button>
                         <Button
                           type="button"
                           variant="secondary"
@@ -311,20 +273,9 @@ export function UsersTable({
                           className="h-8 px-2.5 text-xs"
                           id={`btn-edit-user-${u.id}`}
                         >
-                          ✏️ {t("table.btnEdit")}
+                          <Pencil className="size-3.5" />
+                          <span>{t("table.btnEdit")}</span>
                         </Button>
-                        {!u.isInvitation && (
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => onResetPassword(u)}
-                            className="h-8 px-2.5 text-xs"
-                            id={`btn-reset-user-${u.id}`}
-                          >
-                            🔑 {t("table.btnReset")}
-                          </Button>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -333,6 +284,73 @@ export function UsersTable({
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* PAGINATION FOOTER */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border bg-muted/30 px-5 py-3 text-xs">
+        <div className="flex flex-wrap items-center gap-3 text-muted-foreground">
+          <span>
+            {t("table.showing")}{" "}
+            <strong className="text-foreground">{startIndex}</strong>–
+            <strong className="text-foreground">{endIndex}</strong>{" "}
+            {t("table.of")}{" "}
+            <strong className="text-foreground">{totalItems}</strong>{" "}
+            {totalItems === 1
+              ? t("table.staffUnitSingular")
+              : t("table.staffUnitPlural")}
+          </span>
+
+          <div className="flex items-center gap-1.5">
+            <span>{t("table.rowsPerPage")}</span>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="rounded-lg border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground focus:border-accent focus:outline-none cursor-pointer"
+              aria-label={t("table.rowsPerPage")}
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            disabled={safeCurrentPage <= 1}
+            onClick={() => handlePageChange(Math.max(1, safeCurrentPage - 1))}
+            className="rounded-lg border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+          >
+            {t("table.prevPage")}
+          </button>
+
+          {pageNumbers.map((pageNum) => (
+            <button
+              key={pageNum}
+              type="button"
+              onClick={() => handlePageChange(pageNum)}
+              className={`min-w-[30px] rounded-lg border px-2 py-1 text-xs font-bold transition-all cursor-pointer ${
+                pageNum === safeCurrentPage
+                  ? "border-accent bg-accent text-accent-foreground shadow-xs"
+                  : "border-border bg-surface text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              {pageNum}
+            </button>
+          ))}
+
+          <button
+            type="button"
+            disabled={safeCurrentPage >= totalPages}
+            onClick={() =>
+              handlePageChange(Math.min(totalPages, safeCurrentPage + 1))
+            }
+            className="rounded-lg border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+          >
+            {t("table.nextPage")}
+          </button>
+        </div>
       </div>
     </div>
   );

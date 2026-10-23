@@ -164,6 +164,34 @@ function mapOrganizationData(raw: any): OrganizationData {
     payoutAccountType: String(raw?.payoutAccountType ?? "Corriente"),
     payoutAccountHolder: String(raw?.payoutAccountHolder ?? ""),
     payoutIdDocument: raw?.payoutIdDocument ? String(raw.payoutIdDocument) : undefined,
+    payoutPhoneNumber: raw?.payoutPhoneNumber
+      ? String(raw.payoutPhoneNumber)
+      : raw?.pagoMovilPhone
+      ? String(raw.pagoMovilPhone)
+      : undefined,
+    preferredPayoutMethod:
+      raw?.preferredPayoutMethod === "PAGO_MOVIL"
+        ? "PAGO_MOVIL"
+        : "BANK_TRANSFER",
+    payoutPagoMovilBank: raw?.payoutPagoMovilBank
+      ? String(raw.payoutPagoMovilBank)
+      : raw?.payoutBank
+      ? String(raw.payoutBank)
+      : undefined,
+    payoutPagoMovilIdDocument: raw?.payoutPagoMovilIdDocument
+      ? String(raw.payoutPagoMovilIdDocument)
+      : raw?.payoutIdDocument
+      ? String(raw.payoutIdDocument)
+      : raw?.rif
+      ? String(raw.rif)
+      : undefined,
+    payoutPagoMovilHolder: raw?.payoutPagoMovilHolder
+      ? String(raw.payoutPagoMovilHolder)
+      : raw?.payoutAccountHolder
+      ? String(raw.payoutAccountHolder)
+      : raw?.legalName
+      ? String(raw.legalName)
+      : undefined,
     commissionRate,
     commissionPct,
     paymentCollectionMode:
@@ -510,6 +538,36 @@ export async function updateVenueAction(
 // SPACES ACTIONS
 // =============================================================================
 
+function mapSpaceItem(raw: any): SpaceItem {
+  return {
+    ...raw,
+    id: String(raw?.id ?? ""),
+    venueId: String(raw?.venueId ?? ""),
+    venueName: raw?.venueName
+      ? String(raw.venueName)
+      : raw?.venue?.name
+      ? String(raw.venue.name)
+      : undefined,
+    spaceNumber: String(raw?.spaceNumber ?? ""),
+    activityCategoryId: String(raw?.activityCategoryId ?? ""),
+    activityCategory: raw?.activityCategory,
+    pricePerHour: Number(raw?.pricePerHour ?? 0),
+    currencyCode: String(raw?.currencyCode ?? "USD"),
+    surfaceType: raw?.surfaceType ?? null,
+    capacity: raw?.capacity != null ? Number(raw.capacity) : null,
+    isCovered: Boolean(raw?.isCovered),
+    amenities: Array.isArray(raw?.amenities) ? raw.amenities.map(String) : [],
+    status: raw?.status === "DISABLED" ? "DISABLED" : "ENABLED",
+    imageUrl: raw?.imageUrl ?? null,
+    images: Array.isArray(raw?.images) ? raw.images : undefined,
+    activeBookingsCount: Number(raw?.activeBookingsCount ?? 0),
+    openDaysCount:
+      raw?.openDaysCount != null ? Number(raw.openDaysCount) : undefined,
+    weeklyHours:
+      raw?.weeklyHours != null ? Number(raw.weeklyHours) : undefined,
+  };
+}
+
 export async function getSpacesAction(
   venueId?: string
 ): Promise<ActionResult<SpaceItem[]>> {
@@ -532,7 +590,8 @@ export async function getSpacesAction(
       return fail("FAILED_TO_LOAD_SPACES");
     }
 
-    return ok((res.body as SpaceItem[]) ?? []);
+    const list = Array.isArray(res.body) ? res.body : [];
+    return ok(list.map(mapSpaceItem));
   } catch (error) {
     return fail(error instanceof Error ? error.message : "UNKNOWN_ERROR");
   }
@@ -557,7 +616,7 @@ export async function createSpaceAction(
 
     revalidatePath(ROUTES.spaces);
     revalidatePath(ROUTES.schedules);
-    return ok(res.body as SpaceItem);
+    return ok(mapSpaceItem(res.body));
   } catch (error) {
     return fail(error instanceof Error ? error.message : "UNKNOWN_ERROR");
   }
@@ -581,7 +640,7 @@ export async function updateSpaceAction(
 
     revalidatePath(ROUTES.spaces);
     revalidatePath(ROUTES.schedules);
-    return ok(res.body as SpaceItem);
+    return ok(mapSpaceItem(res.body));
   } catch (error) {
     return fail(error instanceof Error ? error.message : "UNKNOWN_ERROR");
   }
@@ -654,10 +713,12 @@ export async function updateSpaceSchedulesAction(
     });
 
     if (!res.ok) {
-      return fail("FAILED_TO_UPDATE_SCHEDULES");
+      const msg = (res.body as any)?.message || "FAILED_TO_UPDATE_SCHEDULES";
+      return fail(Array.isArray(msg) ? msg.join(", ") : String(msg));
     }
 
     revalidatePath(ROUTES.schedules);
+    revalidatePath(ROUTES.spaces);
     return ok(res.body);
   } catch (error) {
     return fail(error instanceof Error ? error.message : "UNKNOWN_ERROR");

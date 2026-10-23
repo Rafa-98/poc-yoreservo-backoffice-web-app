@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.venues]);
+  const session = await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.venues]);
 
   const [venuesRes, locsRes] = await Promise.all([
     getVenuesListAction(),
@@ -29,6 +29,7 @@ export default async function Page() {
     <VenuesPage
       initialVenues={venues}
       locationsTree={locationsTree}
+      userRole={session.user.role}
     />
   );
 }

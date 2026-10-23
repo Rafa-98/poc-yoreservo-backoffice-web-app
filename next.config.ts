@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
     agentFeedback: true,
+    agentUpgrade: "security",
+    serverActions: {
+      bodySizeLimit: "15mb",
+    },
   },
   // `cacheComponents` / `partialPrefetching` (enabled by create-next-app) are OFF on purpose:
   // the locale comes from a cookie read in the root layout (next-intl, no URL prefix) and the
@@ -37,6 +41,12 @@ const nextConfig: NextConfig = {
         protocol: assetsUrl.protocol === "https:" ? "https" : "http",
         hostname: assetsUrl.hostname,
         port: assetsUrl.port,
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "4000",
         pathname: "/**",
       },
     ],

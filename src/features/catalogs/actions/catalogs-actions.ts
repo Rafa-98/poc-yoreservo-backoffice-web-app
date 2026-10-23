@@ -14,11 +14,20 @@ import type {
   CreateCategoryInput,
   CreateSurfaceInput,
   SurfaceItem,
+  UpdateAmenityInput,
   UpdateSurfaceInput,
 } from "../model/types";
 
+const CATALOG_READ_ROLES = [
+  "PLATFORM_ADMIN",
+  "PLATFORM_ACCOUNTING",
+  "ALLY_ADMIN",
+  "ALLY_ACCOUNTING",
+  "ALLY_VALIDATOR",
+] as const;
+
 export async function getTaxonomyAction(): Promise<ActionResult<ActivityTypeItem[]>> {
-  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
+  const { accessToken } = await requireSessionWithToken([...CATALOG_READ_ROLES]);
   try {
     const res = await backendRequest("/backoffice/catalogs/taxonomy", {
       method: "GET",
@@ -38,7 +47,7 @@ export async function getTaxonomyAction(): Promise<ActionResult<ActivityTypeItem
 export async function createActivityAction(
   input: CreateActivityInput
 ): Promise<ActionResult<ActivityItem>> {
-  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN"]);
   try {
     const res = await backendRequest("/backoffice/catalogs/activities", {
       method: "POST",
@@ -60,7 +69,7 @@ export async function createActivityAction(
 export async function createCategoryAction(
   input: CreateCategoryInput
 ): Promise<ActionResult<ActivityCategoryItem>> {
-  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN"]);
   try {
     const res = await backendRequest("/backoffice/catalogs/categories", {
       method: "POST",
@@ -80,7 +89,7 @@ export async function createCategoryAction(
 }
 
 export async function getSurfacesAction(): Promise<ActionResult<SurfaceItem[]>> {
-  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
+  const { accessToken } = await requireSessionWithToken([...CATALOG_READ_ROLES]);
   try {
     const res = await backendRequest("/backoffice/catalogs/surfaces", {
       method: "GET",
@@ -100,7 +109,7 @@ export async function getSurfacesAction(): Promise<ActionResult<SurfaceItem[]>> 
 export async function createSurfaceAction(
   input: CreateSurfaceInput
 ): Promise<ActionResult<SurfaceItem>> {
-  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN"]);
   try {
     const res = await backendRequest("/backoffice/catalogs/surfaces", {
       method: "POST",
@@ -113,6 +122,7 @@ export async function createSurfaceAction(
     }
 
     revalidatePath("/catalogs");
+    revalidatePath("/venues/spaces");
     return ok(res.body as SurfaceItem);
   } catch (err: any) {
     return fail(err instanceof Error ? err.message : "SURFACE_CREATE_FAILED");
@@ -123,7 +133,7 @@ export async function updateSurfaceAction(
   id: string,
   input: UpdateSurfaceInput
 ): Promise<ActionResult<SurfaceItem>> {
-  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN"]);
   try {
     const res = await backendRequest(`/backoffice/catalogs/surfaces/${id}`, {
       method: "PATCH",
@@ -136,6 +146,7 @@ export async function updateSurfaceAction(
     }
 
     revalidatePath("/catalogs");
+    revalidatePath("/venues/spaces");
     return ok(res.body as SurfaceItem);
   } catch (err: any) {
     return fail(err instanceof Error ? err.message : "SURFACE_UPDATE_FAILED");
@@ -143,7 +154,7 @@ export async function updateSurfaceAction(
 }
 
 export async function getAmenitiesAction(): Promise<ActionResult<AmenityItem[]>> {
-  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
+  const { accessToken } = await requireSessionWithToken([...CATALOG_READ_ROLES]);
   try {
     const res = await backendRequest("/backoffice/catalogs/amenities", {
       method: "GET",
@@ -163,7 +174,7 @@ export async function getAmenitiesAction(): Promise<ActionResult<AmenityItem[]>>
 export async function createAmenityAction(
   input: CreateAmenityInput
 ): Promise<ActionResult<AmenityItem>> {
-  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN"]);
   try {
     const res = await backendRequest("/backoffice/catalogs/amenities", {
       method: "POST",
@@ -176,8 +187,33 @@ export async function createAmenityAction(
     }
 
     revalidatePath("/catalogs");
+    revalidatePath("/venues/spaces");
     return ok(res.body as AmenityItem);
   } catch (err: any) {
     return fail(err instanceof Error ? err.message : "AMENITY_CREATE_FAILED");
+  }
+}
+
+export async function updateAmenityAction(
+  id: string,
+  input: UpdateAmenityInput
+): Promise<ActionResult<AmenityItem>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN"]);
+  try {
+    const res = await backendRequest(`/backoffice/catalogs/amenities/${id}`, {
+      method: "PATCH",
+      accessToken,
+      body: input,
+    });
+
+    if (!res.ok) {
+      return fail("AMENITY_UPDATE_FAILED");
+    }
+
+    revalidatePath("/catalogs");
+    revalidatePath("/venues/spaces");
+    return ok(res.body as AmenityItem);
+  } catch (err: any) {
+    return fail(err instanceof Error ? err.message : "AMENITY_UPDATE_FAILED");
   }
 }

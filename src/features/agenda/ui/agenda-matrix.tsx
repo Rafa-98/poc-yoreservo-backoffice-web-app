@@ -78,7 +78,7 @@ export function AgendaMatrix({
                     <span>{categoryName}</span>
                     <span className="mx-1.5">•</span>
                     <span className="font-semibold text-link">
-                      ${space.pricePerHour.toFixed(2)}/h
+                      ${Number(space.pricePerHour || 0).toFixed(2)}/h
                     </span>
                   </div>
                 </div>
@@ -231,7 +231,7 @@ export function AgendaMatrix({
                           <span>{t("slotAvailable")}</span>
                         </div>
                         <div className="text-[10px] font-medium text-status-available-fg/80">
-                          ${space.pricePerHour.toFixed(2)}
+                          ${Number(space.pricePerHour || 0).toFixed(2)}
                         </div>
                       </div>
                     );

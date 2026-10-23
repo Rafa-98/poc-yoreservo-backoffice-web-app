@@ -33,14 +33,23 @@ export function VenueHeaderSelector() {
   const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const isHiddenOnCurrentPage = Boolean(
+    pathname === ROUTES.venues ||
+      pathname?.startsWith(ROUTES.organization) ||
+      pathname?.startsWith(ROUTES.spaces) ||
+      pathname?.startsWith(ROUTES.schedules) ||
+      pathname?.startsWith(ROUTES.reservations),
+  );
+
   const isGlobalPageLocked = Boolean(
     pathname?.startsWith(ROUTES.settlements) ||
       pathname?.startsWith(ROUTES.exchangeRate) ||
-      pathname?.startsWith(ROUTES.organization),
+      pathname?.startsWith(ROUTES.organization) ||
+      pathname === ROUTES.venues,
   );
   const isSelectorLocked = isManagedLocked || isGlobalPageLocked;
 
-  // Automatically force "Todas las sedes" ("ALL") when visiting global treasury pages
+  // Automatically force "Todas las sedes" ("ALL") when visiting global treasury or venues directory pages
   useEffect(() => {
     if (isGlobalPageLocked) {
       setIsOpen(false);
@@ -82,6 +91,10 @@ export function VenueHeaderSelector() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen]);
+
+  if (isHiddenOnCurrentPage) {
+    return null;
+  }
 
   function getVenueLocationLabel(venue: (typeof venues)[number]): string {
     const loc = venue.location;
@@ -133,7 +146,7 @@ export function VenueHeaderSelector() {
         aria-label={t("venueSelectorTitle")}
         id="header-venue-selector-trigger"
       >
-        <div className="flex size-5 shrink-0 items-center justify-center rounded-md bg-accent/20 text-accent-foreground">
+        <div className="flex size-5 shrink-0 items-center justify-center rounded-md bg-accent/20 text-foreground">
           {isSelectorLocked ? (
             <Lock className="size-3" />
           ) : isAllSelected ? (
@@ -156,7 +169,7 @@ export function VenueHeaderSelector() {
           </span>
 
           {(isGlobalPageLocked || isAllSelected) && venues.length > 0 && (
-            <span className="hidden sm:inline-flex items-center rounded-full bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold text-accent-foreground">
+            <span className="hidden sm:inline-flex items-center rounded-full bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold text-foreground">
               {venues.length}
             </span>
           )}
@@ -191,7 +204,7 @@ export function VenueHeaderSelector() {
                 <Sparkles className="size-3.5 text-accent" />
                 <span>{t("venueSelectorTitle")}</span>
               </div>
-              <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-bold text-accent-foreground">
+              <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-bold text-foreground">
                 {venues.length}
               </span>
             </div>
@@ -233,7 +246,7 @@ export function VenueHeaderSelector() {
                 }}
                 className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs transition-colors ${
                   isAllSelected
-                    ? "bg-accent/15 font-bold text-accent-foreground border border-accent/30"
+                    ? "bg-accent/15 font-bold text-foreground border border-accent/30"
                     : "text-foreground hover:bg-muted/70"
                 }`}
                 role="option"
@@ -281,7 +294,7 @@ export function VenueHeaderSelector() {
                     }}
                     className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs transition-colors ${
                       isSelected
-                        ? "bg-accent/15 font-bold text-accent-foreground border border-accent/30"
+                        ? "bg-accent/15 font-bold text-foreground border border-accent/30"
                         : "text-foreground hover:bg-muted/70"
                     }`}
                     role="option"

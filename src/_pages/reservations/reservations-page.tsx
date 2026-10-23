@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { BackofficeRole } from "@/shared/config";
 import { Button } from "@/shared/ui/button";
@@ -11,19 +12,21 @@ import { ReservationDetailDrawer } from "@/features/reservations/ui/reservation-
 import { WalkInModal } from "@/features/reservations/ui/walk-in-modal";
 import { CancelBookingModal } from "@/features/reservations/ui/cancel-booking-modal";
 import { getReservationsAction } from "@/features/reservations/actions/reservations-actions";
-import type {
-  ReservationFilter,
-  ReservationItem,
-  ReservationKpis,
+import {
+  getCurrentWeekBounds,
+  resolveReservationDateRange,
+  type ReservationFilter,
+  type ReservationItem,
+  type ReservationKpis,
 } from "@/features/reservations/model/types";
 
 import { useActiveVenue } from "@/features/venues/context/venue-context";
-import { addDaysToIsoDate, todayInTimezone } from "@/shared/lib";
+import { todayInTimezone } from "@/shared/lib";
 
 interface ReservationsPageProps {
   initialReservations: ReservationItem[];
   initialKpis: ReservationKpis;
-  venues: Array<{ id: string; name: string; referenceCurrencyCode?: string }>;
+  venues: Array<{ id: string; name: string; referenceCurrencyCode?: string; spacesCount?: number }>;
   spaces: Array<{ id: string; name: string; venueId: string; pricePerHour: number }>;
   bcvRate: number;
   bcvEurRate?: number;
@@ -42,30 +45,64 @@ export function ReservationsPage({
   userRole,
 }: ReservationsPageProps) {
   const t = useTranslations("reservations");
-  const { activeVenueId } = useActiveVenue();
   const isValidator = userRole === "ALLY_VALIDATOR";
   const effectiveEurRate = bcvEurRate ?? bcvRate;
 
   const [reservations, setReservations] = useState<ReservationItem[]>(initialReservations);
+  const [isReloading, setIsReloading] = useState(false);
+
+  const todayIso = todayInTimezone("America/Caracas");
+  const defaultWeekBounds = useMemo(() => getCurrentWeekBounds(todayIso), [todayIso]);
 
   const [filter, setFilter] = useState<ReservationFilter>({
-    dateFilter: "all",
-    venueId: activeVenueId && activeVenueId !== "ALL" ? activeVenueId : "all",
+    dateFilter: "week",
+    customFromDate: defaultWeekBounds.fromDate,
+    customToDate: defaultWeekBounds.toDate,
+    venueId: "all",
     sport: "all",
     paymentMethod: "all",
     status: "all",
     search: "",
   });
 
-  // Sync with global header venue changes
-  React.useEffect(() => {
-    if (activeVenueId) {
-      setFilter((prev) => ({
-        ...prev,
-        venueId: activeVenueId === "ALL" ? "all" : activeVenueId,
-      }));
+  const activeRange = useMemo(
+    () =>
+      resolveReservationDateRange(
+        filter.dateFilter || "week",
+        todayIso,
+        filter.customFromDate,
+        filter.customToDate,
+      ),
+    [filter.dateFilter, filter.customFromDate, filter.customToDate, todayIso],
+  );
+
+  // Re-fetch from backend when the active date range changes
+  const isFirstMount = useRef(true);
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
     }
-  }, [activeVenueId]);
+    let active = true;
+    setIsReloading(true);
+    getReservationsAction({
+      fromDate: activeRange.fromDate,
+      toDate: activeRange.toDate,
+    })
+      .then((res) => {
+        if (!active) return;
+        if (res.ok && res.data) {
+          setReservations(res.data.items);
+        }
+      })
+      .finally(() => {
+        if (active) setIsReloading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [activeRange.fromDate, activeRange.toDate]);
 
   // Modals and Drawer state
   const [selectedForDrawer, setSelectedForDrawer] = useState<ReservationItem | null>(null);
@@ -111,34 +148,26 @@ export function ReservationsPage({
 
       // 5. Status
       if (filter.status && filter.status !== "all") {
-        if (res.status !== filter.status) return false;
+        if (filter.status === "PENDING_PAYMENT") {
+          if (
+            res.status !== "PENDING_PAYMENT" &&
+            (res.status as string) !== "PAYMENT_UNDER_REVIEW"
+          ) {
+            return false;
+          }
+        } else if (res.status !== filter.status) {
+          return false;
+        }
       }
 
       // 6. Date Filter
-      if (filter.dateFilter && filter.dateFilter !== "all") {
-        const today = todayInTimezone("America/Caracas");
-        const tomorrow = addDaysToIsoDate(today, 1);
-
-        if (filter.dateFilter === "today" && res.date !== today) return false;
-        if (filter.dateFilter === "tomorrow" && res.date !== tomorrow) return false;
-        if (filter.dateFilter === "week") {
-          const [ty, tm, td] = today.split("-").map(Number);
-          const todayUtc = new Date(Date.UTC(ty, tm - 1, td));
-          const day = todayUtc.getUTCDay();
-          const diffToMon = (day + 6) % 7;
-          const weekStart = addDaysToIsoDate(today, -diffToMon);
-          const weekEnd = addDaysToIsoDate(weekStart, 6);
-          if (res.date < weekStart || res.date > weekEnd) return false;
-        }
-        if (filter.dateFilter === "month") {
-          const currentYearMonth = today.slice(0, 7);
-          if (!res.date.startsWith(currentYearMonth)) return false;
-        }
+      if (res.date < activeRange.fromDate || res.date > activeRange.toDate) {
+        return false;
       }
 
       return true;
     });
-  }, [reservations, filter]);
+  }, [reservations, filter, activeRange]);
 
   // Determine active currency code (USD, EUR, or MIXED) based on selected venue / organization
   const activeCurrencyCode = useMemo(() => {
@@ -206,9 +235,21 @@ export function ReservationsPage({
   }, [displayedReservations, initialKpis.confirmedGrowthPct, activeCurrencyCode]);
 
   async function refreshReservations() {
-    const res = await getReservationsAction();
-    if (res.ok && res.data) {
-      setReservations(res.data.items);
+    setIsReloading(true);
+    try {
+      const res = await getReservationsAction({
+        fromDate: activeRange.fromDate,
+        toDate: activeRange.toDate,
+      });
+      if (res.ok && res.data) {
+        setReservations(res.data.items);
+        setSelectedForDrawer((prev) => {
+          if (!prev) return null;
+          return res.data.items.find((i) => i.id === prev.id) ?? prev;
+        });
+      }
+    } finally {
+      setIsReloading(false);
     }
   }
 
@@ -273,13 +314,23 @@ export function ReservationsPage({
       {/* TOP HEADER */}
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-surface px-6 py-5">
         <div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <h1 className="font-display text-2xl font-bold text-foreground">
               {t("title")}
             </h1>
-            <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-bold text-emerald-400">
-              {t("badge")}
-            </span>
+            <button
+              type="button"
+              onClick={() => refreshReservations()}
+              disabled={isReloading}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-muted/60 hover:bg-muted hover:border-border-strong px-3 py-1 text-xs font-bold text-foreground transition-all cursor-pointer disabled:opacity-60"
+              id="btn-reload-reservations"
+              title={t("btnReload")}
+            >
+              <RefreshCw
+                className={`size-3.5 text-link ${isReloading ? "animate-spin" : ""}`}
+              />
+              <span>{isReloading ? t("reloading") : t("btnReload")}</span>
+            </button>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {t("subtitle")}
@@ -328,8 +379,10 @@ export function ReservationsPage({
           onChangeFilter={(upd) => setFilter((prev) => ({ ...prev, ...upd }))}
           onResetFilter={() =>
             setFilter({
-              dateFilter: "all",
-              venueId: activeVenueId && activeVenueId !== "ALL" ? activeVenueId : "all",
+              dateFilter: "week",
+              customFromDate: defaultWeekBounds.fromDate,
+              customToDate: defaultWeekBounds.toDate,
+              venueId: "all",
               sport: "all",
               paymentMethod: "all",
               status: "all",
@@ -337,6 +390,7 @@ export function ReservationsPage({
             })
           }
           venues={venues}
+          totalSpacesCount={spaces.length}
           sports={sports}
           bcvRate={bcvRate}
           bcvEurRate={effectiveEurRate}
@@ -358,10 +412,7 @@ export function ReservationsPage({
         isOpen={!!selectedForDrawer}
         reservation={selectedForDrawer}
         onClose={() => setSelectedForDrawer(null)}
-        onRefresh={() => {
-          refreshReservations();
-          setSelectedForDrawer(null);
-        }}
+        onRefresh={refreshReservations}
         onOpenCancel={(res) => {
           setSelectedForDrawer(null);
           setSelectedForCancel(res);
@@ -376,9 +427,23 @@ export function ReservationsPage({
           onClose={() => setIsWalkInOpen(false)}
           venues={venues}
           spaces={spaces}
-          onSuccess={() => {
-            refreshReservations();
+          onSuccess={(createdDate) => {
             setIsWalkInOpen(false);
+            if (
+              createdDate &&
+              (createdDate < activeRange.fromDate || createdDate > activeRange.toDate)
+            ) {
+              setFilter((prev) => ({
+                ...prev,
+                dateFilter: "custom",
+                customFromDate:
+                  createdDate < activeRange.fromDate ? createdDate : activeRange.fromDate,
+                customToDate:
+                  createdDate > activeRange.toDate ? createdDate : activeRange.toDate,
+              }));
+            } else {
+              refreshReservations();
+            }
           }}
         />
       )}

@@ -3,8 +3,13 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/shared/auth/index.server";
 import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
-import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE } from "@/shared/lib";
+import {
+  DEFAULT_BCV_EUR_RATE,
+  DEFAULT_BCV_USD_RATE,
+  todayInTimezone,
+} from "@/shared/lib";
 import { getReservationsAction } from "@/features/reservations/actions/reservations-actions";
+import { getCurrentWeekBounds } from "@/features/reservations/model/types";
 import {
   getSpacesAction,
   getVenuesListAction,
@@ -22,9 +27,14 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Page() {
   const session = await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.reservations]);
+  const todayIso = todayInTimezone("America/Caracas");
+  const weekBounds = getCurrentWeekBounds(todayIso);
 
   const [resRes, venuesRes, ratesRes, spacesRes] = await Promise.all([
-    getReservationsAction(),
+    getReservationsAction({
+      fromDate: weekBounds.fromDate,
+      toDate: weekBounds.toDate,
+    }),
     getVenuesListAction(),
     getExchangeRatesAction(),
     getSpacesAction("ALL"),
@@ -75,6 +85,9 @@ export default async function Page() {
     id: v.id,
     name: v.name,
     referenceCurrencyCode: v.referenceCurrencyCode || referenceCurrencyCode,
+    spacesCount:
+      v.spacesCount ??
+      rawSpaces.filter((sp) => sp.venueId === v.id).length,
   }));
 
   return (

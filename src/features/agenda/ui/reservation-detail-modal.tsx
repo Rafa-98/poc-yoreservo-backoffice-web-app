@@ -105,7 +105,7 @@ export function ReservationDetailModal({
             {/* Player */}
             <div className="rounded-xl border border-border bg-background p-3 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-accent/20 text-accent-foreground font-bold">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-accent/20 text-foreground font-bold">
                   <User className="size-4" />
                 </div>
                 <div>
