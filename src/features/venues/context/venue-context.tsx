@@ -6,7 +6,6 @@ import {
   useContext,
   useEffect,
   useState,
-  useTransition,
   type ReactNode,
 } from "react";
 import type { SessionUser } from "@/shared/auth";
@@ -44,25 +43,29 @@ function setCookie(name: string, value: string, days = 365): void {
 export interface VenueProviderProps {
   user: SessionUser;
   initialVenues?: VenueItem[];
+  initialActiveVenueId?: string;
   children: ReactNode;
 }
 
 export function VenueProvider({
   user,
   initialVenues = [],
+  initialActiveVenueId,
   children,
 }: VenueProviderProps) {
   const [venues, setVenues] = useState<VenueItem[]>(initialVenues);
-  const [isLoading, setIsLoading] = useState(initialVenues.length === 0);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const isPending = false;
 
   const isManagedLocked =
     user.role === "ALLY_VALIDATOR" && Boolean(user.managedVenueId);
 
-  // Initialize active venue ID deterministically for SSR hydration parity
+  // Initialize active venue ID deterministically from SSR cookie/lock for hydration parity
   const [activeVenueId, setActiveVenueIdState] = useState<string>(
-    isManagedLocked && user.managedVenueId ? user.managedVenueId : "ALL",
+    isManagedLocked && user.managedVenueId
+      ? user.managedVenueId
+      : initialActiveVenueId || "ALL",
   );
 
   const fetchVenues = useCallback(async () => {
@@ -83,40 +86,25 @@ export function VenueProvider({
   }, []);
 
   useEffect(() => {
-    if (initialVenues.length === 0) {
-      fetchVenues();
+    if (initialVenues.length > 0) {
+      setVenues(initialVenues);
     }
-  }, [fetchVenues, initialVenues.length]);
-
-  // Restore saved venue cookie or sync locked venue after hydration
-  useEffect(() => {
-    if (isManagedLocked && user.managedVenueId) {
-      setActiveVenueIdState(user.managedVenueId);
-      setCookie(COOKIE_NAME, user.managedVenueId);
-      return;
-    }
-    const savedCookie = getCookie(COOKIE_NAME);
-    if (savedCookie) {
-      setActiveVenueIdState(savedCookie);
-    }
-  }, [isManagedLocked, user.managedVenueId]);
+  }, [initialVenues]);
 
   const setActiveVenueId = useCallback(
     (newVenueId: string) => {
       if (isManagedLocked && user.managedVenueId) {
         return; // Locked for validator
       }
-      startTransition(() => {
-        setActiveVenueIdState(newVenueId);
-        setCookie(COOKIE_NAME, newVenueId);
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(
-            new CustomEvent("yoreservo:venue-change", {
-              detail: { venueId: newVenueId },
-            })
-          );
-        }
-      });
+      setActiveVenueIdState(newVenueId);
+      setCookie(COOKIE_NAME, newVenueId);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("yoreservo:venue-change", {
+            detail: { venueId: newVenueId },
+          })
+        );
+      }
     },
     [isManagedLocked, user.managedVenueId]
   );

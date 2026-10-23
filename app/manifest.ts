@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "YR BackOffice",
     description:
       "Centro de control operativo, agenda multi-cancha y tesorería BCV para aliados y administradores de YoReservo.",
-    start_url: "/dashboard",
+    start_url: "/agenda",
     scope: "/",
     display: "standalone",
     orientation: "any",
@@ -37,13 +37,6 @@ export default function manifest(): MetadataRoute.Manifest {
       },
     ],
     shortcuts: [
-      {
-        name: "Panel Ejecutivo",
-        short_name: "Dashboard",
-        description: "Resumen ejecutivo de ocupación, ingresos y conciliación",
-        url: "/dashboard",
-        icons: [{ src: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" }],
-      },
       {
         name: "Agenda Multi-Cancha",
         short_name: "Agenda",

@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
+import { cookies } from "next/headers";
 import { requireSession } from "@/shared/auth/index.server";
 import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
 import { getPaymentsInboxAction } from "@/features/treasury/actions/treasury-actions";
+import { getVenuesListAction } from "@/features/venues/actions/venues-actions";
+import type { VenueItem } from "@/features/venues/model/types";
 import { AuthenticatedLayout } from "@/_app/layouts";
 import { SidebarBadgeProvider } from "@/_app/layouts/app-sidebar";
 
@@ -11,6 +14,33 @@ export default async function BackofficeRootLayout({
   children: ReactNode;
 }) {
   const session = await requireSession();
+  const cookieStore = await cookies();
+  const savedVenueCookie = cookieStore.get("yoreservo_active_venue")?.value;
+
+  const isManagedLocked =
+    session.user.role === "ALLY_VALIDATOR" && Boolean(session.user.managedVenueId);
+  const initialActiveVenueId =
+    isManagedLocked && session.user.managedVenueId
+      ? session.user.managedVenueId
+      : savedVenueCookie || "ALL";
+
+  let initialVenues: VenueItem[] = [];
+  if (
+    session.user.role === "PLATFORM_ADMIN" ||
+    session.user.role === "PLATFORM_ACCOUNTING" ||
+    session.user.role === "ALLY_ADMIN" ||
+    session.user.role === "ALLY_ACCOUNTING" ||
+    session.user.role === "ALLY_VALIDATOR"
+  ) {
+    try {
+      const venuesRes = await getVenuesListAction();
+      if (venuesRes.ok && Array.isArray(venuesRes.data)) {
+        initialVenues = venuesRes.data;
+      }
+    } catch {
+      initialVenues = [];
+    }
+  }
 
   let pendingPaymentsCount = 0;
   if (ROUTE_ALLOWED_ROLES[ROUTES.paymentsInbox].includes(session.user.role)) {
@@ -27,6 +57,10 @@ export default async function BackofficeRootLayout({
 
       const res = await getPaymentsInboxAction({
         status: "PENDING",
+        venueId:
+          initialActiveVenueId && initialActiveVenueId !== "ALL"
+            ? initialActiveVenueId
+            : undefined,
         fromDate: fromDateIso,
         toDate: todayIso,
       });
@@ -42,7 +76,11 @@ export default async function BackofficeRootLayout({
 
   return (
     <SidebarBadgeProvider pendingPaymentsCount={pendingPaymentsCount}>
-      <AuthenticatedLayout user={session.user}>
+      <AuthenticatedLayout
+        user={session.user}
+        initialVenues={initialVenues}
+        initialActiveVenueId={initialActiveVenueId}
+      >
         {children}
       </AuthenticatedLayout>
     </SidebarBadgeProvider>

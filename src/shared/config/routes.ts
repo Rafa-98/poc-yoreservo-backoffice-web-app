@@ -150,16 +150,13 @@ export const ROUTE_ALLOWED_ROLES: Record<string, readonly BackofficeRole[]> = {
 /** Default landing route after sign-in or unauthorized redirect based on the staff role. */
 export function getDefaultRouteForRole(role?: BackofficeRole | string | null): AppRoute {
   const normalized = normalizeBackofficeRole(role);
-  if (normalized === "ALLY_VALIDATOR") {
-    return ROUTES.agenda;
-  }
   if (
     normalized === "ALLY_ACCOUNTING" ||
     normalized === "PLATFORM_ACCOUNTING"
   ) {
     return ROUTES.paymentsInbox;
   }
-  return ROUTES.dashboard;
+  return ROUTES.agenda;
 }
 
 /** Returns true if the given backoffice role is permitted to access `pathname`. */

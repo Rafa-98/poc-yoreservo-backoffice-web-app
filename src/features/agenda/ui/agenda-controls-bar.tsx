@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Clock, Moon, Sun, Sunrise } from "lucide-react";
 import {
   addDaysToIsoDate,
   DEFAULT_VENUE_TIMEZONE,
@@ -11,11 +12,15 @@ import {
   todayInTimezone,
 } from "@/shared/lib";
 
+export type AgendaDayPart = "all" | "morning" | "afternoon" | "night";
+
 export interface AgendaControlsBarProps {
   selectedDate: string;
   onDateChange: (date: string) => void;
   selectedSport: string;
   onSportChange: (sport: string) => void;
+  selectedDayPart: AgendaDayPart;
+  onDayPartChange: (dayPart: AgendaDayPart) => void;
   sportsList: { key: string; label: string; count: number }[];
   totalCourtsCount: number;
   venueTimezone?: string;
@@ -26,6 +31,8 @@ export function AgendaControlsBar({
   onDateChange,
   selectedSport,
   onSportChange,
+  selectedDayPart,
+  onDayPartChange,
   sportsList,
   totalCourtsCount,
   venueTimezone = DEFAULT_VENUE_TIMEZONE,
@@ -160,37 +167,94 @@ export function AgendaControlsBar({
         </div>
       </div>
 
-      {/* Sport Category Filter Tabs */}
-      <div className="flex flex-wrap items-center gap-1.5 border-t border-border pt-3">
-        <button
-          type="button"
-          onClick={() => onSportChange("all")}
-          className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
-            selectedSport === "all"
-              ? "bg-primary text-primary-foreground shadow-xs"
-              : "border border-border bg-background text-muted-foreground hover:border-border-medium hover:text-foreground"
-          }`}
-        >
-          {t("filterAll")} ({totalCourtsCount})
-        </button>
+      {/* Sport Category Filter Tabs & Day-Part Toggles */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => onSportChange("all")}
+            className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
+              selectedSport === "all"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "border border-border bg-background text-muted-foreground hover:border-border-medium hover:text-foreground"
+            }`}
+          >
+            {t("filterAll")} ({totalCourtsCount})
+          </button>
 
-        {sportsList.map((sport) => {
-          const isActive = selectedSport === sport.key;
-          return (
-            <button
-              key={sport.key}
-              type="button"
-              onClick={() => onSportChange(sport.key)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "border border-border bg-background text-muted-foreground hover:border-border-medium hover:text-foreground"
-              }`}
-            >
-              {sport.label} ({sport.count})
-            </button>
-          );
-        })}
+          {sportsList.map((sport) => {
+            const isActive = selectedSport === sport.key;
+            return (
+              <button
+                key={sport.key}
+                type="button"
+                onClick={() => onSportChange(sport.key)}
+                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "border border-border bg-background text-muted-foreground hover:border-border-medium hover:text-foreground"
+                }`}
+              >
+                {sport.label} ({sport.count})
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Time-of-Day Filter Toggles */}
+        <div
+          id="agenda-daypart-toggles"
+          className="inline-flex flex-wrap items-center rounded-xl border border-border bg-background p-1 text-xs font-semibold"
+        >
+          <button
+            type="button"
+            onClick={() => onDayPartChange("all")}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all ${
+              selectedDayPart === "all"
+                ? "bg-accent text-accent-foreground font-bold shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Clock className="size-3.5" />
+            <span>{t("dayPartAll")}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onDayPartChange("morning")}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all ${
+              selectedDayPart === "morning"
+                ? "bg-accent text-accent-foreground font-bold shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Sunrise className="size-3.5" />
+            <span>{t("dayPartMorning")}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onDayPartChange("afternoon")}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all ${
+              selectedDayPart === "afternoon"
+                ? "bg-accent text-accent-foreground font-bold shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Sun className="size-3.5" />
+            <span>{t("dayPartAfternoon")}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onDayPartChange("night")}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all ${
+              selectedDayPart === "night"
+                ? "bg-accent text-accent-foreground font-bold shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Moon className="size-3.5" />
+            <span>{t("dayPartNight")}</span>
+          </button>
+        </div>
       </div>
     </section>
   );

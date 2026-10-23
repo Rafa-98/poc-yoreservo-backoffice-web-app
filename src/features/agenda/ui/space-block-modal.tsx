@@ -17,6 +17,7 @@ export interface SpaceBlockModalProps {
   court: CourtSpace | null;
   selectedDate: string;
   startTime: string;
+  endTime?: string;
   existingBlock?: CourtBlock | null;
   onRefresh: () => void;
 }
@@ -27,6 +28,7 @@ export function SpaceBlockModal({
   court,
   selectedDate,
   startTime,
+  endTime: initialEndTime,
   existingBlock,
   onRefresh,
 }: SpaceBlockModalProps) {
@@ -41,7 +43,10 @@ export function SpaceBlockModal({
 
   const effectiveDate = selectedDate || todayInTimezone("America/Caracas");
   const [h] = startTime.split(":").map(Number);
-  const endTime = `${String(h + 1).padStart(2, "0")}:00`;
+  const endTime =
+    existingBlock?.endTime ||
+    initialEndTime ||
+    `${String(h + 1).padStart(2, "0")}:00`;
 
   const handleCreateBlock = async (e: React.FormEvent) => {
     e.preventDefault();

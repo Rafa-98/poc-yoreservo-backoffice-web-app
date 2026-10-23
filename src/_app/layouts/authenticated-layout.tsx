@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { SessionUser } from "@/shared/auth";
 import { TimeFormatProvider } from "@/shared/lib";
 import { VenueProvider } from "@/features/venues/context/venue-context";
+import type { VenueItem } from "@/features/venues/model/types";
 import { AppHeader } from "./app-header";
 import { AppSidebar } from "./app-sidebar";
 
@@ -11,11 +12,15 @@ const SIDEBAR_PINNED_STORAGE_KEY = "yoreservo:sidebar-pinned-v2";
 
 export interface AuthenticatedLayoutProps {
   user: SessionUser;
+  initialVenues?: VenueItem[];
+  initialActiveVenueId?: string;
   children: ReactNode;
 }
 
 export function AuthenticatedLayout({
   user,
+  initialVenues = [],
+  initialActiveVenueId,
   children,
 }: AuthenticatedLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -48,7 +53,11 @@ export function AuthenticatedLayout({
 
   return (
     <TimeFormatProvider>
-      <VenueProvider user={user}>
+      <VenueProvider
+        user={user}
+        initialVenues={initialVenues}
+        initialActiveVenueId={initialActiveVenueId}
+      >
         <div className="relative flex h-screen w-full overflow-hidden bg-background">
           {/* Dynamic RBAC Sidebar */}
           <AppSidebar

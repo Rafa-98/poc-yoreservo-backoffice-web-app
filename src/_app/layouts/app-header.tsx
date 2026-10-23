@@ -9,8 +9,6 @@ import {
   Loader2,
   LogOut,
   Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
   QrCode,
   Shield,
   User,
@@ -23,7 +21,6 @@ import { LanguageSwitcher } from "@/shared/ui/language-switcher";
 import { PwaInstallMenuItem } from "@/shared/ui/pwa-register";
 import { TimeFormatToggle } from "@/shared/lib";
 import { logoutAction } from "@/features/auth/actions/logout-action";
-import { VenueHeaderSelector } from "@/features/venues/ui/venue-header-selector";
 
 export interface AppHeaderProps {
   user: SessionUser;
@@ -36,8 +33,6 @@ export interface AppHeaderProps {
 export function AppHeader({
   user,
   onToggleSidebar,
-  isSidebarPinned = false,
-  onToggleSidebarPinned,
 }: AppHeaderProps) {
   const t = useTranslations("shell");
   const pathname = usePathname();
@@ -106,7 +101,7 @@ export function AppHeader({
 
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between gap-4 border-b border-border bg-surface/95 px-4 sm:px-6 backdrop-blur-md">
-      {/* LEFT SECTION: Mobile/Desktop Sidebar Toggle & Active Venue Context */}
+      {/* LEFT SECTION: Mobile Hamburger (mobile only) + Operational Quick Actions ("Check-in QR" & "Nueva Reserva") */}
       <div className="flex min-w-0 items-center gap-3">
         {/* Mobile Hamburger */}
         <button
@@ -118,31 +113,6 @@ export function AppHeader({
           <Menu className="size-5" />
         </button>
 
-        {/* Desktop Sidebar Collapse / Keep Open Toggle */}
-        {onToggleSidebarPinned && (
-          <button
-            type="button"
-            id="header-sidebar-toggle"
-            onClick={onToggleSidebarPinned}
-            title={isSidebarPinned ? t("collapseMenu") : t("keepMenuOpen")}
-            aria-label={isSidebarPinned ? t("collapseMenu") : t("keepMenuOpen")}
-            className="hidden lg:inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-foreground hover:bg-muted transition-colors cursor-pointer"
-          >
-            {isSidebarPinned ? (
-              <PanelLeftClose className="size-4 text-muted-foreground" />
-            ) : (
-              <PanelLeftOpen className="size-4 text-accent-foreground dark:text-accent" />
-            )}
-          </button>
-        )}
-
-        {/* Interactive Multi-Branch Venue Selector */}
-        <VenueHeaderSelector />
-      </div>
-
-      {/* RIGHT SECTION: Grouped Quick Actions, Preferences & User Profile */}
-      <div className="flex shrink-0 items-center gap-2.5 sm:gap-3.5">
-        {/* CLUSTER 1: Operational Quick Actions */}
         {canOperateBookings && (
           <div className="flex items-center gap-2">
             <Link
@@ -153,7 +123,7 @@ export function AppHeader({
                   window.dispatchEvent(new CustomEvent("yoreservo:open-checkin-qr"));
                 }
               }}
-              className="hidden sm:inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-surface px-3 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted active:scale-95 transition-all"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-surface px-3 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted active:scale-95 transition-all"
             >
               <QrCode className="size-3.5 text-muted-foreground shrink-0" />
               <span>{t("btnScanQr")}</span>
@@ -171,18 +141,15 @@ export function AppHeader({
                 className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-accent px-3.5 text-xs font-bold text-accent-foreground shadow-2xs hover:brightness-105 active:scale-95 transition-all"
               >
                 <CalendarPlus className="size-3.5 shrink-0" />
-                <span className="hidden sm:inline">{t("btnNewWalkin")}</span>
+                <span>{t("btnNewWalkin")}</span>
               </Link>
             )}
           </div>
         )}
+      </div>
 
-        {/* DIVIDER */}
-        <div
-          aria-hidden="true"
-          className="hidden md:block h-5 w-px bg-border"
-        />
-
+      {/* RIGHT SECTION: Preferences & User Profile */}
+      <div className="flex shrink-0 items-center gap-2.5 sm:gap-3.5">
         {/* CLUSTER 2: Display & Locale Preferences */}
         <div className="hidden md:flex items-center gap-1.5">
           <TimeFormatToggle />

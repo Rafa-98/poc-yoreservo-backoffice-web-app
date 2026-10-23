@@ -23,6 +23,7 @@ import { PaymentsTable } from "@/features/treasury/ui/payments-table";
 import { VoucherDrawer } from "@/features/treasury/ui/voucher-drawer";
 import { PaymentRejectModal } from "@/features/treasury/ui/payment-reject-modal";
 import { useActiveVenue } from "@/features/venues/context/venue-context";
+import { VenueInlineCombobox } from "@/features/venues/ui/venue-inline-combobox";
 import { useSidebarBadge } from "@/_app/layouts/app-sidebar";
 import type { BackofficeRole } from "@/shared/config";
 
@@ -407,6 +408,11 @@ export function PaymentsInboxPage({
 
   return (
     <div className="payments-inbox-container pb-10">
+      {/* VENUE SELECTOR BAR */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 pb-1">
+        <VenueInlineCombobox id="payments-venue-selector" />
+      </div>
+
       {/* 3-CARD KPI STRIP (Reactive to Sede, Date Range, Custody Tab & Payment Method Tab) */}
       <PaymentsKpiStrip kpis={dynamicKpis} />
 

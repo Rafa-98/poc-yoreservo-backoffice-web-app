@@ -81,9 +81,16 @@ export async function proxy(request: NextRequest) {
 
   const defaultLandingRoute = getDefaultRouteForRole(userRole);
 
-  // Root redirect
-  if (pathname === ROUTES.root) {
-    const targetUrl = new URL(isAuthenticated ? defaultLandingRoute : ROUTES.login, request.url);
+  // Root or legacy /dashboard redirect
+  if (
+    pathname === ROUTES.root ||
+    pathname === ROUTES.dashboard ||
+    pathname.startsWith(`${ROUTES.dashboard}/`)
+  ) {
+    const targetUrl = new URL(
+      isAuthenticated ? defaultLandingRoute : ROUTES.login,
+      request.url,
+    );
     return withCookieChange(NextResponse.redirect(targetUrl), change);
   }
 

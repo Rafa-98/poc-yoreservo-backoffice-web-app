@@ -118,7 +118,7 @@ export function LoginForm() {
     // Success! Redirect to target route
     const nextRoute = sanitizeRedirectPath(
       searchParams.get(REDIRECT_QUERY_KEY),
-      result.data.redirectTo ?? ROUTES.dashboard,
+      result.data.redirectTo ?? ROUTES.agenda,
     );
     router.push(nextRoute);
     router.refresh();

@@ -51,7 +51,7 @@ export function ExecutiveDashboardPage({
   const [pendingCheckIns, setPendingCheckIns] = useState<number>(
     initialData.allyKpis?.pendingCheckInCount ?? 0
   );
-  const isFirstRender = useRef(true);
+  const prevFiltersRef = useRef({ timeframe, activeVenueId });
 
   const handleRefreshStream = async () => {
     setIsRefreshingStream(true);
@@ -71,12 +71,13 @@ export function ExecutiveDashboardPage({
   };
 
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      if (timeframe === "MES" && (!activeVenueId || activeVenueId === "ALL")) {
-        return;
-      }
+    if (
+      prevFiltersRef.current.timeframe === timeframe &&
+      prevFiltersRef.current.activeVenueId === activeVenueId
+    ) {
+      return;
     }
+    prevFiltersRef.current = { timeframe, activeVenueId };
 
     let cancelled = false;
     getDashboardSummaryAction({

@@ -6,7 +6,7 @@ import { GUEST_ONLY_ROUTES, ROUTES } from "@/shared/config";
  */
 export function sanitizeRedirectPath(
   value: string | string[] | null | undefined,
-  fallback: string = ROUTES.dashboard,
+  fallback: string = ROUTES.agenda,
 ): string {
   const candidate = Array.isArray(value) ? value[0] : value;
 
@@ -14,9 +14,13 @@ export function sanitizeRedirectPath(
   if (!candidate.startsWith("/")) return fallback;
   if (candidate.startsWith("//") || candidate.includes("\\")) return fallback;
 
-  // Never bounce the user back to a guest-only screen after authenticating.
+  // Never bounce the user back to a guest-only screen or removed /dashboard route after authenticating.
   const [pathname] = candidate.split(/[?#]/);
-  if (pathname === ROUTES.root || GUEST_ONLY_ROUTES.includes(pathname)) {
+  if (
+    pathname === ROUTES.root ||
+    pathname === ROUTES.dashboard ||
+    GUEST_ONLY_ROUTES.includes(pathname)
+  ) {
     return fallback;
   }
 

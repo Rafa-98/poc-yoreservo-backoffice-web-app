@@ -21,7 +21,6 @@ import {
   CreditCard,
   Landmark,
   Layers,
-  LayoutDashboard,
   LifeBuoy,
   Loader2,
   LogOut,
@@ -107,20 +106,6 @@ interface NavSectionDef {
 }
 
 const NAV_SECTIONS: readonly NavSectionDef[] = [
-  {
-    titleKey: "navOverview",
-    items: [
-      {
-        labelKey: "navDashboard",
-        href: ROUTES.dashboard,
-        icon: <LayoutDashboard className="size-4" />,
-        roles: [
-          "PLATFORM_ADMIN",
-          "ALLY_ADMIN",
-        ],
-      },
-    ],
-  },
   {
     titleKey: "navOps",
     items: [
@@ -279,11 +264,18 @@ export function AppSidebar({
   // Effective desktop expanded state: open if pinned OR if currently hovered while collapsed
   const isExpanded = isPinned || isHovered;
 
+  const prevVenueIdRef = useRef<string | undefined>(activeVenueId);
+
   useEffect(() => {
+    // Only re-fetch badge when activeVenueId actually changes (not on every route navigation)
+    if (prevVenueIdRef.current === activeVenueId) {
+      return;
+    }
+    prevVenueIdRef.current = activeVenueId;
+
     if (!ROUTE_ALLOWED_ROLES[ROUTES.paymentsInbox].includes(user.role)) {
       return;
     }
-    // On /treasury/payments, PaymentsInboxPage manages the badge directly with its active filters
     if (pathname === ROUTES.paymentsInbox) {
       return;
     }

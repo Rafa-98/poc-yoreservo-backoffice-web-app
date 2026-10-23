@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Calendar, QrCode, RefreshCw } from "lucide-react";
-import { AgendaControlsBar } from "@/features/agenda/ui/agenda-controls-bar";
+import {
+  AgendaControlsBar,
+  type AgendaDayPart,
+} from "@/features/agenda/ui/agenda-controls-bar";
 import { AgendaKpiStrip } from "@/features/agenda/ui/agenda-kpi-strip";
-import { AgendaMatrix } from "@/features/agenda/ui/agenda-matrix";
+import {
+  AgendaMatrix,
+  type AgendaSelectedRange,
+} from "@/features/agenda/ui/agenda-matrix";
 import { WalkInDrawer } from "@/features/agenda/ui/walk-in-drawer";
 import { ExpressCheckInModal } from "@/features/agenda/ui/express-check-in-modal";
 import { ReservationDetailModal } from "@/features/agenda/ui/reservation-detail-modal";
@@ -24,6 +29,7 @@ import type {
 } from "@/features/agenda/model/types";
 
 import { useActiveVenue } from "@/features/venues/context/venue-context";
+import { VenueInlineCombobox } from "@/features/venues/ui/venue-inline-combobox";
 import { ROUTES, type BackofficeRole } from "@/shared/config";
 import { todayInTimezone } from "@/shared/lib";
 
@@ -35,8 +41,6 @@ export interface AgendaPageProps {
 
 export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPageProps) {
   const t = useTranslations("agenda");
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { activeVenueId: globalVenueId, setActiveVenueId: setGlobalVenueId } = useActiveVenue();
   const isValidator = userRole === "ALLY_VALIDATOR";
 
@@ -48,34 +52,43 @@ export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPag
     initialAgenda?.date || todayStr,
   );
   const [selectedSport, setSelectedSport] = useState("all");
+  const [selectedDayPart, setSelectedDayPart] = useState<AgendaDayPart>("all");
   const [activeVenueId, setActiveVenueId] = useState<string>(
-    globalVenueId || initialAgenda?.venue?.id || "ALL"
+    initialAgenda?.venue?.id || globalVenueId || "ALL"
   );
   const [agenda, setAgenda] = useState<AgendaData | null>(initialAgenda);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
 
-  // Sync with global header venue changes
+  const loadAgendaData = useCallback(async (venueIdToLoad: string, dateToLoad: string) => {
+    setIsPending(true);
+    try {
+      const res = await getAgendaAction(venueIdToLoad, dateToLoad);
+      if (res.ok) {
+        setAgenda(res.data);
+      }
+    } finally {
+      setIsPending(false);
+    }
+  }, []);
+
+  // Sync with global venue context changes
   useEffect(() => {
     if (globalVenueId && globalVenueId !== activeVenueId) {
       setActiveVenueId(globalVenueId);
-      startTransition(async () => {
-        const res = await getAgendaAction(globalVenueId, selectedDate);
-        if (res.ok) {
-          setAgenda(res.data);
-        }
-      });
+      void loadAgendaData(globalVenueId, selectedDate);
     }
-  }, [globalVenueId, selectedDate, activeVenueId]);
-
+  }, [globalVenueId, selectedDate, activeVenueId, loadAgendaData]);
 
   // Modals and Drawers state
+  const [selectedRange, setSelectedRange] = useState<AgendaSelectedRange | null>(
+    null,
+  );
   const [isWalkInOpen, setIsWalkInOpen] = useState(false);
   const [selectedWalkInCourt, setSelectedWalkInCourt] = useState<CourtSpace | null>(null);
   const [selectedWalkInHour, setSelectedWalkInHour] = useState("09:00");
+  const [selectedWalkInEndHour, setSelectedWalkInEndHour] = useState<string | undefined>("10:00");
 
-  const [isCheckInOpen, setIsCheckInOpen] = useState(
-    searchParams.get("qr") === "open",
-  );
+  const [isCheckInOpen, setIsCheckInOpen] = useState(false);
 
   const [selectedDetailReservation, setSelectedDetailReservation] =
     useState<CourtReservation | null>(null);
@@ -86,25 +99,24 @@ export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPag
   const [selectedBlock, setSelectedBlock] = useState<CourtBlock | null>(null);
   const [selectedBlockCourt, setSelectedBlockCourt] = useState<CourtSpace | null>(null);
   const [selectedBlockHour, setSelectedBlockHour] = useState("09:00");
+  const [selectedBlockEndHour, setSelectedBlockEndHour] = useState<string | undefined>("10:00");
   const [isBlockOpen, setIsBlockOpen] = useState(false);
 
-  // Auto-open QR check-in modal if URL query `?qr=open`
+  // Auto-open QR check-in modal or walk-in drawer if URL query `?qr=open` or `?drawer=open`
   useEffect(() => {
-    if (searchParams.get("qr") === "open") {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("qr") === "open") {
       setIsCheckInOpen(true);
-      router.replace(ROUTES.agenda, { scroll: false });
-    }
-  }, [searchParams, router]);
-
-  // Auto-open walk-in drawer if URL query `?drawer=open` (not for validators)
-  useEffect(() => {
-    if (!isValidator && searchParams.get("drawer") === "open" && agenda?.spaces?.[0]) {
+      window.history.replaceState(null, "", ROUTES.agenda);
+    } else if (!isValidator && params.get("drawer") === "open" && agenda?.spaces?.[0]) {
       setSelectedWalkInCourt(agenda.spaces[0]);
       setSelectedWalkInHour("16:00");
+      setSelectedWalkInEndHour("17:00");
       setIsWalkInOpen(true);
-      router.replace(ROUTES.agenda, { scroll: false });
+      window.history.replaceState(null, "", ROUTES.agenda);
     }
-  }, [searchParams, agenda, isValidator, router]);
+  }, [agenda, isValidator]);
 
   // Listen for top header quick-action events when already on /agenda
   useEffect(() => {
@@ -113,6 +125,7 @@ export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPag
       if (!isValidator && agenda?.spaces?.[0]) {
         setSelectedWalkInCourt(agenda.spaces[0]);
         setSelectedWalkInHour("16:00");
+        setSelectedWalkInEndHour("17:00");
         setIsWalkInOpen(true);
       }
     };
@@ -126,31 +139,41 @@ export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPag
 
   // Refresh agenda data
   const refreshAgenda = () => {
-    startTransition(async () => {
-      const res = await getAgendaAction(activeVenueId, selectedDate);
-      if (res.ok) {
-        setAgenda(res.data);
-      }
-    });
+    setSelectedRange(null);
+    void loadAgendaData(activeVenueId, selectedDate);
   };
 
   // Re-fetch when date changes
   const handleDateChange = (newDate: string) => {
+    setSelectedRange(null);
     setSelectedDate(newDate);
-    startTransition(async () => {
-      const res = await getAgendaAction(activeVenueId, newDate);
-      if (res.ok) {
-        setAgenda(res.data);
-      }
-    });
+    void loadAgendaData(activeVenueId, newDate);
   };
 
-  // Click on available slot
-  const handleSlotClick = (court: CourtSpace, startTime: string) => {
+  // Confirm single or multi-hour available slot selection
+  const handleSlotClick = (
+    court: CourtSpace,
+    startTime: string,
+    endTime?: string,
+  ) => {
     if (isValidator) return;
     setSelectedWalkInCourt(court);
     setSelectedWalkInHour(startTime);
+    setSelectedWalkInEndHour(endTime);
     setIsWalkInOpen(true);
+  };
+
+  // Request blocking a single or multi-hour available slot range
+  const handleRequestBlock = (
+    court: CourtSpace,
+    startTime: string,
+    endTime?: string,
+  ) => {
+    setSelectedBlock(null);
+    setSelectedBlockCourt(court);
+    setSelectedBlockHour(startTime);
+    setSelectedBlockEndHour(endTime);
+    setIsBlockOpen(true);
   };
 
   // Click on reservation card
@@ -168,6 +191,7 @@ export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPag
     setSelectedBlock(block);
     setSelectedBlockCourt(court);
     setSelectedBlockHour(block.startTime);
+    setSelectedBlockEndHour(block.endTime);
     setIsBlockOpen(true);
   };
 
@@ -204,7 +228,7 @@ export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPag
   return (
     <div className="space-y-5">
       {/* Top Banner & Fast Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full bg-accent/15 px-3 py-1 text-xs font-bold text-foreground border border-accent/30 mb-1.5">
             <span>{agenda?.venue?.name || t("defaultVenue")}</span>
@@ -217,7 +241,17 @@ export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPag
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-3">
+          <VenueInlineCombobox
+            id="agenda-venue-selector"
+            selectedVenueId={activeVenueId}
+            onSelectVenueId={(newVenueId) => {
+              setActiveVenueId(newVenueId);
+              setGlobalVenueId(newVenueId);
+              void loadAgendaData(newVenueId, selectedDate);
+            }}
+          />
+
           <button
             type="button"
             onClick={refreshAgenda}
@@ -245,6 +279,7 @@ export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPag
                 if (allSpaces[0]) {
                   setSelectedWalkInCourt(allSpaces[0]);
                   setSelectedWalkInHour("16:00");
+                  setSelectedWalkInEndHour("17:00");
                   setIsWalkInOpen(true);
                 }
               }}
@@ -270,6 +305,8 @@ export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPag
         onDateChange={handleDateChange}
         selectedSport={selectedSport}
         onSportChange={setSelectedSport}
+        selectedDayPart={selectedDayPart}
+        onDayPartChange={setSelectedDayPart}
         sportsList={sportsList}
         totalCourtsCount={allSpaces.length}
         venueTimezone={agenda?.timezone || agenda?.venue?.timezone || "America/Caracas"}
@@ -278,7 +315,12 @@ export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPag
       {/* Main Multi-Court Grid Matrix */}
       <AgendaMatrix
         spaces={filteredSpaces}
+        selectedDayPart={selectedDayPart}
+        isValidator={isValidator}
+        selectedRange={selectedRange}
+        onSelectedRangeChange={setSelectedRange}
         onSlotClick={handleSlotClick}
+        onRequestBlock={handleRequestBlock}
         onReservationClick={handleReservationClick}
         onBlockClick={handleBlockClick}
       />
@@ -289,8 +331,20 @@ export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPag
           isOpen={isWalkInOpen}
           onClose={() => setIsWalkInOpen(false)}
           court={selectedWalkInCourt}
+          spaces={allSpaces}
           selectedDate={selectedDate}
           startTime={selectedWalkInHour}
+          endTime={selectedWalkInEndHour}
+          onSelectionChange={(court, nextStart, nextEnd) => {
+            setSelectedWalkInCourt(court);
+            setSelectedWalkInHour(nextStart);
+            setSelectedWalkInEndHour(nextEnd);
+            setSelectedRange({
+              courtId: court.id,
+              startHour: nextStart,
+              endHour: nextEnd,
+            });
+          }}
           onSuccess={refreshAgenda}
           bcvRate={agenda?.bcvRate}
         />
@@ -319,6 +373,7 @@ export function AgendaPage({ initialAgenda, initialVenues, userRole }: AgendaPag
         court={selectedBlockCourt}
         selectedDate={selectedDate}
         startTime={selectedBlockHour}
+        endTime={selectedBlockEndHour}
         existingBlock={selectedBlock}
         onRefresh={refreshAgenda}
       />

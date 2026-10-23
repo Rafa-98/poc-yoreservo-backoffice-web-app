@@ -43,7 +43,7 @@ export async function getAgendaAction(
     // 1. Resolve venueId
     let resolvedVenueId = venueId;
     if (!resolvedVenueId) {
-      if (user.managedVenueId) {
+      if (user.role === "ALLY_VALIDATOR" && user.managedVenueId) {
         resolvedVenueId = user.managedVenueId;
       } else {
         const cookieStore = await cookies();
