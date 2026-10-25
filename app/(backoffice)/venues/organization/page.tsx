@@ -1,5 +1,6 @@
 import React from "react";
 import { Metadata } from "next";
+import { cookies } from "next/headers";
 import { requireSession } from "@/shared/auth/index.server";
 import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
 import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE } from "@/shared/lib";
@@ -24,9 +25,14 @@ interface PageProps {
 export default async function Page({ searchParams }: PageProps) {
   const session = await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.organization]);
   const params = searchParams ? await searchParams : undefined;
+  const cookieStore = await cookies();
+  const savedOrgCookie = cookieStore.get("yoreservo_active_org")?.value;
+  const targetOrgId =
+    params?.organizationId ||
+    (savedOrgCookie && savedOrgCookie !== "ALL" ? savedOrgCookie : undefined);
 
   const [orgRes, venuesRes, ratesRes] = await Promise.all([
-    getOrganizationAction(params?.organizationId),
+    getOrganizationAction(targetOrgId),
     getVenuesListAction(),
     getExchangeRatesAction(),
   ]);

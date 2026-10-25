@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Lock, Mail, Phone, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { DEFAULT_VENUE_TIMEZONE } from "@/shared/lib";
@@ -75,20 +75,6 @@ interface VenueModalProps {
   userRole?: BackofficeRole;
 }
 
-const PHONE_OPERATOR_OPTIONS: SearchableOption[] = [
-  { value: "0212", label: "0212", subtitle: "Caracas / Gran Caracas (Fijo)" },
-  { value: "0412", label: "0412", subtitle: "Digitel" },
-  { value: "0422", label: "0422", subtitle: "Digitel" },
-  { value: "0414", label: "0414", subtitle: "Movistar" },
-  { value: "0424", label: "0424", subtitle: "Movistar" },
-  { value: "0416", label: "0416", subtitle: "Movilnet" },
-  { value: "0426", label: "0426", subtitle: "Movilnet" },
-  { value: "0241", label: "0241", subtitle: "Valencia / Carabobo (Fijo)" },
-  { value: "0251", label: "0251", subtitle: "Barquisimeto / Lara (Fijo)" },
-  { value: "0261", label: "0261", subtitle: "Maracaibo / Zulia (Fijo)" },
-  { value: "0281", label: "0281", subtitle: "Lechería / Anzoátegui (Fijo)" },
-];
-
 const DEFAULT_CARACAS_COORDS = { lat: 10.4806, lng: -66.9036 };
 
 export function VenueModal({
@@ -99,8 +85,57 @@ export function VenueModal({
   onSuccess,
   userRole = "ALLY_ADMIN",
 }: VenueModalProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const t = useTranslations("venues.venues");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const phoneOperatorOptions = useMemo<SearchableOption[]>(
+    () => [
+      {
+        value: "0212",
+        label: "0212",
+        subtitle: isEn
+          ? "Caracas / Greater Caracas (Landline)"
+          : "Caracas / Gran Caracas (Fijo)",
+      },
+      { value: "0412", label: "0412", subtitle: "Digitel" },
+      { value: "0422", label: "0422", subtitle: "Digitel" },
+      { value: "0414", label: "0414", subtitle: "Movistar" },
+      { value: "0424", label: "0424", subtitle: "Movistar" },
+      { value: "0416", label: "0416", subtitle: "Movilnet" },
+      { value: "0426", label: "0426", subtitle: "Movilnet" },
+      {
+        value: "0241",
+        label: "0241",
+        subtitle: isEn
+          ? "Valencia / Carabobo (Landline)"
+          : "Valencia / Carabobo (Fijo)",
+      },
+      {
+        value: "0251",
+        label: "0251",
+        subtitle: isEn
+          ? "Barquisimeto / Lara (Landline)"
+          : "Barquisimeto / Lara (Fijo)",
+      },
+      {
+        value: "0261",
+        label: "0261",
+        subtitle: isEn
+          ? "Maracaibo / Zulia (Landline)"
+          : "Maracaibo / Zulia (Fijo)",
+      },
+      {
+        value: "0281",
+        label: "0281",
+        subtitle: isEn
+          ? "Lechería / Anzoátegui (Landline)"
+          : "Lechería / Anzoátegui (Fijo)",
+      },
+    ],
+    [isEn]
+  );
 
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -138,7 +173,9 @@ export function VenueModal({
 
   function getLocationNodeName(node: LocationNode): string {
     if (typeof node.name === "string") return node.name;
-    return node.name?.es || node.name?.en || "";
+    return isEn
+      ? node.name?.en || node.name?.es || ""
+      : node.name?.es || node.name?.en || "";
   }
 
   function resolveInitialLocationIds(
@@ -315,54 +352,64 @@ export function VenueModal({
     () =>
       (locationsTree || []).map((s) => ({
         value: s.id,
-        label: getLocationNodeName(s) || "Estado",
+        label: getLocationNodeName(s) || (isEn ? "State" : "Estado"),
       })),
-    [locationsTree]
+    [locationsTree, isEn]
   );
 
   const cityOptions = useMemo<SearchableOption[]>(
     () =>
       cities.map((c) => ({
         value: c.id,
-        label: getLocationNodeName(c) || "Ciudad",
+        label: getLocationNodeName(c) || (isEn ? "City" : "Ciudad"),
       })),
-    [cities]
+    [cities, isEn]
   );
 
   const hoodOptions = useMemo<SearchableOption[]>(
     () =>
       hoods.map((h) => ({
         value: h.id,
-        label: getLocationNodeName(h) || "Urbanización / Zona",
+        label:
+          getLocationNodeName(h) ||
+          (isEn ? "Neighborhood / Zone" : "Urbanización / Zona"),
       })),
-    [hoods]
+    [hoods, isEn]
   );
 
   const statusOptions = useMemo<SearchableOption[]>(() => {
     const baseOptions: SearchableOption[] = [
       {
         value: "ACTIVE",
-        label: "Habilitado (Activo en App)",
-        subtitle: "Visible y disponible para reservas de jugadores",
+        label: isEn ? "Enabled (Active in App)" : "Habilitado (Activo en App)",
+        subtitle: isEn
+          ? "Visible and available for player bookings"
+          : "Visible y disponible para reservas de jugadores",
         icon: "🟢",
       },
       {
         value: "INACTIVE",
-        label: "Deshabilitado (Inactivo)",
-        subtitle: "Pausado temporalmente para nuevas reservas",
+        label: isEn ? "Disabled (Inactive)" : "Deshabilitado (Inactivo)",
+        subtitle: isEn
+          ? "Temporarily paused for new bookings"
+          : "Pausado temporalmente para nuevas reservas",
         icon: "🔴",
       },
     ];
     if (isPlatformStaff) {
       baseOptions.push({
         value: "IN_VERIFICATION",
-        label: "En Revisión / Auditoría (YoReservo)",
-        subtitle: "Exclusivo Staff YoReservo · En validación operativa",
+        label: isEn
+          ? "In Review / Audit (YoReservo)"
+          : "En Revisión / Auditoría (YoReservo)",
+        subtitle: isEn
+          ? "YoReservo Staff Exclusive · Under operational validation"
+          : "Exclusivo Staff YoReservo · En validación operativa",
         icon: "⏳",
       });
     }
     return baseOptions;
-  }, [isPlatformStaff]);
+  }, [isPlatformStaff, isEn]);
 
   const isLockedInReviewForAlly =
     !isPlatformStaff && status === "IN_VERIFICATION";
@@ -468,7 +515,11 @@ export function VenueModal({
 
     if (formattedPhones.length === 0) {
       setLoading(false);
-      setErrorMsg("Debes indicar al menos un número de teléfono de contacto.");
+      setErrorMsg(
+        isEn
+          ? "You must provide at least one contact phone number."
+          : "Debes indicar al menos un número de teléfono de contacto."
+      );
       return;
     }
 
@@ -564,6 +615,7 @@ export function VenueModal({
           </div>
           <button
             type="button"
+            aria-label={isEn ? "Close modal" : "Cerrar modal"}
             className="btn-icon cursor-pointer border-none bg-transparent text-lg text-muted-foreground hover:text-foreground"
             onClick={onClose}
           >
@@ -585,10 +637,12 @@ export function VenueModal({
           <div className="form-group">
             <div className="mb-1.5 flex items-center justify-between">
               <label className="text-xs font-semibold text-foreground">
-                📷 Foto Principal de la Sede
+                {isEn ? "📷 Main Venue Photo" : "📷 Foto Principal de la Sede"}
               </label>
               <span className="text-[11px] font-medium text-muted-foreground">
-                Haz clic en la imagen para cambiarla
+                {isEn
+                  ? "Click the image to change it"
+                  : "Haz clic en la imagen para cambiarla"}
               </span>
             </div>
 
@@ -612,18 +666,22 @@ export function VenueModal({
                 <>
                   <img
                     src={imageUrl}
-                    alt={name || "Foto de la sede"}
+                    alt={name || (isEn ? "Venue photo" : "Foto de la sede")}
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                     <span className="rounded-xl bg-surface/95 px-4 py-2 text-xs font-bold text-foreground shadow-md">
                       {uploadingImage
-                        ? "⏳ Subiendo imagen..."
-                        : "📷 Cambiar foto de la sede"}
+                        ? isEn
+                          ? "⏳ Uploading image..."
+                          : "⏳ Subiendo imagen..."
+                        : isEn
+                          ? "📷 Change venue photo"
+                          : "📷 Cambiar foto de la sede"}
                     </span>
                   </div>
                   <div className="absolute bottom-2.5 right-2.5 rounded-lg bg-black/65 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-xs">
-                    ✏️ Clic para editar foto
+                    {isEn ? "✏️ Click to edit photo" : "✏️ Clic para editar foto"}
                   </div>
                 </>
               ) : (
@@ -633,11 +691,17 @@ export function VenueModal({
                   </div>
                   <span className="text-xs font-bold text-foreground">
                     {uploadingImage
-                      ? "⏳ Subiendo imagen..."
-                      : "Haz clic aquí para subir la foto de la sede"}
+                      ? isEn
+                        ? "⏳ Uploading image..."
+                        : "⏳ Subiendo imagen..."
+                      : isEn
+                        ? "Click here to upload the venue photo"
+                        : "Haz clic aquí para subir la foto de la sede"}
                   </span>
                   <span className="text-[11px] text-muted-foreground">
-                    Formatos permitidos: JPG, PNG o WEBP
+                    {isEn
+                      ? "Allowed formats: JPG, PNG or WEBP"
+                      : "Formatos permitidos: JPG, PNG o WEBP"}
                   </span>
                 </div>
               )}
@@ -672,10 +736,10 @@ export function VenueModal({
                   className="text-xs font-semibold text-foreground"
                   htmlFor="venue-rif-input"
                 >
-                  RIF de la Sede
+                  {isEn ? "Venue Tax ID (RIF)" : "RIF de la Sede"}
                 </label>
                 <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                  Opcional
+                  {isEn ? "Optional" : "Opcional"}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -683,7 +747,7 @@ export function VenueModal({
                   id="venue-rif-prefix"
                   disabled
                   value="J"
-                  aria-label="Tipo de RIF"
+                  aria-label={isEn ? "Tax ID Type" : "Tipo de RIF"}
                   className="h-10 w-[64px] shrink-0 cursor-not-allowed rounded-xl border border-border bg-muted/70 px-2.5 text-xs font-bold text-muted-foreground opacity-90"
                 >
                   <option value="J">J -</option>
@@ -692,7 +756,11 @@ export function VenueModal({
                   type="text"
                   id="venue-rif-input"
                   className="h-10 min-w-0 flex-1 rounded-xl border border-border-medium bg-surface px-3 font-mono text-xs font-semibold text-foreground placeholder:font-sans placeholder:font-normal placeholder:text-muted-foreground focus:border-accent focus:outline-none"
-                  placeholder="30000001-1 (o usar el de la Org.)"
+                  placeholder={
+                    isEn
+                      ? "30000001-1 (or use Organization's)"
+                      : "30000001-1 (o usar el de la Org.)"
+                  }
                   value={rifDigits}
                   onChange={(e) =>
                     setRifDigits(e.target.value.replace(/[^0-9-]/g, ""))
@@ -700,7 +768,9 @@ export function VenueModal({
                 />
               </div>
               <p className="mt-1 text-[10.5px] text-muted-foreground">
-                Déjalo en blanco si opera bajo el mismo RIF de la organización.
+                {isEn
+                  ? "Leave blank if operating under the organization's same tax ID."
+                  : "Déjalo en blanco si opera bajo el mismo RIF de la organización."}
               </p>
             </div>
 
@@ -718,7 +788,9 @@ export function VenueModal({
                   <span className="flex items-center gap-1.5 truncate">
                     <span>⏳</span>
                     <span className="truncate">
-                      En Revisión (YoReservo Staff)
+                      {isEn
+                        ? "In Review (YoReservo Staff)"
+                        : "En Revisión (YoReservo Staff)"}
                     </span>
                   </span>
                   <Lock className="size-3.5 shrink-0" />
@@ -729,14 +801,18 @@ export function VenueModal({
                   options={statusOptions}
                   value={status}
                   onChange={(val) => setStatus(val as VenueStatusType)}
-                  placeholder="Seleccionar estatus..."
-                  searchPlaceholder="Buscar estatus..."
+                  placeholder={isEn ? "Select status..." : "Seleccionar estatus..."}
+                  searchPlaceholder={isEn ? "Search status..." : "Buscar estatus..."}
                 />
               )}
               <p className="mt-1 text-[10.5px] text-muted-foreground">
                 {isPlatformStaff
-                  ? "Como Staff YoReservo puedes gestionar todos los estados."
-                  : "Puedes habilitar o deshabilitar tu sede en cualquier momento."}
+                  ? isEn
+                    ? "As YoReservo Staff you can manage all statuses."
+                    : "Como Staff YoReservo puedes gestionar todos los estados."
+                  : isEn
+                    ? "You can enable or disable your venue at any time."
+                    : "Puedes habilitar o deshabilitar tu sede en cualquier momento."}
               </p>
             </div>
           </div>
@@ -769,7 +845,11 @@ export function VenueModal({
               <div className="mb-2 flex items-center justify-between gap-2">
                 <label className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                   <Phone className="size-3.5 text-link" />
-                  <span>Teléfonos de Recepción / Mostrador *</span>
+                  <span>
+                    {isEn
+                      ? "Reception / Front Desk Phones *"
+                      : "Teléfonos de Recepción / Mostrador *"}
+                  </span>
                 </label>
                 <button
                   type="button"
@@ -777,7 +857,7 @@ export function VenueModal({
                   className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-border-medium bg-surface px-2.5 py-1 text-[11px] font-bold text-foreground transition-colors hover:border-accent hover:bg-accent/15"
                 >
                   <Plus className="size-3" />
-                  <span>Agregar teléfono</span>
+                  <span>{isEn ? "Add phone" : "Agregar teléfono"}</span>
                 </button>
               </div>
 
@@ -790,7 +870,11 @@ export function VenueModal({
                     <div className="col-span-3 sm:col-span-3">
                       <div
                         className="flex h-10 items-center justify-center rounded-xl border border-border bg-muted/60 px-2 text-xs font-semibold text-muted-foreground select-none"
-                        title="Código de país (Venezuela)"
+                        title={
+                          isEn
+                            ? "Country code (Venezuela)"
+                            : "Código de país (Venezuela)"
+                        }
                       >
                         🇻🇪 +58
                       </div>
@@ -799,11 +883,13 @@ export function VenueModal({
                     <div className="col-span-4 sm:col-span-4">
                       <SearchableSelect
                         id={idx === 0 ? "venue-phone-operator" : undefined}
-                        options={PHONE_OPERATOR_OPTIONS}
+                        options={phoneOperatorOptions}
                         value={entry.operator}
                         onChange={(val) => handlePhoneOperatorChange(idx, val)}
-                        placeholder="Operadora"
-                        searchPlaceholder="Ej. 0212, 0414..."
+                        placeholder={isEn ? "Carrier" : "Operadora"}
+                        searchPlaceholder={
+                          isEn ? "E.g. 0212, 0414..." : "Ej. 0212, 0414..."
+                        }
                       />
                     </div>
 
@@ -835,7 +921,7 @@ export function VenueModal({
                           type="button"
                           onClick={() => handleRemovePhone(idx)}
                           className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface text-muted-foreground transition-colors hover:border-status-cancelled-border hover:bg-status-cancelled-bg hover:text-status-cancelled-fg"
-                          title="Eliminar teléfono"
+                          title={isEn ? "Remove phone" : "Eliminar teléfono"}
                         >
                           <Trash2 className="size-3.5" />
                         </button>
@@ -852,10 +938,14 @@ export function VenueModal({
                 <div className="flex items-center gap-2">
                   <label className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                     <Mail className="size-3.5 text-link" />
-                    <span>Correos Electrónicos de Contacto</span>
+                    <span>
+                      {isEn
+                        ? "Contact Email Addresses"
+                        : "Correos Electrónicos de Contacto"}
+                    </span>
                   </label>
                   <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                    Opcional
+                    {isEn ? "Optional" : "Opcional"}
                   </span>
                 </div>
                 <button
@@ -864,7 +954,7 @@ export function VenueModal({
                   className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-border-medium bg-surface px-2.5 py-1 text-[11px] font-bold text-foreground transition-colors hover:border-accent hover:bg-accent/15"
                 >
                   <Plus className="size-3" />
-                  <span>Agregar correo</span>
+                  <span>{isEn ? "Add email" : "Agregar correo"}</span>
                 </button>
               </div>
 
@@ -880,8 +970,12 @@ export function VenueModal({
                       className="h-10 min-w-0 flex-1 rounded-xl border border-border-medium bg-surface px-3 text-xs font-semibold text-foreground placeholder:font-normal placeholder:text-muted-foreground focus:border-accent focus:outline-none"
                       placeholder={
                         idx === 0
-                          ? "ej. recepcion@complejodeportivo.com"
-                          : "ej. reservas@complejodeportivo.com"
+                          ? isEn
+                            ? "e.g. reception@sportscomplex.com"
+                            : "ej. recepcion@complejodeportivo.com"
+                          : isEn
+                            ? "e.g. bookings@sportscomplex.com"
+                            : "ej. reservas@complejodeportivo.com"
                       }
                       value={emailVal}
                       onChange={(e) => handleEmailChange(idx, e.target.value)}
@@ -891,7 +985,7 @@ export function VenueModal({
                         type="button"
                         onClick={() => handleRemoveEmail(idx)}
                         className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface text-muted-foreground transition-colors hover:border-status-cancelled-border hover:bg-status-cancelled-bg hover:text-status-cancelled-fg"
-                        title="Eliminar correo"
+                        title={isEn ? "Remove email" : "Eliminar correo"}
                       >
                         <Trash2 className="size-3.5" />
                       </button>
@@ -918,8 +1012,8 @@ export function VenueModal({
                   options={stateOptions}
                   value={selectedStateId}
                   onChange={handleStateChange}
-                  placeholder="Estado..."
-                  searchPlaceholder="Buscar estado..."
+                  placeholder={isEn ? "State..." : "Estado..."}
+                  searchPlaceholder={isEn ? "Search state..." : "Buscar estado..."}
                 />
               </div>
 
@@ -933,8 +1027,8 @@ export function VenueModal({
                   value={selectedCityId}
                   onChange={handleCityChange}
                   disabled={cityOptions.length === 0}
-                  placeholder="Ciudad..."
-                  searchPlaceholder="Buscar ciudad..."
+                  placeholder={isEn ? "City..." : "Ciudad..."}
+                  searchPlaceholder={isEn ? "Search city..." : "Buscar ciudad..."}
                 />
               </div>
 
@@ -948,8 +1042,10 @@ export function VenueModal({
                   value={selectedHoodId}
                   onChange={setSelectedHoodId}
                   disabled={hoodOptions.length === 0}
-                  placeholder="Zona / Urb..."
-                  searchPlaceholder="Buscar urbanización..."
+                  placeholder={isEn ? "Zone / Neighborhood..." : "Zona / Urb..."}
+                  searchPlaceholder={
+                    isEn ? "Search neighborhood..." : "Buscar urbanización..."
+                  }
                 />
               </div>
             </div>

@@ -279,7 +279,7 @@ export function PaymentsTable({
                       className="btn btn-outline inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold cursor-pointer"
                       onClick={() => onOpenVoucher(p)}
                     >
-                      <Eye className="size-3.5 text-primary" />
+                      <Eye className="size-3.5 text-link" />
                       <span>{t("viewDetails")}</span>
                     </button>
                   </td>

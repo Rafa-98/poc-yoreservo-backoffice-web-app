@@ -122,7 +122,7 @@ export function AuthShellLayout({
                 className="object-contain"
               />
             </div>
-            <span className="rounded bg-accent/20 px-2 py-0.5 text-[10px] font-bold uppercase text-accent-foreground">
+            <span className="rounded bg-accent/20 px-2 py-0.5 text-[10px] font-bold uppercase text-link">
               {effectiveBadgeText}
             </span>
           </div>

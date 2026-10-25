@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Camera, Loader2, ShieldCheck, MapPin, Calendar } from "lucide-react";
 import { uploadBackofficeFileAction } from "@/shared/api/upload-action";
 import { isBackofficeRole } from "@/shared/config";
@@ -19,6 +19,7 @@ export function ProfileUserCard({
   onAvatarUploaded,
 }: ProfileUserCardProps) {
   const t = useTranslations("profile");
+  const isEn = useLocale().toLowerCase().startsWith("en");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -101,7 +102,7 @@ export function ProfileUserCard({
 
       {/* Role Badge (Read-Only) */}
       <div className="mb-5">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-accent/20 text-accent-foreground border border-accent/40">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-accent/20 text-link border border-accent/40">
           <ShieldCheck className="size-3.5" />
           <span>{friendlyRoleLabel}</span>
         </span>
@@ -126,8 +127,12 @@ export function ProfileUserCard({
                   ? profile.organization
                   : profile.organization?.tradeName) ||
                 (profile.role?.startsWith("PLATFORM_")
-                  ? "Todas las Sedes (Global)"
-                  : "Sin asignar")}
+                  ? isEn
+                    ? "All Venues (Global)"
+                    : "Todas las Sedes (Global)"
+                  : isEn
+                    ? "Unassigned"
+                    : "Sin asignar")}
             </span>
           </div>
         </div>

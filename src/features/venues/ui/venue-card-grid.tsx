@@ -2,11 +2,17 @@
 
 import React, { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { MapPin } from "lucide-react";
 import { ROUTES } from "@/shared/config";
-import type { LocationNode, VenueItem } from "../model/types";
+import { useActiveVenue } from "../context/venue-context";
+import {
+  deriveOrganizationsFromVenues,
+  type LocationNode,
+  type VenueItem,
+} from "../model/types";
 import { BackofficeLocationSelect } from "./backoffice-location-select";
+import { OrganizationInlineCombobox } from "./venue-inline-combobox";
 import { VenueMapViewerModal } from "./venue-map-viewer-modal";
 
 interface VenueCardGridProps {
@@ -22,7 +28,19 @@ export function VenueCardGrid({
   onOpenEditVenue,
   onOpenCreateVenue,
 }: VenueCardGridProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const t = useTranslations("venues.venues");
+  const {
+    isPlatformRole,
+    activeOrganizationId,
+    setActiveOrganizationId,
+  } = useActiveVenue();
+  const organizations = useMemo(
+    () => deriveOrganizationsFromVenues(venues),
+    [venues],
+  );
+  const showOrganizationFilter = isPlatformRole || organizations.length > 1;
   const [selectedLocationId, setSelectedLocationId] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -53,15 +71,23 @@ export function VenueCardGrid({
     if (!loc) return `📍 ${t("defaultLocation")}`;
 
     const hood =
-      typeof loc.name === "object" ? loc.name?.es || loc.name?.en : loc.name;
+      typeof loc.name === "object"
+        ? isEn
+          ? loc.name?.en || loc.name?.es
+          : loc.name?.es || loc.name?.en
+        : loc.name;
     const city = loc.parent
       ? typeof loc.parent.name === "object"
-        ? loc.parent.name?.es || loc.parent.name?.en
+        ? isEn
+          ? loc.parent.name?.en || loc.parent.name?.es
+          : loc.parent.name?.es || loc.parent.name?.en
         : loc.parent.name
       : "";
     const state = loc.parent?.parent
       ? typeof loc.parent.parent.name === "object"
-        ? loc.parent.parent.name?.es || loc.parent.parent.name?.en
+        ? isEn
+          ? loc.parent.parent.name?.en || loc.parent.parent.name?.es
+          : loc.parent.parent.name?.es || loc.parent.parent.name?.en
         : loc.parent.parent.name
       : "";
 
@@ -99,6 +125,14 @@ export function VenueCardGrid({
     }
 
     return venues.filter((venue) => {
+      if (
+        showOrganizationFilter &&
+        activeOrganizationId &&
+        activeOrganizationId !== "ALL"
+      ) {
+        if (venue.organizationId !== activeOrganizationId) return false;
+      }
+
       if (selectedLocationId) {
         const vStateId =
           venue.stateId ||
@@ -134,7 +168,14 @@ export function VenueCardGrid({
 
       return true;
     });
-  }, [venues, selectedLocationId, searchQuery, locationsTree]);
+  }, [
+    venues,
+    showOrganizationFilter,
+    activeOrganizationId,
+    selectedLocationId,
+    searchQuery,
+    locationsTree,
+  ]);
 
   const totalPages = Math.max(1, Math.ceil(filteredVenues.length / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
@@ -185,6 +226,18 @@ export function VenueCardGrid({
     <section ref={topRef} className="py-6">
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pb-4">
         <div className="flex flex-wrap items-center gap-3">
+          {showOrganizationFilter && (
+            <OrganizationInlineCombobox
+              id="venues-org-filter"
+              organizations={organizations}
+              selectedOrganizationId={activeOrganizationId}
+              onSelectOrganizationId={(nextOrgId) => {
+                setActiveOrganizationId(nextOrgId);
+                setCurrentPage(1);
+              }}
+              showLabel={true}
+            />
+          )}
           {locationsTree.length > 0 && (
             <BackofficeLocationSelect
               locationsTree={locationsTree}
@@ -193,8 +246,10 @@ export function VenueCardGrid({
                 setSelectedLocationId(val);
                 setCurrentPage(1);
               }}
-              allLabel="Todos los estados"
-              placeholder="Escribe estado o ciudad..."
+              allLabel={isEn ? "All states" : "Todos los estados"}
+              placeholder={
+                isEn ? "Type state or city..." : "Escribe estado o ciudad..."
+              }
             />
           )}
           <div className="relative min-w-[220px]">
@@ -205,8 +260,12 @@ export function VenueCardGrid({
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="🔍 Buscar sede, dirección o RIF..."
-              aria-label="Buscar sede"
+              placeholder={
+                isEn
+                  ? "🔍 Search venue, address or tax ID..."
+                  : "🔍 Buscar sede, dirección o RIF..."
+              }
+              aria-label={isEn ? "Search venue" : "Buscar sede"}
               className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
             />
             {searchQuery && (
@@ -217,7 +276,7 @@ export function VenueCardGrid({
                   setCurrentPage(1);
                 }}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground hover:text-foreground"
-                aria-label="Limpiar búsqueda"
+                aria-label={isEn ? "Clear search" : "Limpiar búsqueda"}
               >
                 ×
               </button>
@@ -277,7 +336,7 @@ export function VenueCardGrid({
                     </span>
                   ) : isInactive ? (
                     <span className="badge badge-cancelled">
-                      ● DESHABILITADA / INACTIVA
+                      ● {isEn ? "DISABLED / INACTIVE" : "DESHABILITADA / INACTIVA"}
                     </span>
                   ) : (
                     <span className="badge badge-hold">
@@ -290,6 +349,12 @@ export function VenueCardGrid({
               {/* Body */}
               <div className="flex flex-1 flex-col p-5">
                 <div className="mb-2">
+                  {showOrganizationFilter && venue.organizationName && (
+                    <div className="mb-1 inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[11px] font-bold text-muted-foreground">
+                      <span>🏢</span>
+                      <span className="truncate">{venue.organizationName}</span>
+                    </div>
+                  )}
                   <div className="mb-1 flex items-start justify-between gap-2">
                     <h3 className="text-lg font-bold text-foreground">
                       {venue.name}
@@ -298,10 +363,14 @@ export function VenueCardGrid({
                       type="button"
                       onClick={() => setMapPreviewVenue(venue)}
                       className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-xl border border-border-medium bg-muted/60 px-2.5 py-1 text-[11.5px] font-bold text-foreground transition-all hover:border-accent hover:bg-accent/20"
-                      title="Ver ubicación de la sede en el mapa"
+                      title={
+                        isEn
+                          ? "View venue location on map"
+                          : "Ver ubicación de la sede en el mapa"
+                      }
                     >
                       <MapPin className="size-3.5 text-link" />
-                      <span>Abrir en mapa</span>
+                      <span>{isEn ? "Open in map" : "Abrir en mapa"}</span>
                     </button>
                   </div>
                   <div className="text-[12.5px] text-muted-foreground">
@@ -382,16 +451,22 @@ export function VenueCardGrid({
       {filteredVenues.length > 0 && (
         <div className="mx-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-5 py-3.5 shadow-sm">
           <div className="text-xs font-medium text-muted-foreground">
-            Mostrando{" "}
+            {isEn ? "Showing " : "Mostrando "}
             <strong className="font-bold text-foreground">
               {(safePage - 1) * PAGE_SIZE + 1}–
               {Math.min(safePage * PAGE_SIZE, filteredVenues.length)}
             </strong>{" "}
-            de{" "}
+            {isEn ? "of " : "de "}
             <strong className="font-bold text-foreground">
               {filteredVenues.length}
             </strong>{" "}
-            {filteredVenues.length === 1 ? "sede registrada" : "sedes registradas"}
+            {filteredVenues.length === 1
+              ? isEn
+                ? "registered venue"
+                : "sede registrada"
+              : isEn
+                ? "registered venues"
+                : "sedes registradas"}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -400,7 +475,7 @@ export function VenueCardGrid({
               onClick={() => handlePageChange(Math.max(1, safePage - 1))}
               className="cursor-pointer rounded-xl border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
             >
-              ← Anterior
+              {isEn ? "← Previous" : "← Anterior"}
             </button>
             <div className="flex items-center gap-1">
               {Array.from({ length: totalPages }, (_, idx) => idx + 1).map(
@@ -411,7 +486,7 @@ export function VenueCardGrid({
                     onClick={() => handlePageChange(pageNum)}
                     className={`flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-xs font-bold transition-colors ${
                       pageNum === safePage
-                        ? "bg-accent text-forest-950 shadow-xs"
+                        ? "bg-accent text-accent-foreground shadow-xs"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
                   >
@@ -428,7 +503,7 @@ export function VenueCardGrid({
               }
               className="cursor-pointer rounded-xl border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
             >
-              Siguiente →
+              {isEn ? "Next →" : "Siguiente →"}
             </button>
           </div>
         </div>

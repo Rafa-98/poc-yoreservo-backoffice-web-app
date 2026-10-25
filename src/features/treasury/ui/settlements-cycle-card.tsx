@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLocale } from "next-intl";
 import type { BackofficeRole } from "@/shared/config";
 import { Button } from "@/shared/ui/button";
 import type { SettlementDirection, UnsettledPoolItem } from "../model/types";
@@ -30,11 +31,11 @@ function formatClock12h(raw: string): string {
   return `${h12}:${mins} ${suffix}`;
 }
 
-function formatDateTimeEs(iso?: string | null): string {
-  if (!iso) return "Hoy";
+function formatDateTimeLocalized(iso?: string | null, isEn?: boolean): string {
+  if (!iso) return isEn ? "Today" : "Hoy";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "Hoy";
-  return new Intl.DateTimeFormat("es-VE", {
+  if (Number.isNaN(d.getTime())) return isEn ? "Today" : "Hoy";
+  return new Intl.DateTimeFormat(isEn ? "en-US" : "es-VE", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -57,6 +58,7 @@ export function SettlementsCycleCard({
     timeZone: "America/Caracas",
   },
 }: SettlementsCycleCardProps) {
+  const isEn = useLocale().toLowerCase().startsWith("en");
   const isAllyToPlatform = direction === "ALLY_TO_PLATFORM";
   const isPlatformUser =
     userRole === "PLATFORM_ADMIN" || userRole === "PLATFORM_ACCOUNTING";
@@ -73,22 +75,36 @@ export function SettlementsCycleCard({
           <div className="flex flex-wrap items-center gap-2.5">
             <h2 className="font-display text-sm font-bold text-foreground">
               {isAllyToPlatform
-                ? "⚡ Bolsa Acumulada de Comisión (Cobro Directo del Aliado)"
-                : "⚡ Bolsa Acumulada para Transferir al Aliado (Custodia YoReservo)"}
+                ? isEn
+                  ? "⚡ Accrued Commission Pool (Ally Direct Collection)"
+                  : "⚡ Bolsa Acumulada de Comisión (Cobro Directo del Aliado)"
+                : isEn
+                  ? "⚡ Accrued Pool for Ally Transfer (YoReservo Custody)"
+                  : "⚡ Bolsa Acumulada para Transferir al Aliado (Custodia YoReservo)"}
             </h2>
             <span className="rounded-full bg-status-available-bg border border-status-available-border px-2.5 py-0.5 text-[11px] font-bold text-status-available-fg">
-              Acumulación Continua en Tiempo Real
+              {isEn
+                ? "Continuous Real-Time Accrual"
+                : "Acumulación Continua en Tiempo Real"}
             </span>
             <span className="rounded-full bg-muted border border-border px-2.5 py-0.5 text-[11px] font-semibold text-foreground">
-              🕒 Cortes automáticos diarios: {morningLabel} y {nightLabel}
+              {isEn
+                ? `🕒 Daily automatic cutoffs: ${morningLabel} and ${nightLabel}`
+                : `🕒 Cortes automáticos diarios: ${morningLabel} y ${nightLabel}`}
             </span>
           </div>
           <p className="mt-1 text-xs text-muted-foreground max-w-3xl">
             {isAllyToPlatform
-              ? "Cada vez que se verifica un pago recibido directamente en las cuentas del Aliado, su comisión se suma aquí. Al hacer clic en «Generar Lote de Comisión», se congela ese corte para su pago y este contador vuelve a 0,00 para las siguientes reservas."
+              ? isEn
+                ? "Every time a payment received directly in the Ally's accounts is verified, its commission is added here. Clicking 'Generate Commission Batch' freezes that cutoff for payment and resets this counter to 0.00 for upcoming bookings."
+                : "Cada vez que se verifica un pago recibido directamente en las cuentas del Aliado, su comisión se suma aquí. Al hacer clic en «Generar Lote de Comisión», se congela ese corte para su pago y este contador vuelve a 0,00 para las siguientes reservas."
               : isPlatformUser
-                ? "Cada vez que se verifica un pago en las cuentas de YoReservo (sin importar la fecha del partido), el saldo entra inmediatamente aquí. Al hacer clic en «Generar Lote de Pago», se congela ese monto para transferirlo al Aliado y este contador vuelve a 0,00 para las siguientes reservas."
-                : "Aquí puedes consultar en tiempo real el saldo acumulado por tus reservas cobradas en Custodia YoReservo. El equipo de Tesorería de YoReservo generará el lote de corte al momento de ejecutar tu transferencia."}
+                ? isEn
+                  ? "Every time a payment in YoReservo's accounts is verified (regardless of the match date), the balance immediately enters here. Clicking 'Generate Payout Batch' freezes that amount for transfer to the Ally and resets this counter to 0.00."
+                  : "Cada vez que se verifica un pago en las cuentas de YoReservo (sin importar la fecha del partido), el saldo entra inmediatamente aquí. Al hacer clic en «Generar Lote de Pago», se congela ese monto para transferirlo al Aliado y este contador vuelve a 0,00 para las siguientes reservas."
+                : isEn
+                  ? "Consult your accrued balance in real time for bookings collected under YoReservo Custody. YoReservo's Treasury team will generate the cutoff batch when executing your transfer."
+                  : "Aquí puedes consultar en tiempo real el saldo acumulado por tus reservas cobradas en Custodia YoReservo. El equipo de Tesorería de YoReservo generará el lote de corte al momento de ejecutar tu transferencia."}
           </p>
         </div>
       </div>
@@ -101,16 +117,20 @@ export function SettlementsCycleCard({
             </span>
             <div>
               <div className="text-xs font-bold text-foreground">
-                Contador acumulado en 0,00 (0 reservas verificadas sin lote)
+                {isEn
+                  ? "Accrued counter at 0.00 (0 unbatched verified bookings)"
+                  : "Contador acumulado en 0,00 (0 reservas verificadas sin lote)"}
               </div>
               <div className="text-[11px] text-muted-foreground mt-0.5">
-                Todas las reservas con pagos verificados hasta este momento ya fueron agrupadas en lotes. Los próximos pagos verificados en Conciliación se acumularán aquí al instante.
+                {isEn
+                  ? "All bookings with verified payments up to this moment have already been grouped into batches. Upcoming payments verified in Reconciliation will accrue here instantly."
+                  : "Todas las reservas con pagos verificados hasta este momento ya fueron agrupadas en lotes. Los próximos pagos verificados en Conciliación se acumularán aquí al instante."}
               </div>
             </div>
           </div>
           <div className="text-right">
             <span className="inline-flex items-center rounded-lg bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground">
-              Sin saldo pendiente de lote
+              {isEn ? "No unbatched balance" : "Sin saldo pendiente de lote"}
             </span>
           </div>
         </div>
@@ -139,7 +159,7 @@ export function SettlementsCycleCard({
                       {pool.rif}
                     </span>
                     <span className="rounded-md bg-muted border border-border px-2 py-0.5 text-[10px] font-bold text-foreground">
-                      {isEur ? "💶 EUR" : "💵 USD"} (Tasa BCV:{" "}
+                      {isEur ? "💶 EUR" : "💵 USD"} ({isEn ? "BCV Rate:" : "Tasa BCV:"}{" "}
                       {rateUsed.toLocaleString("es-VE", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -149,25 +169,31 @@ export function SettlementsCycleCard({
                     <span className="rounded-full bg-accent/15 border border-accent/40 px-2.5 py-0.5 text-[11px] font-bold text-foreground">
                       {pool.reservationsCount}{" "}
                       {pool.reservationsCount === 1
-                        ? "pago verificado acumulado"
-                        : "pagos verificados acumulados"}
+                        ? isEn
+                          ? "accrued verified payment"
+                          : "pago verificado acumulado"
+                        : isEn
+                          ? "accrued verified payments"
+                          : "pagos verificados acumulados"}
                     </span>
                   </div>
 
                   <div className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-2">
                     <span>
-                      🕒 Acumulado desde:{" "}
+                      🕒 {isEn ? "Accruing since:" : "Acumulado desde:"}{" "}
                       <strong className="text-foreground">
-                        {formatDateTimeEs(pool.oldestVerifiedAt)}
+                        {formatDateTimeLocalized(pool.oldestVerifiedAt, isEn)}
                       </strong>{" "}
                       →{" "}
-                      <strong className="text-foreground">Ahora</strong>
+                      <strong className="text-foreground">
+                        {isEn ? "Now" : "Ahora"}
+                      </strong>
                     </span>
                     {!isAllyToPlatform && pool.payoutBank && (
                       <>
                         <span>•</span>
                         <span>
-                          🏦 Destino: {pool.payoutBank}
+                          🏦 {isEn ? "Destination:" : "Destino:"} {pool.payoutBank}
                           {pool.payoutAccountNumber
                             ? ` (•••${pool.payoutAccountNumber.slice(-4)})`
                             : ""}
@@ -181,7 +207,13 @@ export function SettlementsCycleCard({
                 <div className="flex flex-wrap items-center gap-5 text-right">
                   <div>
                     <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      {isAllyToPlatform ? "Cobrado por Aliado" : "Recaudado Bruto"}
+                      {isAllyToPlatform
+                        ? isEn
+                          ? "Collected by Ally"
+                          : "Cobrado por Aliado"
+                        : isEn
+                          ? "Gross Collected"
+                          : "Recaudado Bruto"}
                     </div>
                     <div className="text-xs font-bold text-foreground mt-0.5">
                       {sym}
@@ -192,7 +224,7 @@ export function SettlementsCycleCard({
                   {!isAllyToPlatform && (
                     <div>
                       <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Comisión YoReservo
+                        {isEn ? "YoReservo Commission" : "Comisión YoReservo"}
                       </div>
                       <div className="text-xs font-bold text-status-cancelled-fg mt-0.5">
                         −{sym}
@@ -204,8 +236,12 @@ export function SettlementsCycleCard({
                   <div className="rounded-lg bg-status-available-bg/60 border border-status-available-border px-3 py-1.5">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-status-available-fg">
                       {isAllyToPlatform
-                        ? "Comisión a Pagar a YoReservo"
-                        : "Neto a Transferir al Aliado"}
+                        ? isEn
+                          ? "Commission Owed to YoReservo"
+                          : "Comisión a Pagar a YoReservo"
+                        : isEn
+                          ? "Net to Transfer to Ally"
+                          : "Neto a Transferir al Aliado"}
                     </div>
                     <div className="font-display text-sm font-black text-status-available-fg">
                       {sym}
@@ -238,14 +274,20 @@ export function SettlementsCycleCard({
                       <span>📸</span>
                       <span>
                         {isAllyToPlatform
-                          ? "Generar Lote de Comisión"
-                          : "Generar Lote de Pago"}
+                          ? isEn
+                            ? "Generate Commission Batch"
+                            : "Generar Lote de Comisión"
+                          : isEn
+                            ? "Generate Payout Batch"
+                            : "Generar Lote de Pago"}
                       </span>
                     </Button>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-muted/60 px-3 py-2 text-[11px] font-semibold text-muted-foreground">
                       <span>🔒</span>
-                      <span>Gestionado por YoReservo</span>
+                      <span>
+                        {isEn ? "Managed by YoReservo" : "Gestionado por YoReservo"}
+                      </span>
                     </span>
                   )}
                 </div>

@@ -14,7 +14,9 @@ import type {
   CreateCategoryInput,
   CreateSurfaceInput,
   SurfaceItem,
+  UpdateActivityInput,
   UpdateAmenityInput,
+  UpdateCategoryInput,
   UpdateSurfaceInput,
 } from "../model/types";
 
@@ -60,9 +62,34 @@ export async function createActivityAction(
     }
 
     revalidatePath("/catalogs");
+    revalidatePath("/venues/spaces");
     return ok(res.body as ActivityItem);
   } catch (err: any) {
     return fail(err instanceof Error ? err.message : "ACTIVITY_CREATE_FAILED");
+  }
+}
+
+export async function updateActivityAction(
+  id: string,
+  input: UpdateActivityInput
+): Promise<ActionResult<ActivityItem>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN"]);
+  try {
+    const res = await backendRequest(`/backoffice/catalogs/activities/${id}`, {
+      method: "PUT",
+      accessToken,
+      body: input,
+    });
+
+    if (!res.ok) {
+      return fail("ACTIVITY_UPDATE_FAILED");
+    }
+
+    revalidatePath("/catalogs");
+    revalidatePath("/venues/spaces");
+    return ok(res.body as ActivityItem);
+  } catch (err: any) {
+    return fail(err instanceof Error ? err.message : "ACTIVITY_UPDATE_FAILED");
   }
 }
 
@@ -82,9 +109,34 @@ export async function createCategoryAction(
     }
 
     revalidatePath("/catalogs");
+    revalidatePath("/venues/spaces");
     return ok(res.body as ActivityCategoryItem);
   } catch (err: any) {
     return fail(err instanceof Error ? err.message : "CATEGORY_CREATE_FAILED");
+  }
+}
+
+export async function updateCategoryAction(
+  id: string,
+  input: UpdateCategoryInput
+): Promise<ActionResult<ActivityCategoryItem>> {
+  const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN"]);
+  try {
+    const res = await backendRequest(`/backoffice/catalogs/categories/${id}`, {
+      method: "PUT",
+      accessToken,
+      body: input,
+    });
+
+    if (!res.ok) {
+      return fail("CATEGORY_UPDATE_FAILED");
+    }
+
+    revalidatePath("/catalogs");
+    revalidatePath("/venues/spaces");
+    return ok(res.body as ActivityCategoryItem);
+  } catch (err: any) {
+    return fail(err instanceof Error ? err.message : "CATEGORY_UPDATE_FAILED");
   }
 }
 

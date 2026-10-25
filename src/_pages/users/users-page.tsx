@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import { UsersKpiStrip } from "@/features/users/ui/users-kpi-strip";
 import { UsersTable } from "@/features/users/ui/users-table";
@@ -19,6 +19,10 @@ import {
   revokeSessionAction,
 } from "@/features/users/actions/users-actions";
 import { useActiveVenue } from "@/features/venues/context/venue-context";
+import {
+  deriveOrganizationsFromVenues,
+  type VenueItem,
+} from "@/features/venues/model/types";
 import type {
   ActiveSessionItem,
   UserItem,
@@ -29,7 +33,13 @@ interface UsersPageProps {
   initialKpi: UsersKpi;
   initialUsers: UserItem[];
   initialSessions: ActiveSessionItem[];
-  venues: Array<{ id: string; name: string }>;
+  venues: Array<{
+    id: string;
+    name: string;
+    organizationId?: string;
+    organizationName?: string;
+    spacesCount?: number;
+  }>;
   currentUserRole?: string;
 }
 
@@ -40,19 +50,26 @@ export function UsersPage({
   currentUserRole,
 }: UsersPageProps) {
   const t = useTranslations("users");
+  const locale = useLocale();
+  const isEn = locale === "en";
 
-  let activeVenueId = "ALL";
-  try {
-    const venueCtx = useActiveVenue();
-    activeVenueId = venueCtx.activeVenueId;
-  } catch {
-    // Fallback when rendered outside VenueProvider in isolated tests
-  }
+  const {
+    activeVenueId,
+    activeOrganizationId,
+    setActiveOrganizationId: setGlobalOrgId,
+    setActiveVenueId: setGlobalVenueId,
+  } = useActiveVenue();
 
   const isAllyRole =
     currentUserRole === "ALLY_ADMIN" ||
     currentUserRole === "ALLY_ACCOUNTING" ||
     currentUserRole === "ALLY_VALIDATOR";
+
+  const organizations = useMemo(
+    () => deriveOrganizationsFromVenues(venues as unknown as VenueItem[]),
+    [venues],
+  );
+  const showOrganizationFilter = !isAllyRole && organizations.length > 0;
 
   const [activeTab, setActiveTab] = useState<"directory" | "matrix" | "sessions">("directory");
 
@@ -62,8 +79,17 @@ export function UsersPage({
   // Filter state (placed at top of Directory tab before KPI cards & Table)
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [orgFilter, setOrgFilter] = useState<string>(
+    !isAllyRole ? activeOrganizationId || "ALL" : "ALL",
+  );
   const [venueFilter, setVenueFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  useEffect(() => {
+    if (!isAllyRole && activeOrganizationId) {
+      setOrgFilter(activeOrganizationId);
+    }
+  }, [isAllyRole, activeOrganizationId]);
 
   useEffect(() => {
     if (activeVenueId && activeVenueId !== "ALL") {
@@ -116,33 +142,56 @@ export function UsersPage({
   function clearFilters() {
     setSearch("");
     setRoleFilter("all");
+    if (showOrganizationFilter) {
+      setOrgFilter("ALL");
+      setGlobalOrgId?.("ALL");
+    }
     setVenueFilter("all");
+    setGlobalVenueId?.("ALL");
     setStatusFilter("all");
   }
 
   const hasActiveFilters =
     search.trim() !== "" ||
     roleFilter !== "all" ||
+    (showOrganizationFilter && orgFilter !== "ALL") ||
     venueFilter !== "all" ||
     statusFilter !== "all";
+
+  const scopedVenues = useMemo(() => {
+    if (!showOrganizationFilter || !orgFilter || orgFilter === "ALL" || orgFilter === "PLATFORM") {
+      return venues;
+    }
+    return venues.filter((v) => v.organizationId === orgFilter);
+  }, [venues, showOrganizationFilter, orgFilter]);
+
+  const scopedVenueIds = useMemo(
+    () => new Set(scopedVenues.map((v) => v.id)),
+    [scopedVenues],
+  );
 
   // Normalize user scope: only ALLY_VALIDATOR is venue-specific
   const normalizedUsers = useMemo(() => {
     return users.map((u) => {
       if (u.role !== "ALLY_VALIDATOR") {
+        const isPlat =
+          u.role === "PLATFORM_ADMIN" || u.role === "PLATFORM_ACCOUNTING";
         return {
           ...u,
           scopeType: "ORGANIZATION" as const,
           venueId: null,
-          venueName:
-            u.role === "PLATFORM_ADMIN" || u.role === "PLATFORM_ACCOUNTING"
-              ? "Global"
-              : "Toda la Organización",
+          venueName: isPlat
+            ? "Global"
+            : !isAllyRole && u.organizationName
+            ? `${u.organizationName} (${isEn ? "Organization" : "Organización"})`
+            : isEn
+            ? "Entire Organization"
+            : "Toda la Organización",
         };
       }
       return u;
     });
-  }, [users]);
+  }, [users, isAllyRole, isEn]);
 
   const filteredUsers = useMemo(() => {
     return normalizedUsers.filter((u) => {
@@ -156,6 +205,18 @@ export function UsersPage({
 
       const matchesRole = roleFilter === "all" || u.role === roleFilter;
 
+      let matchesOrg = true;
+      if (showOrganizationFilter && orgFilter && orgFilter !== "ALL") {
+        if (orgFilter === "PLATFORM") {
+          matchesOrg =
+            u.role === "PLATFORM_ADMIN" || u.role === "PLATFORM_ACCOUNTING";
+        } else {
+          matchesOrg =
+            u.organizationId === orgFilter ||
+            Boolean(u.venueId && scopedVenueIds.has(u.venueId));
+        }
+      }
+
       const matchesVenue =
         venueFilter === "all" ||
         (venueFilter === "org-all" && u.scopeType === "ORGANIZATION") ||
@@ -166,9 +227,24 @@ export function UsersPage({
         (statusFilter === "PENDING" && u.status === "INVITATION_PENDING") ||
         u.status === statusFilter;
 
-      return matchesSearch && matchesRole && matchesVenue && matchesStatus;
+      return (
+        matchesSearch &&
+        matchesRole &&
+        matchesOrg &&
+        matchesVenue &&
+        matchesStatus
+      );
     });
-  }, [normalizedUsers, search, roleFilter, venueFilter, statusFilter]);
+  }, [
+    normalizedUsers,
+    search,
+    roleFilter,
+    showOrganizationFilter,
+    orgFilter,
+    scopedVenueIds,
+    venueFilter,
+    statusFilter,
+  ]);
 
   // Compute scope-aware KPIs from the active venue/scope + filtered list
   const kpiStats = useMemo(() => {
@@ -218,17 +294,45 @@ export function UsersPage({
     return base;
   }, [isAllyRole, t]);
 
+  const orgOptions = useMemo(() => {
+    return [
+      {
+        value: "ALL",
+        label: isEn ? "All organizations" : "Todas las organizaciones",
+        icon: "🌐",
+      },
+      {
+        value: "PLATFORM",
+        label: isEn ? "YoReservo Team (Global)" : "Equipo YoReservo (Global)",
+        icon: "👑",
+      },
+      ...organizations.map((org) => ({
+        value: org.id,
+        label: `${org.tradeName} (${org.venuesCount} ${
+          isEn
+            ? org.venuesCount === 1
+              ? "venue"
+              : "venues"
+            : org.venuesCount === 1
+            ? "sede"
+            : "sedes"
+        })`,
+        icon: "🏢",
+      })),
+    ];
+  }, [organizations, isEn]);
+
   const venueOptions = useMemo(() => {
     return [
       { value: "all", label: t("filters.allScopes") },
       { value: "org-all", label: t("filters.onlyOrgWide"), icon: "🏢" },
-      ...venues.map((v) => ({
+      ...scopedVenues.map((v) => ({
         value: v.id,
         label: v.name,
         icon: "📍",
       })),
     ];
-  }, [venues, t]);
+  }, [scopedVenues, t]);
 
   const statusOptions = useMemo(() => {
     return [
@@ -321,7 +425,7 @@ export function UsersPage({
             <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-12 items-end">
                 {/* Search Input */}
-                <div className="md:col-span-4">
+                <div className={showOrganizationFilter ? "md:col-span-3" : "md:col-span-4"}>
                   <label
                     htmlFor="users-search-input"
                     className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5"
@@ -342,7 +446,7 @@ export function UsersPage({
                         type="button"
                         onClick={() => setSearch("")}
                         className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-                        aria-label="Limpiar búsqueda"
+                        aria-label={isEn ? "Clear search" : "Limpiar búsqueda"}
                       >
                         ✕
                       </button>
@@ -351,7 +455,7 @@ export function UsersPage({
                 </div>
 
                 {/* Role Filter (SearchableSelect) */}
-                <div className="md:col-span-3">
+                <div className={showOrganizationFilter ? "md:col-span-2" : "md:col-span-3"}>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
                     🛡️ {t("filters.roleLabel")}
                   </label>
@@ -365,15 +469,46 @@ export function UsersPage({
                   />
                 </div>
 
+                {/* Organization Filter (Platform Roles) */}
+                {showOrganizationFilter && (
+                  <div className="md:col-span-3">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                      🏢 {isEn ? "Organization" : "Organización"}
+                    </label>
+                    <SearchableSelect
+                      id="users-org-filter"
+                      value={orgFilter}
+                      onChange={(nextOrg) => {
+                        setOrgFilter(nextOrg);
+                        if (nextOrg !== "PLATFORM") {
+                          setGlobalOrgId?.(nextOrg);
+                        }
+                        setVenueFilter("all");
+                        setGlobalVenueId?.("ALL");
+                      }}
+                      options={orgOptions}
+                      searchPlaceholder={isEn ? "Search organization..." : "Buscar organización..."}
+                      emptyText={t("filters.noOptionsFound")}
+                    />
+                  </div>
+                )}
+
                 {/* Scope / Venue Filter (SearchableSelect) */}
-                <div className="md:col-span-3">
+                <div className={showOrganizationFilter ? "md:col-span-2" : "md:col-span-3"}>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
                     📍 {t("filters.scopeLabel")}
                   </label>
                   <SearchableSelect
                     id="users-venue-filter"
                     value={venueFilter}
-                    onChange={setVenueFilter}
+                    onChange={(nextVenue) => {
+                      setVenueFilter(nextVenue);
+                      setGlobalVenueId?.(
+                        nextVenue === "all" || nextVenue === "org-all"
+                          ? "ALL"
+                          : nextVenue,
+                      );
+                    }}
                     options={venueOptions}
                     searchPlaceholder={t("filters.searchOptionPlaceholder")}
                     emptyText={t("filters.noOptionsFound")}
@@ -408,7 +543,7 @@ export function UsersPage({
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold text-link hover:bg-accent/10 transition-colors cursor-pointer"
                     id="btn-clear-user-filters"
                   >
                     <span>↺</span>
@@ -469,7 +604,7 @@ export function UsersPage({
       <InviteUserModal
         isOpen={isInviteOpen}
         onClose={() => setIsInviteOpen(false)}
-        venues={venues}
+        venues={scopedVenues}
         currentUserRole={currentUserRole}
         onSuccess={async () => {
           await refreshUsers();
@@ -480,7 +615,7 @@ export function UsersPage({
         isOpen={!!editingUser}
         onClose={() => setEditingUser(null)}
         user={editingUser}
-        venues={venues}
+        venues={scopedVenues}
         currentUserRole={currentUserRole}
         onSuccess={async () => {
           await refreshUsers();

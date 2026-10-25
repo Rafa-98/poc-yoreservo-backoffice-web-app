@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import {
   Building2,
   Check,
@@ -19,6 +20,7 @@ export interface SelectableOrganizationItem {
   tradeName?: string;
   legalName?: string;
   rif?: string;
+  isPlatformOrg?: boolean;
   fiscalAddress?: string;
   state?: string;
   states?: string[];
@@ -219,12 +221,17 @@ export function OrganizationAdvancedSelector({
   selectedOrganizationId,
   onSelectOrganization,
   allowAll = false,
-  allLabel = "Todas las Sedes & Aliados",
+  allLabel,
   selectedStateFilter,
   onChangeStateFilter,
   id = "organization-advanced-selector",
   label,
 }: OrganizationAdvancedSelectorProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
+  const resolvedAllLabel =
+    allLabel ??
+    (isEn ? "All Venues & Allies" : "Todas las Sedes & Aliados");
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [internalStateFilter, setInternalStateFilter] = useState<string>("ALL");
@@ -245,8 +252,16 @@ export function OrganizationAdvancedSelector({
 
   // Enrich organizations with location & venue metadata
   const enrichedOrgs = useMemo(() => {
-    return organizations.map((org) => {
-      const displayName = org.tradeName || org.name || "Organización Aliada";
+    const mapped = organizations.map((org) => {
+      const displayName =
+        org.tradeName ||
+        org.name ||
+        (isEn ? "Ally Organization" : "Organización Aliada");
+      const isPlatformOrg = Boolean(
+        org.isPlatformOrg ||
+          displayName.toLowerCase().includes("yoreservo oficial") ||
+          org.rif === "J-50000001-0",
+      );
       const meta = extractOrganizationLocationMeta(org, venues);
       const mode: PaymentCollectionMode =
         org.paymentCollectionMode === "ALLY_DIRECT"
@@ -256,13 +271,19 @@ export function OrganizationAdvancedSelector({
       return {
         ...org,
         displayName,
+        isPlatformOrg,
         rif: org.rif || "",
         mode,
         currency,
         ...meta,
       };
     });
-  }, [organizations, venues]);
+    return mapped.sort((a, b) => {
+      if (a.isPlatformOrg && !b.isPlatformOrg) return -1;
+      if (!a.isPlatformOrg && b.isPlatformOrg) return 1;
+      return a.displayName.localeCompare(b.displayName, "es");
+    });
+  }, [organizations, venues, isEn]);
 
   // All unique states available across organizations
   const availableStates = useMemo(() => {
@@ -354,7 +375,11 @@ export function OrganizationAdvancedSelector({
   // Close on Escape
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setIsOpen(false);
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsOpen(false);
+      }
     }
     if (isOpen) {
       document.addEventListener("keydown", handleKey);
@@ -363,9 +388,9 @@ export function OrganizationAdvancedSelector({
   }, [isOpen]);
 
   return (
-    <div className="relative inline-flex items-center gap-2" ref={containerRef}>
+    <div className="relative inline-flex items-center gap-2 shrink-0" ref={containerRef}>
       {label && (
-        <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
+        <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap pl-1">
           {label}
         </span>
       )}
@@ -377,7 +402,7 @@ export function OrganizationAdvancedSelector({
         onClick={() => setIsOpen((prev) => !prev)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className="group inline-flex h-9 min-w-[240px] max-w-[380px] items-center justify-between gap-2.5 rounded-xl border border-border-medium bg-surface px-3 text-xs font-semibold text-foreground shadow-2xs transition-all hover:border-accent/60 hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/30 cursor-pointer"
+        className="group inline-flex h-9 min-w-[200px] max-w-[280px] items-center justify-between gap-2 rounded-xl border border-border-medium bg-background px-2.5 text-xs font-semibold text-foreground shadow-2xs transition-all hover:border-accent/60 hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/30 cursor-pointer"
       >
         <div className="flex items-center gap-2 min-w-0">
           <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-accent/20 text-foreground">
@@ -390,22 +415,27 @@ export function OrganizationAdvancedSelector({
           <span className="truncate font-bold text-foreground">
             {selectedOrganizationId === "ALL"
               ? activeStateFilter !== "ALL"
-                ? `${allLabel} (${activeStateFilter})`
-                : allLabel
+                ? `${resolvedAllLabel} (${activeStateFilter})`
+                : resolvedAllLabel
               : selectedOrg
-              ? `${selectedOrg.displayName}${
-                  selectedOrg.rif ? ` (${selectedOrg.rif})` : ""
-                }`
-              : allLabel}
+              ? selectedOrg.displayName
+              : resolvedAllLabel}
           </span>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          {selectedOrg?.primaryState && selectedOrganizationId !== "ALL" && (
-            <span className="hidden sm:inline-flex items-center rounded-md bg-muted border border-border px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-              📍 {selectedOrg.primaryState}
+          {selectedOrg?.isPlatformOrg && selectedOrganizationId !== "ALL" && (
+            <span className="hidden sm:inline-flex items-center rounded-md bg-accent/25 border border-accent/50 px-1.5 py-0.5 text-[10px] font-extrabold text-foreground">
+              ⚡ SUPER ORG
             </span>
           )}
+          {selectedOrg?.primaryState &&
+            !selectedOrg?.isPlatformOrg &&
+            selectedOrganizationId !== "ALL" && (
+              <span className="hidden sm:inline-flex items-center rounded-md bg-muted border border-border px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                📍 {selectedOrg.primaryState}
+              </span>
+            )}
           <span className="rounded-full bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold text-foreground">
             {enrichedOrgs.length}
           </span>
@@ -430,7 +460,11 @@ export function OrganizationAdvancedSelector({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por organización, RIF, sede, estado o ciudad..."
+              placeholder={
+                isEn
+                  ? "Search by organization, Tax ID, venue, state, or city..."
+                  : "Buscar por organización, RIF, sede, estado o ciudad..."
+              }
               className="w-full rounded-xl border border-border-medium bg-background py-2 pl-9 pr-8 text-xs font-medium text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
               autoFocus
             />
@@ -439,7 +473,7 @@ export function OrganizationAdvancedSelector({
                 type="button"
                 onClick={() => setSearchQuery("")}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
-                aria-label="Limpiar búsqueda"
+                aria-label={isEn ? "Clear search" : "Limpiar búsqueda"}
               >
                 <X className="size-3.5" />
               </button>
@@ -452,15 +486,17 @@ export function OrganizationAdvancedSelector({
             <div>
               <label className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 <MapPin className="size-2.5" />
-                <span>Estado</span>
+                <span>{isEn ? "State" : "Estado"}</span>
               </label>
               <select
                 value={activeStateFilter}
                 onChange={(e) => handleStateChange(e.target.value)}
                 className="w-full rounded-lg border border-border bg-background px-2 py-1 text-[11px] font-semibold text-foreground focus:border-accent focus:outline-none"
-                aria-label="Filtrar por estado"
+                aria-label={isEn ? "Filter by state" : "Filtrar por estado"}
               >
-                <option value="ALL">Todos los estados</option>
+                <option value="ALL">
+                  {isEn ? "All states" : "Todos los estados"}
+                </option>
                 {availableStates.map((st) => (
                   <option key={st} value={st}>
                     📍 {st}
@@ -473,7 +509,7 @@ export function OrganizationAdvancedSelector({
             <div>
               <label className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 <Filter className="size-2.5" />
-                <span>Modalidad</span>
+                <span>{isEn ? "Mode" : "Modalidad"}</span>
               </label>
               <select
                 value={modeFilter}
@@ -486,18 +522,26 @@ export function OrganizationAdvancedSelector({
                   )
                 }
                 className="w-full rounded-lg border border-border bg-background px-2 py-1 text-[11px] font-semibold text-foreground focus:border-accent focus:outline-none"
-                aria-label="Filtrar por modalidad de cobro"
+                aria-label={
+                  isEn
+                    ? "Filter by collection mode"
+                    : "Filtrar por modalidad de cobro"
+                }
               >
-                <option value="ALL">Todas</option>
-                <option value="PLATFORM_CUSTODY">🏦 Custodia YoReservo</option>
-                <option value="ALLY_DIRECT">📲 Cobro Directo</option>
+                <option value="ALL">{isEn ? "All" : "Todas"}</option>
+                <option value="PLATFORM_CUSTODY">
+                  {isEn ? "🏦 YoReservo Custody" : "🏦 Custodia YoReservo"}
+                </option>
+                <option value="ALLY_DIRECT">
+                  {isEn ? "📲 Direct Collection" : "📲 Cobro Directo"}
+                </option>
               </select>
             </div>
 
             {/* Currency Filter */}
             <div>
               <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                💱 Moneda
+                {isEn ? "💱 Currency" : "💱 Moneda"}
               </label>
               <select
                 value={currencyFilter}
@@ -505,11 +549,17 @@ export function OrganizationAdvancedSelector({
                   setCurrencyFilter(e.target.value as "ALL" | "USD" | "EUR")
                 }
                 className="w-full rounded-lg border border-border bg-background px-2 py-1 text-[11px] font-semibold text-foreground focus:border-accent focus:outline-none"
-                aria-label="Filtrar por moneda"
+                aria-label={isEn ? "Filter by currency" : "Filtrar por moneda"}
               >
-                <option value="ALL">Todas (USD / EUR)</option>
-                <option value="USD">💵 Dólares (USD)</option>
-                <option value="EUR">💶 Euros (EUR)</option>
+                <option value="ALL">
+                  {isEn ? "All (USD / EUR)" : "Todas (USD / EUR)"}
+                </option>
+                <option value="USD">
+                  {isEn ? "💵 US Dollars (USD)" : "💵 Dólares (USD)"}
+                </option>
+                <option value="EUR">
+                  {isEn ? "💶 Euros (EUR)" : "💶 Euros (EUR)"}
+                </option>
               </select>
             </div>
           </div>
@@ -517,8 +567,31 @@ export function OrganizationAdvancedSelector({
           {/* Filter Results Counter & Reset */}
           <div className="my-1.5 flex items-center justify-between px-1 text-[11px] text-muted-foreground">
             <span>
-              Mostrando <strong className="text-foreground">{filteredOrgs.length}</strong> de{" "}
-              <strong className="text-foreground">{enrichedOrgs.length}</strong> organizaciones
+              {isEn ? (
+                <>
+                  Showing{" "}
+                  <strong className="text-foreground">
+                    {filteredOrgs.length}
+                  </strong>{" "}
+                  of{" "}
+                  <strong className="text-foreground">
+                    {enrichedOrgs.length}
+                  </strong>{" "}
+                  organizations
+                </>
+              ) : (
+                <>
+                  Mostrando{" "}
+                  <strong className="text-foreground">
+                    {filteredOrgs.length}
+                  </strong>{" "}
+                  de{" "}
+                  <strong className="text-foreground">
+                    {enrichedOrgs.length}
+                  </strong>{" "}
+                  organizaciones
+                </>
+              )}
             </span>
             {hasActiveFilters && (
               <button
@@ -526,7 +599,7 @@ export function OrganizationAdvancedSelector({
                 onClick={clearFilters}
                 className="font-bold text-link hover:underline cursor-pointer"
               >
-                Limpiar filtros
+                {isEn ? "Clear filters" : "Limpiar filtros"}
               </button>
             )}
           </div>
@@ -553,11 +626,17 @@ export function OrganizationAdvancedSelector({
                     <Globe className="size-3.5 text-link" />
                   </div>
                   <div>
-                    <div className="font-bold text-foreground">{allLabel}</div>
+                    <div className="font-bold text-foreground">
+                      {resolvedAllLabel}
+                    </div>
                     <div className="text-[10px] text-muted-foreground">
                       {activeStateFilter !== "ALL"
-                        ? `Consolidado de organizaciones en ${activeStateFilter}`
-                        : `Consolidado global (${enrichedOrgs.length} organizaciones)`}
+                        ? isEn
+                          ? `Consolidated organizations in ${activeStateFilter}`
+                          : `Consolidado de organizaciones en ${activeStateFilter}`
+                        : isEn
+                          ? `Global consolidated (${enrichedOrgs.length} organizations)`
+                          : `Consolidado global (${enrichedOrgs.length} organizaciones)`}
                     </div>
                   </div>
                 </div>
@@ -571,7 +650,9 @@ export function OrganizationAdvancedSelector({
 
             {filteredOrgs.length === 0 ? (
               <div className="py-6 text-center text-xs text-muted-foreground">
-                No se encontraron organizaciones con esos filtros.
+                {isEn
+                  ? "No organizations found with those filters."
+                  : "No se encontraron organizaciones con esos filtros."}
               </div>
             ) : (
               filteredOrgs.map((org) => {
@@ -595,8 +676,15 @@ export function OrganizationAdvancedSelector({
                     <div className="min-w-0 flex-1 space-y-0.5">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className="truncate font-bold text-foreground">
-                          {org.displayName}
+                          {org.isPlatformOrg ? `⚡ ${org.displayName}` : org.displayName}
                         </span>
+                        {org.isPlatformOrg && (
+                          <span className="rounded-md bg-accent/25 border border-accent/50 px-1.5 py-0.2 text-[9px] font-extrabold uppercase tracking-wider text-foreground">
+                            {isEn
+                              ? "SUPER ORG · OWN VENUES"
+                              : "SUPER ORG · SEDES PROPIAS"}
+                          </span>
+                        )}
                         {org.rif && (
                           <span className="rounded bg-muted px-1.5 py-0.2 font-mono text-[10px] text-muted-foreground">
                             {org.rif}
@@ -618,7 +706,13 @@ export function OrganizationAdvancedSelector({
                             <span>•</span>
                             <span>
                               🏟️ {org.venuesCount}{" "}
-                              {org.venuesCount === 1 ? "sede" : "sedes"}
+                              {org.venuesCount === 1
+                                ? isEn
+                                  ? "venue"
+                                  : "sede"
+                                : isEn
+                                  ? "venues"
+                                  : "sedes"}
                             </span>
                           </>
                         )}
@@ -628,9 +722,17 @@ export function OrganizationAdvancedSelector({
                         </span>
                         <span>•</span>
                         <span>
-                          {org.mode === "ALLY_DIRECT"
-                            ? "📲 Cobro Directo"
-                            : "🏦 Custodia"}
+                          {org.isPlatformOrg
+                            ? isEn
+                              ? "⚡ 100% Own (0% Fee)"
+                              : "⚡ 100% Propio (0% Fee)"
+                            : org.mode === "ALLY_DIRECT"
+                            ? isEn
+                              ? "📲 Direct Collection"
+                              : "📲 Cobro Directo"
+                            : isEn
+                              ? "🏦 Custody"
+                              : "🏦 Custodia"}
                         </span>
                       </div>
                     </div>

@@ -84,11 +84,11 @@ export function DashboardAdminKpis({
           <span className="text-xs font-bold uppercase tracking-wider">
             {t("kpis.adminFee")}
           </span>
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-accent/20 text-accent-foreground border border-accent/40">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-accent/20 text-link border border-accent/40">
             {t("kpis.adminFeeBadge")}
           </span>
         </div>
-        <div className="font-display text-2xl sm:text-3xl font-extrabold text-accent-foreground">
+        <div className="font-display text-2xl sm:text-3xl font-extrabold text-link">
           {formatCurrency(totalFee)}
         </div>
         <div className="mt-1 text-xs text-muted-foreground">

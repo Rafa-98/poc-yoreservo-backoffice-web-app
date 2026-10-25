@@ -258,7 +258,7 @@ export function ExpressCheckInModal({
                 <input
                   ref={inputRef}
                   type="text"
-                  maxLength={64}
+                  maxLength={256}
                   autoFocus
                   value={code}
                   onChange={(e) => setCode(e.target.value.trim())}

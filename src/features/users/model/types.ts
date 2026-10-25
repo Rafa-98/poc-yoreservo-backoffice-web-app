@@ -21,6 +21,8 @@ export interface UserItem {
   role: UserRole;
   status: GeneralStatus | string;
   scopeType: 'ORGANIZATION' | 'VENUE' | 'PLATFORM';
+  organizationId?: string | null;
+  organizationName?: string;
   venueId?: string | null;
   venueName?: string;
   activeSessions: number;

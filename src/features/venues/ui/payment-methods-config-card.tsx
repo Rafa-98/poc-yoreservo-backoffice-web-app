@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useLocale } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import { SearchableSelect } from "@/features/users/ui/searchable-select";
 import type {
@@ -143,44 +144,61 @@ function parseDocId(raw?: string | null): { prefix: string; number: string } {
   return { prefix: "J", number: clean };
 }
 
-const METHOD_META: Record<
-  PaymentMethodType,
-  {
-    icon: string;
-    label: string;
-    shortDesc: string;
+function getMethodMeta(
+  method: PaymentMethodType,
+  isEn: boolean
+): {
+  icon: string;
+  label: string;
+  shortDesc: string;
+} {
+  switch (method) {
+    case "PAGO_MOVIL":
+      return {
+        icon: "📲",
+        label: isEn
+          ? "Interbank Pago Móvil (Bs.)"
+          : "Pago Móvil Interbancario (Bs.)",
+        shortDesc: isEn
+          ? "Instant transfer in Bolívares at the official daily BCV exchange rate."
+          : "Transferencia inmediata en Bolívares al tipo de cambio oficial BCV del día.",
+      };
+    case "CASH":
+      return {
+        icon: "💵",
+        label: isEn ? "Cash at Venue / Box Office" : "Efectivo en Sede / Taquilla",
+        shortDesc: isEn
+          ? "In-person cash payment directly at the sports venue reception (Direct Collection only)."
+          : "Pago presencial en efectivo directamente en la recepción de la sede deportiva (Exclusivo Cobro Directo).",
+      };
+    case "ZELLE":
+      return {
+        icon: "🟣",
+        label: "Zelle (USD)",
+        shortDesc: isEn
+          ? "Electronic transfer in US Dollars (USD) with reference verification."
+          : "Transferencia electrónica en Dólares Estadounidenses (USD) con validación de referencia.",
+      };
+    case "PIPOL_PAY":
+      return {
+        icon: "⚡",
+        label: "Pipol Pay / Facebank (USD)",
+        shortDesc: isEn
+          ? "Electronic payment in USD via Pipol Pay wallet."
+          : "Pago electrónico en USD mediante billetera Pipol Pay.",
+      };
+    case "CARD":
+      return {
+        icon: "💳",
+        label: isEn
+          ? "International Card (Credit / Debit)"
+          : "Tarjeta Internacional (Crédito / Débito)",
+        shortDesc: isEn
+          ? "Automatic online processing with Visa / Mastercard cards (YoReservo Custody only)."
+          : "Procesamiento automático en línea con tarjetas Visa / Mastercard (Exclusivo Custodia YoReservo).",
+      };
   }
-> = {
-  PAGO_MOVIL: {
-    icon: "📲",
-    label: "Pago Móvil Interbancario (Bs.)",
-    shortDesc:
-      "Transferencia inmediata en Bolívares al tipo de cambio oficial BCV del día.",
-  },
-  CASH: {
-    icon: "💵",
-    label: "Efectivo en Sede / Taquilla",
-    shortDesc:
-      "Pago presencial en efectivo directamente en la recepción de la sede deportiva (Exclusivo Cobro Directo).",
-  },
-  ZELLE: {
-    icon: "🟣",
-    label: "Zelle (USD)",
-    shortDesc:
-      "Transferencia electrónica en Dólares Estadounidenses (USD) con validación de referencia.",
-  },
-  PIPOL_PAY: {
-    icon: "⚡",
-    label: "Pipol Pay / Facebank (USD)",
-    shortDesc: "Pago electrónico en USD mediante billetera Pipol Pay.",
-  },
-  CARD: {
-    icon: "💳",
-    label: "Tarjeta Internacional (Crédito / Débito)",
-    shortDesc:
-      "Procesamiento automático en línea con tarjetas Visa / Mastercard (Exclusivo Custodia YoReservo).",
-  },
-};
+}
 
 function buildDefaultMethods(
   scope: "PLATFORM" | "ORGANIZATION",
@@ -237,6 +255,8 @@ export function PaymentMethodsConfigCard({
   onSaved,
   onToast,
 }: PaymentMethodsConfigCardProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const organizationId = propOrganizationId ?? organization?.id;
   const organizationName = propOrganizationName ?? organization?.tradeName;
   const canEdit =
@@ -247,6 +267,22 @@ export function PaymentMethodsConfigCard({
           ? userRole === "PLATFORM_ADMIN" || userRole === "PLATFORM_ACCOUNTING"
           : userRole === "PLATFORM_ADMIN" || userRole === "ALLY_ADMIN"
         : true;
+
+  const operatorOptions = OPERATOR_OPTIONS.map((opt) =>
+    opt.value === "0212"
+      ? { ...opt, label: isEn ? "0212 (Landline / CCS)" : "0212 (Fijo / CCS)" }
+      : opt.value === "OTRO"
+        ? { ...opt, label: isEn ? "Other carrier" : "Otra operadora" }
+        : opt,
+  );
+
+  const docPrefixOptions = [
+    { value: "J", label: isEn ? "J - Corporate" : "J - Jurídico" },
+    { value: "V", label: isEn ? "V - Venezuelan" : "V - Venezolano" },
+    { value: "E", label: isEn ? "E - Foreigner" : "E - Extranjero" },
+    { value: "G", label: isEn ? "G - Government" : "G - Gubernamental" },
+    { value: "P", label: isEn ? "P - Passport" : "P - Pasaporte" },
+  ];
 
   const [methods, setMethods] = useState<PaymentMethodConfigItem[]>(() =>
     buildDefaultMethods(scope, initialMethods)
@@ -326,7 +362,11 @@ export function PaymentMethodsConfigCard({
 
       if (nextItem.isEnabled) {
         if (!nextItem.bankName?.trim()) {
-          setModalError("Debes seleccionar el banco receptor para Pago Móvil.");
+          setModalError(
+            isEn
+              ? "You must select the receiving bank for Pago Móvil."
+              : "Debes seleccionar el banco receptor para Pago Móvil."
+          );
           return;
         }
         if (
@@ -334,18 +374,28 @@ export function PaymentMethodsConfigCard({
           phoneSubscriber.replace(/\D/g, "").length < 7
         ) {
           setModalError(
-            "Ingresa un número de teléfono válido (mínimo 7 dígitos)."
+            isEn
+              ? "Enter a valid phone number (minimum 7 digits)."
+              : "Ingresa un número de teléfono válido (mínimo 7 dígitos)."
           );
           return;
         }
         if (!docNumber.trim()) {
-          setModalError("Ingresa el RIF o Cédula asociado al Pago Móvil.");
+          setModalError(
+            isEn
+              ? "Enter the Tax ID (RIF) or ID associated with Pago Móvil."
+              : "Ingresa el RIF o Cédula asociado al Pago Móvil."
+          );
           return;
         }
       }
     } else if (editingMethod === "ZELLE") {
       if (nextItem.isEnabled && !nextItem.email?.trim()) {
-        setModalError("Ingresa el correo electrónico de la cuenta Zelle.");
+        setModalError(
+          isEn
+            ? "Enter the email address for the Zelle account."
+            : "Ingresa el correo electrónico de la cuenta Zelle."
+        );
         return;
       }
     } else if (editingMethod === "PIPOL_PAY") {
@@ -356,7 +406,11 @@ export function PaymentMethodsConfigCard({
       );
       nextItem.phone = formattedPhone;
       if (nextItem.isEnabled && !nextItem.email?.trim() && !formattedPhone) {
-        setModalError("Ingresa el correo o teléfono asociado a Pipol Pay.");
+        setModalError(
+          isEn
+            ? "Enter the email or phone number associated with Pipol Pay."
+            : "Ingresa el correo o teléfono asociado a Pipol Pay."
+        );
         return;
       }
     }
@@ -368,7 +422,9 @@ export function PaymentMethodsConfigCard({
     const enabledCount = updatedMethods.filter((m) => m.isEnabled).length;
     if (enabledCount === 0) {
       setModalError(
-        "Debes mantener al menos un método de pago activo para recibir reservas."
+        isEn
+          ? "You must keep at least one payment method active to receive bookings."
+          : "Debes mantener al menos un método de pago activo para recibir reservas."
       );
       return;
     }
@@ -382,7 +438,12 @@ export function PaymentMethodsConfigCard({
       });
 
       if (!res.ok) {
-        setModalError(res.error.code || "Error al guardar el método de pago");
+        setModalError(
+          res.error.code ||
+            (isEn
+              ? "Error saving payment method"
+              : "Error al guardar el método de pago")
+        );
         return;
       }
 
@@ -392,7 +453,10 @@ export function PaymentMethodsConfigCard({
       onSaved?.(refreshed);
       setEditingMethod(null);
       setDraftItem(null);
-      const msg = `Configuración de ${METHOD_META[editingMethod].label} actualizada correctamente.`;
+      const metaLabel = getMethodMeta(editingMethod, isEn).label;
+      const msg = isEn
+        ? `${metaLabel} configuration updated successfully.`
+        : `Configuración de ${metaLabel} actualizada correctamente.`;
       setSuccessMsg(msg);
       onToast?.(msg, false);
       setTimeout(() => setSuccessMsg(null), 4000);
@@ -402,7 +466,7 @@ export function PaymentMethodsConfigCard({
   };
 
   const isPlatform = scope === "PLATFORM";
-  const activeMeta = editingMethod ? METHOD_META[editingMethod] : null;
+  const activeMeta = editingMethod ? getMethodMeta(editingMethod, isEn) : null;
 
   return (
     <section className="px-5 pt-6">
@@ -413,8 +477,12 @@ export function PaymentMethodsConfigCard({
               <span className="text-xl">{isPlatform ? "🛡️" : "💳"}</span>
               <h3 className="m-0 text-lg font-extrabold text-foreground">
                 {isPlatform
-                  ? "Métodos de Pago Aceptados por YoReservo (Custodia Plataforma)"
-                  : `Métodos de Pago Aceptados — ${organizationName || "Cobro Directo del Aliado"}`}
+                  ? isEn
+                    ? "Payment Methods Accepted by YoReservo (Platform Custody)"
+                    : "Métodos de Pago Aceptados por YoReservo (Custodia Plataforma)"
+                  : isEn
+                    ? `Accepted Payment Methods — ${organizationName || "Ally Direct Collection"}`
+                    : `Métodos de Pago Aceptados — ${organizationName || "Cobro Directo del Aliado"}`}
               </h3>
               <span
                 className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${
@@ -423,13 +491,23 @@ export function PaymentMethodsConfigCard({
                     : "border-emerald-500/40 bg-emerald-500/15 text-emerald-500"
                 }`}
               >
-                {isPlatform ? "Custodia YoReservo" : "Cobro Directo"}
+                {isPlatform
+                  ? isEn
+                    ? "YoReservo Custody"
+                    : "Custodia YoReservo"
+                  : isEn
+                    ? "Direct Collection"
+                    : "Cobro Directo"}
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-1 mb-0">
               {isPlatform
-                ? "Define qué métodos de pago ven los jugadores cuando reservan en complejos con Custodia YoReservo. Haz clic en «Editar» en cada método para habilitarlo, deshabilitarlo o modificar sus coordenadas."
-                : "Haz clic en «Editar» sobre cualquier método para habilitarlo, deshabilitarlo o modificar sus coordenadas de cobro."}
+                ? isEn
+                  ? "Define which payment methods players see when booking at venues under YoReservo Custody. Click «Edit» on each method to enable, disable, or modify its coordinates."
+                  : "Define qué métodos de pago ven los jugadores cuando reservan en complejos con Custodia YoReservo. Haz clic en «Editar» en cada método para habilitarlo, deshabilitarlo o modificar sus coordenadas."
+                : isEn
+                  ? "Click «Edit» on any method to enable, disable, or modify its collection coordinates."
+                  : "Haz clic en «Editar» sobre cualquier método para habilitarlo, deshabilitarlo o modificar sus coordenadas de cobro."}
             </p>
           </div>
         </div>
@@ -449,7 +527,7 @@ export function PaymentMethodsConfigCard({
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {methods.map((item) => {
-            const meta = METHOD_META[item.method];
+            const meta = getMethodMeta(item.method, isEn);
             return (
               <div
                 key={item.method}
@@ -477,7 +555,13 @@ export function PaymentMethodsConfigCard({
                                 : "border-border bg-surface text-muted-foreground"
                             }`}
                           >
-                            {item.isEnabled ? "● Activo" : "○ Inactivo"}
+                            {item.isEnabled
+                              ? isEn
+                                ? "● Active"
+                                : "● Activo"
+                              : isEn
+                                ? "○ Inactive"
+                                : "○ Inactivo"}
                           </span>
                         </div>
                         <p className="text-[11px] text-muted-foreground mt-1 mb-0 leading-relaxed">
@@ -493,7 +577,7 @@ export function PaymentMethodsConfigCard({
                         size="sm"
                         onClick={() => openEditModal(item)}
                       >
-                        ✏️ Editar
+                        {isEn ? "✏️ Edit" : "✏️ Editar"}
                       </Button>
                     )}
                   </div>
@@ -504,34 +588,40 @@ export function PaymentMethodsConfigCard({
                       <div className="grid grid-cols-2 gap-2.5 text-xs">
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                            Banco Receptor
+                            {isEn ? "Receiving Bank" : "Banco Receptor"}
                           </span>
                           <span className="font-semibold text-foreground">
-                            {item.bankName || "Sin configurar"}
+                            {item.bankName ||
+                              (isEn ? "Not configured" : "Sin configurar")}
                           </span>
                         </div>
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                            Teléfono Pago Móvil
+                            {isEn ? "Pago Móvil Phone" : "Teléfono Pago Móvil"}
                           </span>
                           <span className="font-mono font-bold text-foreground">
-                            {item.phone || "Sin configurar"}
+                            {item.phone ||
+                              (isEn ? "Not configured" : "Sin configurar")}
                           </span>
                         </div>
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                            RIF / Cédula
+                            {isEn ? "Tax ID / Document" : "RIF / Cédula"}
                           </span>
                           <span className="font-mono font-semibold text-foreground">
-                            {item.documentId || "Sin configurar"}
+                            {item.documentId ||
+                              (isEn ? "Not configured" : "Sin configurar")}
                           </span>
                         </div>
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                            Titular / Beneficiario
+                            {isEn
+                              ? "Holder / Beneficiary"
+                              : "Titular / Beneficiario"}
                           </span>
                           <span className="font-semibold text-foreground truncate block">
-                            {item.beneficiaryName || "Sin configurar"}
+                            {item.beneficiaryName ||
+                              (isEn ? "Not configured" : "Sin configurar")}
                           </span>
                         </div>
                       </div>
@@ -541,24 +631,28 @@ export function PaymentMethodsConfigCard({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                            Correo Zelle
+                            {isEn ? "Zelle Email" : "Correo Zelle"}
                           </span>
                           <span className="font-mono font-semibold text-foreground">
-                            {item.email || "Sin configurar"}
+                            {item.email ||
+                              (isEn ? "Not configured" : "Sin configurar")}
                           </span>
                         </div>
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                            Titular de la Cuenta
+                            {isEn ? "Account Holder" : "Titular de la Cuenta"}
                           </span>
                           <span className="font-semibold text-foreground">
-                            {item.beneficiaryName || "Sin configurar"}
+                            {item.beneficiaryName ||
+                              (isEn ? "Not configured" : "Sin configurar")}
                           </span>
                         </div>
                         {item.instructions && (
                           <div className="sm:col-span-2">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                              Instrucciones / Memo
+                              {isEn
+                                ? "Instructions / Memo"
+                                : "Instrucciones / Memo"}
                             </span>
                             <span className="text-muted-foreground">
                               {item.instructions}
@@ -572,26 +666,31 @@ export function PaymentMethodsConfigCard({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                            Correo / Usuario Pipol Pay
+                            {isEn
+                              ? "Pipol Pay Email / User"
+                              : "Correo / Usuario Pipol Pay"}
                           </span>
                           <span className="font-mono font-semibold text-foreground">
-                            {item.email || "Sin configurar"}
+                            {item.email ||
+                              (isEn ? "Not configured" : "Sin configurar")}
                           </span>
                         </div>
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                            Teléfono Asociado
+                            {isEn ? "Associated Phone" : "Teléfono Asociado"}
                           </span>
                           <span className="font-mono font-semibold text-foreground">
-                            {item.phone || "Sin configurar"}
+                            {item.phone ||
+                              (isEn ? "Not configured" : "Sin configurar")}
                           </span>
                         </div>
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                            Beneficiario
+                            {isEn ? "Beneficiary" : "Beneficiario"}
                           </span>
                           <span className="font-semibold text-foreground">
-                            {item.beneficiaryName || "Sin configurar"}
+                            {item.beneficiaryName ||
+                              (isEn ? "Not configured" : "Sin configurar")}
                           </span>
                         </div>
                       </div>
@@ -600,11 +699,15 @@ export function PaymentMethodsConfigCard({
                     {item.method === "CASH" && (
                       <div className="text-xs">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                          Instrucciones para el Jugador en Sede
+                          {isEn
+                            ? "Player Instructions at Venue"
+                            : "Instrucciones para el Jugador en Sede"}
                         </span>
                         <span className="text-foreground">
                           {item.instructions ||
-                            "Pago presencial en taquilla antes del inicio de la reserva."}
+                            (isEn
+                              ? "In-person payment at the box office before the booking starts."
+                              : "Pago presencial en taquilla antes del inicio de la reserva.")}
                         </span>
                       </div>
                     )}
@@ -612,10 +715,12 @@ export function PaymentMethodsConfigCard({
                     {item.method === "CARD" && (
                       <div className="text-xs">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                          Pasarela Procesadora
+                          {isEn ? "Payment Gateway" : "Pasarela Procesadora"}
                         </span>
                         <span className="font-semibold text-foreground">
-                          Pasarela Internacional YoReservo (Visa / Mastercard)
+                          {isEn
+                            ? "YoReservo International Gateway (Visa / Mastercard)"
+                            : "Pasarela Internacional YoReservo (Visa / Mastercard)"}
                         </span>
                       </div>
                     )}
@@ -643,12 +748,19 @@ export function PaymentMethodsConfigCard({
                 <span className="text-xl">{activeMeta.icon}</span>
                 <div>
                   <h3 className="m-0 text-base font-extrabold text-foreground">
-                    Configurar {activeMeta.label}
+                    {isEn
+                      ? `Configure ${activeMeta.label}`
+                      : `Configurar ${activeMeta.label}`}
                   </h3>
                   <p className="m-0 text-xs text-muted-foreground">
                     {isPlatform
-                      ? "Custodia YoReservo"
-                      : organizationName || "Cobro Directo del Aliado"}
+                      ? isEn
+                        ? "YoReservo Custody"
+                        : "Custodia YoReservo"
+                      : organizationName ||
+                        (isEn
+                          ? "Ally Direct Collection"
+                          : "Cobro Directo del Aliado")}
                   </p>
                 </div>
               </div>
@@ -683,7 +795,9 @@ export function PaymentMethodsConfigCard({
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-extrabold text-foreground">
-                      Estado del Método de Pago
+                      {isEn
+                        ? "Payment Method Status"
+                        : "Estado del Método de Pago"}
                     </span>
                     <span
                       className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold ${
@@ -692,13 +806,23 @@ export function PaymentMethodsConfigCard({
                           : "border-border bg-surface text-muted-foreground"
                       }`}
                     >
-                      {draftItem.isEnabled ? "● Habilitado" : "○ Deshabilitado"}
+                      {draftItem.isEnabled
+                        ? isEn
+                          ? "● Enabled"
+                          : "● Habilitado"
+                        : isEn
+                          ? "○ Disabled"
+                          : "○ Deshabilitado"}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 mb-0">
                     {draftItem.isEnabled
-                      ? "Los jugadores podrán elegir este método de pago al realizar su reserva."
-                      : "Este método no aparecerá disponible en el checkout de reservas."}
+                      ? isEn
+                        ? "Players will be able to choose this payment method when booking."
+                        : "Los jugadores podrán elegir este método de pago al realizar su reserva."
+                      : isEn
+                        ? "This method will not appear in the booking checkout."
+                        : "Este método no aparecerá disponible en el checkout de reservas."}
                   </p>
                 </div>
                 <button
@@ -725,7 +849,7 @@ export function PaymentMethodsConfigCard({
                 <div className="space-y-4">
                   <div>
                     <label className="mb-1.5 block text-xs font-bold text-foreground">
-                      Banco Receptor *
+                      {isEn ? "Receiving Bank *" : "Banco Receptor *"}
                     </label>
                     <SearchableSelect
                       value={draftItem.bankName ?? ""}
@@ -742,13 +866,19 @@ export function PaymentMethodsConfigCard({
                         );
                       }}
                       options={VENEZUELAN_BANKS}
-                      placeholder="Buscar banco receptor..."
+                      placeholder={
+                        isEn
+                          ? "Search receiving bank..."
+                          : "Buscar banco receptor..."
+                      }
                     />
                   </div>
 
                   <div>
                     <label className="mb-1.5 block text-xs font-bold text-foreground">
-                      Teléfono Pago Móvil (Código + Operadora + Número) *
+                      {isEn
+                        ? "Pago Móvil Phone (Code + Carrier + Number) *"
+                        : "Teléfono Pago Móvil (Código + Operadora + Número) *"}
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
                       <div className="sm:col-span-4">
@@ -763,7 +893,7 @@ export function PaymentMethodsConfigCard({
                           <SearchableSelect
                             value={phoneOperator}
                             onChange={(val: string) => setPhoneOperator(val)}
-                            options={OPERATOR_OPTIONS}
+                            options={operatorOptions}
                           />
                         </div>
                       )}
@@ -792,17 +922,19 @@ export function PaymentMethodsConfigCard({
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                     <div className="sm:col-span-4">
                       <label className="mb-1.5 block text-xs font-bold text-foreground">
-                        Tipo Doc. *
+                        {isEn ? "Doc. Type *" : "Tipo Doc. *"}
                       </label>
                       <SearchableSelect
                         value={docPrefix}
                         onChange={(val: string) => setDocPrefix(val)}
-                        options={DOC_PREFIX_OPTIONS}
+                        options={docPrefixOptions}
                       />
                     </div>
                     <div className="sm:col-span-8">
                       <label className="mb-1.5 block text-xs font-bold text-foreground">
-                        Número de RIF / Cédula *
+                        {isEn
+                          ? "Tax ID / Document Number *"
+                          : "Número de RIF / Cédula *"}
                       </label>
                       <input
                         type="text"
@@ -820,7 +952,9 @@ export function PaymentMethodsConfigCard({
 
                   <div>
                     <label className="mb-1.5 block text-xs font-bold text-foreground">
-                      Titular / Beneficiario
+                      {isEn
+                        ? "Holder / Beneficiary"
+                        : "Titular / Beneficiario"}
                     </label>
                     <input
                       type="text"
@@ -833,7 +967,11 @@ export function PaymentMethodsConfigCard({
                             : prev
                         )
                       }
-                      placeholder="Razón Social o Nombre del Beneficiario"
+                      placeholder={
+                        isEn
+                          ? "Beneficiary Legal Name or Full Name"
+                          : "Razón Social o Nombre del Beneficiario"
+                      }
                     />
                   </div>
                 </div>
@@ -844,7 +982,9 @@ export function PaymentMethodsConfigCard({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="mb-1.5 block text-xs font-bold text-foreground">
-                        Correo Electrónico Zelle *
+                        {isEn
+                          ? "Zelle Email *"
+                          : "Correo Electrónico Zelle *"}
                       </label>
                       <input
                         type="email"
@@ -855,12 +995,16 @@ export function PaymentMethodsConfigCard({
                             prev ? { ...prev, email: e.target.value } : prev
                           )
                         }
-                        placeholder="pagos@complejo.com"
+                        placeholder={
+                          isEn ? "payments@complex.com" : "pagos@complejo.com"
+                        }
                       />
                     </div>
                     <div>
                       <label className="mb-1.5 block text-xs font-bold text-foreground">
-                        Nombre del Titular (Account Holder) *
+                        {isEn
+                          ? "Account Holder Name *"
+                          : "Nombre del Titular (Account Holder) *"}
                       </label>
                       <input
                         type="text"
@@ -879,7 +1023,9 @@ export function PaymentMethodsConfigCard({
                   </div>
                   <div>
                     <label className="mb-1.5 block text-xs font-bold text-foreground">
-                      Instrucciones / Memo Requerido (Opcional)
+                      {isEn
+                        ? "Instructions / Required Memo (Optional)"
+                        : "Instrucciones / Memo Requerido (Opcional)"}
                     </label>
                     <input
                       type="text"
@@ -892,7 +1038,11 @@ export function PaymentMethodsConfigCard({
                             : prev
                         )
                       }
-                      placeholder="Ej: Colocar código de reserva en el memo sin palabras adicionales."
+                      placeholder={
+                        isEn
+                          ? "E.g.: Include booking code in the memo without extra words."
+                          : "Ej: Colocar código de reserva en el memo sin palabras adicionales."
+                      }
                     />
                   </div>
                 </div>
@@ -903,7 +1053,9 @@ export function PaymentMethodsConfigCard({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="mb-1.5 block text-xs font-bold text-foreground">
-                        Correo / Usuario Pipol Pay *
+                        {isEn
+                          ? "Pipol Pay Email / User *"
+                          : "Correo / Usuario Pipol Pay *"}
                       </label>
                       <input
                         type="text"
@@ -914,12 +1066,16 @@ export function PaymentMethodsConfigCard({
                             prev ? { ...prev, email: e.target.value } : prev
                           )
                         }
-                        placeholder="pagos@complejo.com"
+                        placeholder={
+                          isEn ? "payments@complex.com" : "pagos@complejo.com"
+                        }
                       />
                     </div>
                     <div>
                       <label className="mb-1.5 block text-xs font-bold text-foreground">
-                        Titular / Beneficiario
+                        {isEn
+                          ? "Holder / Beneficiary"
+                          : "Titular / Beneficiario"}
                       </label>
                       <input
                         type="text"
@@ -932,14 +1088,16 @@ export function PaymentMethodsConfigCard({
                               : prev
                           )
                         }
-                        placeholder="Nombre del beneficiario"
+                        placeholder={
+                          isEn ? "Beneficiary name" : "Nombre del beneficiario"
+                        }
                       />
                     </div>
                   </div>
 
                   <div>
                     <label className="mb-1.5 block text-xs font-bold text-foreground">
-                      Teléfono Asociado
+                      {isEn ? "Associated Phone" : "Teléfono Asociado"}
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
                       <div className="sm:col-span-4">
@@ -954,7 +1112,7 @@ export function PaymentMethodsConfigCard({
                           <SearchableSelect
                             value={phoneOperator}
                             onChange={(val: string) => setPhoneOperator(val)}
-                            options={OPERATOR_OPTIONS}
+                            options={operatorOptions}
                           />
                         </div>
                       )}
@@ -982,7 +1140,9 @@ export function PaymentMethodsConfigCard({
 
                   <div>
                     <label className="mb-1.5 block text-xs font-bold text-foreground">
-                      Instrucciones (Opcional)
+                      {isEn
+                        ? "Instructions (Optional)"
+                        : "Instrucciones (Opcional)"}
                     </label>
                     <input
                       type="text"
@@ -995,7 +1155,11 @@ export function PaymentMethodsConfigCard({
                             : prev
                         )
                       }
-                      placeholder="Instrucciones para el pago por Pipol Pay"
+                      placeholder={
+                        isEn
+                          ? "Instructions for Pipol Pay payment"
+                          : "Instrucciones para el pago por Pipol Pay"
+                      }
                     />
                   </div>
                 </div>
@@ -1004,7 +1168,9 @@ export function PaymentMethodsConfigCard({
               {draftItem.method === "CASH" && (
                 <div>
                   <label className="mb-1.5 block text-xs font-bold text-foreground">
-                    Instrucciones para el Jugador en Taquilla
+                    {isEn
+                      ? "Player Instructions at Box Office"
+                      : "Instrucciones para el Jugador en Taquilla"}
                   </label>
                   <input
                     type="text"
@@ -1015,7 +1181,11 @@ export function PaymentMethodsConfigCard({
                         prev ? { ...prev, instructions: e.target.value } : prev
                       )
                     }
-                    placeholder="Ej: Cancelar en efectivo en la recepción de la sede 15 minutos antes del turno."
+                    placeholder={
+                      isEn
+                        ? "E.g.: Pay in cash at the venue reception 15 minutes before the slot."
+                        : "Ej: Cancelar en efectivo en la recepción de la sede 15 minutos antes del turno."
+                    }
                   />
                 </div>
               )}
@@ -1023,13 +1193,15 @@ export function PaymentMethodsConfigCard({
               {draftItem.method === "CARD" && (
                 <div className="space-y-4">
                   <div className="p-3.5 rounded-xl bg-muted/40 border border-border text-xs text-muted-foreground leading-relaxed">
-                    ✅ La pasarela de tarjetas internacionales procesa pagos en
-                    línea automáticamente en custodia de YoReservo y confirma la
-                    reserva al instante.
+                    {isEn
+                      ? "✅ The international card gateway processes online payments automatically under YoReservo custody and confirms bookings immediately."
+                      : "✅ La pasarela de tarjetas internacionales procesa pagos en línea automáticamente en custodia de YoReservo y confirma la reserva al instante."}
                   </div>
                   <div>
                     <label className="mb-1.5 block text-xs font-bold text-foreground">
-                      Nota informativa en Checkout (Opcional)
+                      {isEn
+                        ? "Checkout Info Note (Optional)"
+                        : "Nota informativa en Checkout (Opcional)"}
                     </label>
                     <input
                       type="text"
@@ -1042,7 +1214,11 @@ export function PaymentMethodsConfigCard({
                             : prev
                         )
                       }
-                      placeholder="Ej: Aceptamos tarjetas internacionales Visa y Mastercard."
+                      placeholder={
+                        isEn
+                          ? "E.g.: We accept international Visa and Mastercard cards."
+                          : "Ej: Aceptamos tarjetas internacionales Visa y Mastercard."
+                      }
                     />
                   </div>
                 </div>
@@ -1056,7 +1232,7 @@ export function PaymentMethodsConfigCard({
                   onClick={closeEditModal}
                   disabled={saving}
                 >
-                  Cancelar
+                  {isEn ? "Cancel" : "Cancelar"}
                 </Button>
                 <Button
                   type="submit"
@@ -1065,7 +1241,7 @@ export function PaymentMethodsConfigCard({
                   isLoading={saving}
                   disabled={saving}
                 >
-                  Guardar Cambios ✓
+                  {isEn ? "Save Changes ✓" : "Guardar Cambios ✓"}
                 </Button>
               </div>
             </form>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import { uploadBackofficeFileAction } from "@/shared/api/upload-action";
 import {
@@ -42,17 +42,24 @@ function normalizeText(str: string): string {
     .trim();
 }
 
-function getSportNameFromCategory(cat: SportCategoryItem | undefined): string {
-  if (!cat) return "Deporte";
+function getSportNameFromCategory(
+  cat: SportCategoryItem | undefined,
+  isEn = false
+): string {
+  if (!cat) return isEn ? "Sport" : "Deporte";
   const actName =
     typeof cat.activity?.name === "object"
-      ? cat.activity?.name?.es || cat.activity?.name?.en || ""
+      ? isEn
+        ? cat.activity?.name?.en || cat.activity?.name?.es || ""
+        : cat.activity?.name?.es || cat.activity?.name?.en || ""
       : String(cat.activity?.name || "");
   const catName =
     typeof cat.name === "object"
-      ? cat.name?.es || cat.name?.en || ""
+      ? isEn
+        ? cat.name?.en || cat.name?.es || ""
+        : cat.name?.es || cat.name?.en || ""
       : String(cat.name || "");
-  return actName || catName || "Deporte";
+  return actName || catName || (isEn ? "Sport" : "Deporte");
 }
 
 /**
@@ -257,6 +264,8 @@ export function CourtModal({
   amenitiesCatalog = [],
   onSuccess,
 }: CourtModalProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const t = useTranslations("venues.spaces");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -279,10 +288,16 @@ export function CourtModal({
   function getCategoryName(cat: SportCategoryItem): string {
     const actName =
       typeof cat.activity?.name === "object"
-        ? cat.activity?.name?.es || cat.activity?.name?.en
+        ? isEn
+          ? cat.activity?.name?.en || cat.activity?.name?.es
+          : cat.activity?.name?.es || cat.activity?.name?.en
         : cat.activity?.name;
     const catName =
-      typeof cat.name === "object" ? cat.name?.es || cat.name?.en : cat.name;
+      typeof cat.name === "object"
+        ? isEn
+          ? cat.name?.en || cat.name?.es
+          : cat.name?.es || cat.name?.en
+        : cat.name;
 
     if (actName && catName) {
       return `${actName} — ${catName}`;
@@ -297,10 +312,12 @@ export function CourtModal({
         return {
           value: cat.id,
           label: getCategoryName(cat),
-          subtitle: `Capacidad recomendada: ${recCap} jugadores`,
+          subtitle: isEn
+            ? `Recommended capacity: ${recCap} players`
+            : `Capacidad recomendada: ${recCap} jugadores`,
         };
       }),
-    [categories]
+    [categories, isEn]
   );
 
   const currentSelectedCategory = useMemo(
@@ -322,7 +339,7 @@ export function CourtModal({
       value: s.name,
       label: s.name,
       subtitle: s.description
-        ? `${s.description} · Mant.: ${s.maintenanceProtocol}`
+        ? `${s.description} · ${isEn ? "Maint.:" : "Mant.:"} ${s.maintenanceProtocol}`
         : s.code,
       icon: "🌱",
     }));
@@ -337,12 +354,14 @@ export function CourtModal({
       opts.unshift({
         value: surfaceType,
         label: surfaceType,
-        subtitle: "Superficie actual de la cancha",
+        subtitle: isEn
+          ? "Current court surface"
+          : "Superficie actual de la cancha",
         icon: "🌱",
       });
     }
     return opts;
-  }, [compatibleSurfaces, surfaceType, currentSelectedCategory]);
+  }, [compatibleSurfaces, surfaceType, currentSelectedCategory, isEn]);
 
   // Filter amenities compatible with the selected sport/category
   const compatibleAmenities = useMemo(() => {
@@ -559,7 +578,10 @@ export function CourtModal({
   const recommendedCap = getRecommendedCapacityForCategory(
     currentSelectedCategory
   );
-  const currentSportName = getSportNameFromCategory(currentSelectedCategory);
+  const currentSportName = getSportNameFromCategory(
+    currentSelectedCategory,
+    isEn
+  );
   const selectedSurfaceObj = compatibleSurfaces.find(
     (s) => normalizeText(s.name) === normalizeText(surfaceType)
   );
@@ -587,6 +609,7 @@ export function CourtModal({
           </div>
           <button
             type="button"
+            aria-label={isEn ? "Close modal" : "Cerrar modal"}
             className="btn-icon cursor-pointer border-none bg-transparent text-lg text-muted-foreground hover:text-foreground"
             onClick={onClose}
           >
@@ -608,10 +631,12 @@ export function CourtModal({
           <div className="form-group">
             <div className="mb-1.5 flex items-center justify-between">
               <label className="text-xs font-semibold text-foreground">
-                📷 Foto Principal de la Cancha
+                {isEn ? "📷 Main Court Photo" : "📷 Foto Principal de la Cancha"}
               </label>
               <span className="text-[11px] font-medium text-muted-foreground">
-                Haz clic en la imagen para cambiarla
+                {isEn
+                  ? "Click the image to change it"
+                  : "Haz clic en la imagen para cambiarla"}
               </span>
             </div>
 
@@ -635,18 +660,22 @@ export function CourtModal({
                 <>
                   <img
                     src={imageUrl}
-                    alt={spaceNumber || "Foto de la cancha"}
+                    alt={spaceNumber || (isEn ? "Court photo" : "Foto de la cancha")}
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                     <span className="rounded-xl bg-surface/95 px-4 py-2 text-xs font-bold text-foreground shadow-md">
                       {uploadingImage
-                        ? "⏳ Subiendo imagen..."
-                        : "📷 Cambiar foto de la cancha"}
+                        ? isEn
+                          ? "⏳ Uploading image..."
+                          : "⏳ Subiendo imagen..."
+                        : isEn
+                          ? "📷 Change court photo"
+                          : "📷 Cambiar foto de la cancha"}
                     </span>
                   </div>
                   <div className="absolute bottom-2.5 right-2.5 rounded-lg bg-black/65 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-xs">
-                    ✏️ Clic para editar foto
+                    {isEn ? "✏️ Click to edit photo" : "✏️ Clic para editar foto"}
                   </div>
                 </>
               ) : (
@@ -656,11 +685,17 @@ export function CourtModal({
                   </div>
                   <span className="text-xs font-bold text-foreground">
                     {uploadingImage
-                      ? "⏳ Subiendo imagen..."
-                      : "Haz clic aquí para subir la foto de la cancha"}
+                      ? isEn
+                        ? "⏳ Uploading image..."
+                        : "⏳ Subiendo imagen..."
+                      : isEn
+                        ? "Click here to upload the court photo"
+                        : "Haz clic aquí para subir la foto de la cancha"}
                   </span>
                   <span className="text-[11px] text-muted-foreground">
-                    Formatos permitidos: JPG, PNG o WEBP
+                    {isEn
+                      ? "Allowed formats: JPG, PNG or WEBP"
+                      : "Formatos permitidos: JPG, PNG o WEBP"}
                   </span>
                 </div>
               )}
@@ -700,8 +735,12 @@ export function CourtModal({
                 options={categoryOptions}
                 value={activityCategoryId}
                 onChange={handleCategoryChange}
-                placeholder="Seleccionar formato..."
-                searchPlaceholder="Buscar deporte o formato..."
+                placeholder={isEn ? "Select format..." : "Seleccionar formato..."}
+                searchPlaceholder={
+                  isEn
+                    ? "Search sport or format..."
+                    : "Buscar deporte o formato..."
+                }
               />
             </div>
 
@@ -737,7 +776,10 @@ export function CourtModal({
                 {t("surface")}
               </label>
               <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-accent/20 px-2.5 py-0.5 text-[10px] font-bold leading-none text-foreground">
-                🌱 {compatibleSurfaces.length} superficies para {currentSportName}
+                🌱 {compatibleSurfaces.length}{" "}
+                {isEn
+                  ? `surfaces for ${currentSportName}`
+                  : `superficies para ${currentSportName}`}
               </span>
             </div>
 
@@ -748,15 +790,26 @@ export function CourtModal({
                   options={surfaceOptions}
                   value={surfaceType}
                   onChange={setSurfaceType}
-                  placeholder="Seleccionar superficie oficial..."
-                  searchPlaceholder={`Buscar superficie de ${currentSportName}...`}
+                  placeholder={
+                    isEn
+                      ? "Select official surface..."
+                      : "Seleccionar superficie oficial..."
+                  }
+                  searchPlaceholder={
+                    isEn
+                      ? `Search ${currentSportName} surface...`
+                      : `Buscar superficie de ${currentSportName}...`
+                  }
                 />
                 {selectedSurfaceObj && (
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    <strong className="text-foreground">Especificación:</strong>{" "}
+                    <strong className="text-foreground">
+                      {isEn ? "Specification:" : "Especificación:"}
+                    </strong>{" "}
                     {selectedSurfaceObj.description} ·{" "}
                     <span className="italic">
-                      Mant.: {selectedSurfaceObj.maintenanceProtocol}
+                      {isEn ? "Maint.:" : "Mant.:"}{" "}
+                      {selectedSurfaceObj.maintenanceProtocol}
                     </span>
                   </p>
                 )}
@@ -785,7 +838,9 @@ export function CourtModal({
                   {t("maxCapacityLabel")}
                 </label>
                 <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-accent/25 px-2.5 py-0.5 text-[10px] font-bold leading-none text-foreground">
-                  Sugerido: {recommendedCap} jug.
+                  {isEn
+                    ? `Suggested: ${recommendedCap} pl.`
+                    : `Sugerido: ${recommendedCap} jug.`}
                 </span>
               </div>
               <input
@@ -824,16 +879,33 @@ export function CourtModal({
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-link">
-                    ✨ Amenidades & Equipamiento de la Cancha
+                    {isEn
+                      ? "✨ Court Amenities & Equipment"
+                      : "✨ Amenidades & Equipamiento de la Cancha"}
                   </span>
                   <span className="rounded-full bg-accent/25 px-2 py-0.5 text-[10px] font-bold text-foreground">
-                    {selectedAmenities.length} seleccionadas
+                    {selectedAmenities.length}{" "}
+                    {isEn ? "selected" : "seleccionadas"}
                   </span>
                 </div>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  Filtradas automáticamente según el deporte seleccionado (
-                  <strong className="text-foreground">{currentSportName}</strong>
-                  )
+                  {isEn ? (
+                    <>
+                      Automatically filtered by the selected sport (
+                      <strong className="text-foreground">
+                        {currentSportName}
+                      </strong>
+                      )
+                    </>
+                  ) : (
+                    <>
+                      Filtradas automáticamente según el deporte seleccionado (
+                      <strong className="text-foreground">
+                        {currentSportName}
+                      </strong>
+                      )
+                    </>
+                  )}
                 </p>
               </div>
 
@@ -843,7 +915,7 @@ export function CourtModal({
                   onClick={handleSelectSuggestedAmenities}
                   className="cursor-pointer rounded-lg border border-border-medium bg-surface px-2.5 py-1 text-[11px] font-bold text-foreground transition-colors hover:border-accent hover:bg-accent/15"
                 >
-                  ⚡ Sugeridas
+                  {isEn ? "⚡ Suggested" : "⚡ Sugeridas"}
                 </button>
                 {selectedAmenities.length > 0 && (
                   <button
@@ -851,7 +923,7 @@ export function CourtModal({
                     onClick={() => setSelectedAmenities([])}
                     className="cursor-pointer rounded-lg border border-border bg-surface px-2 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    Limpiar
+                    {isEn ? "Clear" : "Limpiar"}
                   </button>
                 )}
               </div>
@@ -861,7 +933,9 @@ export function CourtModal({
             {sportSpecificAmenities.length > 0 && (
               <div className="space-y-2">
                 <div className="text-[11px] font-bold text-foreground">
-                  🏆 Equipamiento Específico de {currentSportName}
+                  {isEn
+                    ? `🏆 ${currentSportName} Specific Equipment`
+                    : `🏆 Equipamiento Específico de ${currentSportName}`}
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {sportSpecificAmenities.map((item) => {
@@ -910,7 +984,9 @@ export function CourtModal({
             {generalCourtAmenities.length > 0 && (
               <div className="space-y-2 pt-1">
                 <div className="text-[11px] font-bold text-foreground">
-                  💡 Servicios & Comodidades de Cancha
+                  {isEn
+                    ? "💡 Court Services & Comfort"
+                    : "💡 Servicios & Comodidades de Cancha"}
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {generalCourtAmenities.map((item) => {
@@ -962,17 +1038,36 @@ export function CourtModal({
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-xs font-bold text-foreground">
-                    ⏸️ Estado Inicial: Deshabilitada (Pausada) por defecto
+                    {isEn
+                      ? "⏸️ Initial Status: Disabled (Paused) by default"
+                      : "⏸️ Estado Inicial: Deshabilitada (Pausada) por defecto"}
                   </div>
                   <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-                    Por seguridad operativa, las canchas nuevas se crean{" "}
-                    <strong className="text-foreground">Deshabilitadas</strong>{" "}
-                    hasta que configures sus horarios disponibles. Al guardar,
-                    te llevaremos directamente a{" "}
-                    <strong className="text-foreground">
-                      Turnos &amp; Horarios
-                    </strong>
-                    .
+                    {isEn ? (
+                      <>
+                        For operational safety, new courts are created{" "}
+                        <strong className="text-foreground">Disabled</strong>{" "}
+                        until you configure their available schedules. Upon
+                        saving, we will take you directly to{" "}
+                        <strong className="text-foreground">
+                          Shifts &amp; Schedules
+                        </strong>
+                        .
+                      </>
+                    ) : (
+                      <>
+                        Por seguridad operativa, las canchas nuevas se crean{" "}
+                        <strong className="text-foreground">
+                          Deshabilitadas
+                        </strong>{" "}
+                        hasta que configures sus horarios disponibles. Al
+                        guardar, te llevaremos directamente a{" "}
+                        <strong className="text-foreground">
+                          Turnos &amp; Horarios
+                        </strong>
+                        .
+                      </>
+                    )}
                   </p>
                 </div>
                 <label className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-border bg-surface px-2.5 py-1.5 text-[11px] font-bold text-foreground">
@@ -986,7 +1081,9 @@ export function CourtModal({
                     }
                     className="h-3.5 w-3.5 accent-accent"
                   />
-                  <span>Habilitar de inmediato</span>
+                  <span>
+                    {isEn ? "Enable immediately" : "Habilitar de inmediato"}
+                  </span>
                 </label>
               </div>
             </div>
@@ -1010,7 +1107,11 @@ export function CourtModal({
               isLoading={loading || uploadingImage}
               id="btn-save-court"
             >
-              {space ? t("save") : "Guardar y Configurar Horarios →"}
+              {space
+                ? t("save")
+                : isEn
+                  ? "Save & Configure Schedules →"
+                  : "Guardar y Configurar Horarios →"}
             </Button>
           </div>
         </form>

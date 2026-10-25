@@ -2,17 +2,18 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { ROUTES } from "@/shared/config";
 import { useTimeFormat } from "@/shared/lib/time-format";
 import { useActiveVenue } from "@/features/venues/context/venue-context";
-import type {
-  DaySchedule,
-  ShiftRange,
-  SpaceItem,
-  VenueItem,
-  WeeklyScheduleData,
-  WeeklySchedulesInput,
+import {
+  deriveOrganizationsFromVenues,
+  type DaySchedule,
+  type ShiftRange,
+  type SpaceItem,
+  type VenueItem,
+  type WeeklyScheduleData,
+  type WeeklySchedulesInput,
 } from "@/features/venues/model/types";
 import {
   getSpaceSchedulesAction,
@@ -38,6 +39,16 @@ const DAY_LABELS_ES: Record<number, { full: string; short: string }> = {
   5: { full: "Viernes", short: "Vie" },
   6: { full: "Sábado", short: "Sáb" },
   0: { full: "Domingo", short: "Dom" },
+};
+
+const DAY_LABELS_EN: Record<number, { full: string; short: string }> = {
+  1: { full: "Monday", short: "Mon" },
+  2: { full: "Tuesday", short: "Tue" },
+  3: { full: "Wednesday", short: "Wed" },
+  4: { full: "Thursday", short: "Thu" },
+  5: { full: "Friday", short: "Fri" },
+  6: { full: "Saturday", short: "Sat" },
+  0: { full: "Sunday", short: "Sun" },
 };
 
 const OPEN_HOUR_OPTIONS = Array.from(
@@ -159,48 +170,55 @@ function normalizeDays(
   );
 }
 
-function getSpaceSportName(space: SpaceItem): string {
+function getSpaceSportName(space: SpaceItem, isEn = false): string {
   const actName =
     typeof space.activityCategory?.activity?.name === "object"
-      ? space.activityCategory.activity.name.es ||
-        space.activityCategory.activity.name.en
+      ? isEn
+        ? space.activityCategory.activity.name.en ||
+          space.activityCategory.activity.name.es
+        : space.activityCategory.activity.name.es ||
+          space.activityCategory.activity.name.en
       : space.activityCategory?.activity?.name;
   if (actName) return String(actName);
 
   const catName =
     typeof space.activityCategory?.name === "object"
-      ? space.activityCategory.name.es || space.activityCategory.name.en
+      ? isEn
+        ? space.activityCategory.name.en || space.activityCategory.name.es
+        : space.activityCategory.name.es || space.activityCategory.name.en
       : space.activityCategory?.name;
   if (catName) {
     const lower = String(catName).toLowerCase();
-    if (lower.includes("fútbol") || lower.includes("futbol") || lower.includes("futsal")) return "Fútbol";
-    if (lower.includes("pádel") || lower.includes("padel")) return "Pádel";
-    if (lower.includes("tenis")) return "Tenis";
-    if (lower.includes("baloncesto") || lower.includes("basket")) return "Baloncesto";
-    if (lower.includes("voleibol") || lower.includes("voley")) return "Voleibol";
+    if (lower.includes("fútbol") || lower.includes("futbol") || lower.includes("futsal") || lower.includes("soccer")) return isEn ? "Soccer" : "Fútbol";
+    if (lower.includes("pádel") || lower.includes("padel")) return isEn ? "Padel" : "Pádel";
+    if (lower.includes("tenis") || lower.includes("tennis")) return isEn ? "Tennis" : "Tenis";
+    if (lower.includes("baloncesto") || lower.includes("basket")) return isEn ? "Basketball" : "Baloncesto";
+    if (lower.includes("voleibol") || lower.includes("voley") || lower.includes("volleyball")) return isEn ? "Volleyball" : "Voleibol";
     return String(catName);
   }
-  return "Deporte";
+  return isEn ? "Sport" : "Deporte";
 }
 
-function getSpaceFormatLabel(space: SpaceItem): string {
+function getSpaceFormatLabel(space: SpaceItem, isEn = false): string {
   const catName =
     typeof space.activityCategory?.name === "object"
-      ? space.activityCategory.name.es || space.activityCategory.name.en
+      ? isEn
+        ? space.activityCategory.name.en || space.activityCategory.name.es
+        : space.activityCategory.name.es || space.activityCategory.name.en
       : space.activityCategory?.name;
   if (catName) return String(catName);
-  return getSpaceSportName(space);
+  return getSpaceSportName(space, isEn);
 }
 
 function getSportEmoji(sportName: string): string {
   const s = sportName.toLowerCase();
-  if (s.includes("fútbol") || s.includes("futbol") || s.includes("futsal")) return "⚽";
-  if (s.includes("pickleball") || s.includes("ping") || s.includes("mesa")) return "🏓";
-  if (s.includes("pádel") || s.includes("padel") || s.includes("tenis")) return "🎾";
+  if (s.includes("fútbol") || s.includes("futbol") || s.includes("futsal") || s.includes("soccer")) return "⚽";
+  if (s.includes("pickleball") || s.includes("ping") || s.includes("mesa") || s.includes("table")) return "🏓";
+  if (s.includes("pádel") || s.includes("padel") || s.includes("tenis") || s.includes("tennis")) return "🎾";
   if (s.includes("baloncesto") || s.includes("basket")) return "🏀";
-  if (s.includes("voleibol") || s.includes("voley") || s.includes("playa")) return "🏐";
+  if (s.includes("voleibol") || s.includes("voley") || s.includes("playa") || s.includes("volleyball") || s.includes("beach")) return "🏐";
   if (s.includes("bádminton") || s.includes("badminton")) return "🏸";
-  if (s.includes("beisbol") || s.includes("béisbol")) return "⚾";
+  if (s.includes("beisbol") || s.includes("béisbol") || s.includes("baseball")) return "⚾";
   return "🏟️";
 }
 
@@ -235,6 +253,9 @@ export function SchedulesPage({
   initialSpaceId,
   initialSchedules,
 }: SchedulesPageProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
+  const dayLabels = isEn ? DAY_LABELS_EN : DAY_LABELS_ES;
   const topT = useTranslations("venues.top");
   const schedT = useTranslations("venues.schedules");
   const { timeFormat, formatTime } = useTimeFormat();
@@ -246,26 +267,42 @@ export function SchedulesPage({
     return formatTime(h);
   }
 
-  let setActiveVenueId: ((id: string) => void) | undefined;
-  try {
-    const venueCtx = useActiveVenue();
-    setActiveVenueId = venueCtx.setActiveVenueId;
-  } catch {
-    // Fallback if rendered outside VenueProvider
-  }
+  const {
+    setActiveVenueId,
+    activeOrganizationId: globalOrgId,
+    setActiveOrganizationId: setGlobalOrgId,
+    isPlatformRole,
+  } = useActiveVenue();
 
   const [venues] = useState<VenueItem[]>(initialVenues);
+  const organizations = useMemo(
+    () => deriveOrganizationsFromVenues(venues),
+    [venues],
+  );
+  const showOrganizationFilter = isPlatformRole || organizations.length > 1;
   const [spaces, setSpaces] = useState<SpaceItem[]>(initialSpaces);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>(
     initialSpaceId || initialSpaces[0]?.id || ""
   );
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [activeSportFilter, setActiveSportFilter] = useState<string>("ALL");
+  const [activeOrgFilter, setActiveOrgFilter] = useState<string>(
+    globalOrgId || "ALL",
+  );
+  const [orgFilterQuery, setOrgFilterQuery] = useState<string>("");
+  const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState<boolean>(false);
+  const orgDropdownRef = useRef<HTMLDivElement | null>(null);
   const [activeVenueFilter, setActiveVenueFilter] = useState<string>("ALL");
   const [venueFilterQuery, setVenueFilterQuery] = useState<string>("");
   const [isVenueDropdownOpen, setIsVenueDropdownOpen] = useState<boolean>(false);
   const venueDropdownRef = useRef<HTMLDivElement | null>(null);
   const [cloneSourceSpaceId, setCloneSourceSpaceId] = useState<string>("");
+
+  useEffect(() => {
+    if (globalOrgId) {
+      setActiveOrgFilter((prev) => (prev === globalOrgId ? prev : globalOrgId));
+    }
+  }, [globalOrgId]);
 
   const [alsoApplyToSameSport, setAlsoApplyToSameSport] = useState<boolean>(false);
   const [applyToAllVenueSpaces, setApplyToAllVenueSpaces] = useState<boolean>(false);
@@ -357,9 +394,16 @@ export function SchedulesPage({
     return venues.find((v) => v.id === vId) || venues[0] || null;
   }, [selectedSpace, initialVenueId, venues]);
 
-  // Close searchable venue dropdown on outside click
+  // Close searchable org and venue dropdowns on outside click
   useEffect(() => {
     function handleOutsideClick(e: MouseEvent) {
+      if (
+        orgDropdownRef.current &&
+        !orgDropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsOrgDropdownOpen(false);
+        setOrgFilterQuery("");
+      }
       if (
         venueDropdownRef.current &&
         !venueDropdownRef.current.contains(e.target as Node)
@@ -368,27 +412,88 @@ export function SchedulesPage({
         setVenueFilterQuery("");
       }
     }
-    if (isVenueDropdownOpen) {
+    if (isOrgDropdownOpen || isVenueDropdownOpen) {
       document.addEventListener("mousedown", handleOutsideClick);
     }
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
     };
-  }, [isVenueDropdownOpen]);
+  }, [isOrgDropdownOpen, isVenueDropdownOpen]);
 
-  // All distinct venues represented in venues list or spaces
+  const orgScopedVenues = useMemo(() => {
+    if (
+      !showOrganizationFilter ||
+      !activeOrgFilter ||
+      activeOrgFilter === "ALL"
+    ) {
+      return venues;
+    }
+    return venues.filter((v) => v.organizationId === activeOrgFilter);
+  }, [venues, showOrganizationFilter, activeOrgFilter]);
+
+  const orgScopedVenueIdSet = useMemo(
+    () => new Set(orgScopedVenues.map((v) => v.id)),
+    [orgScopedVenues],
+  );
+
+  const orgScopedSpaces = useMemo(() => {
+    if (
+      !showOrganizationFilter ||
+      !activeOrgFilter ||
+      activeOrgFilter === "ALL"
+    ) {
+      return spaces;
+    }
+    return spaces.filter((sp) => orgScopedVenueIdSet.has(sp.venueId));
+  }, [spaces, showOrganizationFilter, activeOrgFilter, orgScopedVenueIdSet]);
+
+  const filteredOrgOptions = useMemo(() => {
+    const q = orgFilterQuery.trim().toLowerCase();
+    if (!q) return organizations;
+    return organizations.filter(
+      (org) =>
+        org.tradeName.toLowerCase().includes(q) ||
+        (org.legalName && org.legalName.toLowerCase().includes(q)) ||
+        (org.rif && org.rif.toLowerCase().includes(q)),
+    );
+  }, [organizations, orgFilterQuery]);
+
+  const activeOrgFilterName = useMemo(() => {
+    if (!activeOrgFilter || activeOrgFilter === "ALL") {
+      return isEn
+        ? `All organizations (${organizations.length})`
+        : `Todas las organizaciones (${organizations.length})`;
+    }
+    const found = organizations.find((o) => o.id === activeOrgFilter);
+    if (!found) {
+      return isEn
+        ? `All organizations (${organizations.length})`
+        : `Todas las organizaciones (${organizations.length})`;
+    }
+    const sedesLabel =
+      found.venuesCount === 1
+        ? isEn
+          ? "1 venue"
+          : "1 sede"
+        : isEn
+          ? `${found.venuesCount} venues`
+          : `${found.venuesCount} sedes`;
+    return `${found.tradeName} (${sedesLabel})`;
+  }, [activeOrgFilter, organizations, isEn]);
+
+  // All distinct venues represented in orgScopedVenues or orgScopedSpaces
   const selectableVenues = useMemo(() => {
     const map = new Map<string, { id: string; name: string; count: number }>();
-    for (const v of venues) {
+    for (const v of orgScopedVenues) {
       map.set(v.id, { id: v.id, name: v.name, count: 0 });
     }
-    for (const sp of spaces) {
+    for (const sp of orgScopedSpaces) {
       const vId = sp.venueId || "default";
       const vName =
         sp.venueName ||
         sp.venue?.name ||
         venues.find((v) => v.id === sp.venueId)?.name ||
-        "Sede Principal";
+        (isEn ? "Main Venue" : "Sede Principal");
       const existing = map.get(vId);
       if (existing) {
         existing.count += 1;
@@ -396,8 +501,10 @@ export function SchedulesPage({
         map.set(vId, { id: vId, name: vName, count: 1 });
       }
     }
-    return Array.from(map.values()).filter((v) => v.count > 0 || venues.length > 0);
-  }, [venues, spaces]);
+    return Array.from(map.values()).filter(
+      (v) => v.count > 0 || orgScopedVenues.length > 0,
+    );
+  }, [orgScopedVenues, orgScopedSpaces, venues, isEn]);
 
   const filteredVenueOptions = useMemo(() => {
     const q = venueFilterQuery.trim().toLowerCase();
@@ -407,28 +514,47 @@ export function SchedulesPage({
 
   const activeVenueFilterName = useMemo(() => {
     const totalLabel =
-      spaces.length === 1 ? "1 cancha" : `${spaces.length} canchas`;
-    if (activeVenueFilter === "ALL") return `Todas las sedes (${totalLabel})`;
+      orgScopedSpaces.length === 1
+        ? isEn
+          ? "1 court"
+          : "1 cancha"
+        : isEn
+          ? `${orgScopedSpaces.length} courts`
+          : `${orgScopedSpaces.length} canchas`;
+    if (activeVenueFilter === "ALL")
+      return isEn
+        ? `All venues (${totalLabel})`
+        : `Todas las sedes (${totalLabel})`;
     const found = selectableVenues.find((v) => v.id === activeVenueFilter);
-    if (!found) return `Todas las sedes (${totalLabel})`;
-    const countLabel = found.count === 1 ? "1 cancha" : `${found.count} canchas`;
+    if (!found)
+      return isEn
+        ? `All venues (${totalLabel})`
+        : `Todas las sedes (${totalLabel})`;
+    const countLabel =
+      found.count === 1
+        ? isEn
+          ? "1 court"
+          : "1 cancha"
+        : isEn
+          ? `${found.count} courts`
+          : `${found.count} canchas`;
     return `${found.name} (${countLabel})`;
-  }, [activeVenueFilter, selectableVenues, spaces.length]);
+  }, [activeVenueFilter, selectableVenues, orgScopedSpaces.length, isEn]);
 
-  // Distinct sports across spaces (respecting venue filter) for the filter pills
+  // Distinct sports across spaces (respecting org + venue filter) for the filter pills
   const availableSports = useMemo(() => {
     const map = new Map<string, string>();
-    for (const sp of spaces) {
+    for (const sp of orgScopedSpaces) {
       if (activeVenueFilter !== "ALL" && sp.venueId !== activeVenueFilter) {
         continue;
       }
-      const sport = getSpaceSportName(sp);
+      const sport = getSpaceSportName(sp, isEn);
       if (!map.has(sport)) {
         map.set(sport, getSportEmoji(sport));
       }
     }
     return Array.from(map.entries()).map(([name, emoji]) => ({ name, emoji }));
-  }, [spaces, activeVenueFilter]);
+  }, [orgScopedSpaces, activeVenueFilter, isEn]);
 
   // If the selected venue changes and the active sport filter is not available in that venue, reset to ALL
   useEffect(() => {
@@ -443,9 +569,9 @@ export function SchedulesPage({
   // Filtered spaces grouped by venue
   const filteredSpaces = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return spaces.filter((sp) => {
-      const sport = getSpaceSportName(sp);
-      const format = getSpaceFormatLabel(sp);
+    return orgScopedSpaces.filter((sp) => {
+      const sport = getSpaceSportName(sp, isEn);
+      const format = getSpaceFormatLabel(sp, isEn);
       const vName =
         sp.venueName ||
         sp.venue?.name ||
@@ -465,7 +591,7 @@ export function SchedulesPage({
 
       return matchesVenue && matchesSport && matchesQuery;
     });
-  }, [spaces, venues, activeVenueFilter, activeSportFilter, searchQuery]);
+  }, [orgScopedSpaces, venues, activeVenueFilter, activeSportFilter, searchQuery, isEn]);
 
   const spacesGroupedByVenue = useMemo(() => {
     const groups = new Map<string, { venueId: string; venueName: string; items: SpaceItem[] }>();
@@ -475,7 +601,7 @@ export function SchedulesPage({
         sp.venueName ||
         sp.venue?.name ||
         venues.find((v) => v.id === sp.venueId)?.name ||
-        "Sede Principal";
+        (isEn ? "Main Venue" : "Sede Principal");
       const existing = groups.get(vId);
       if (existing) {
         existing.items.push(sp);
@@ -484,7 +610,7 @@ export function SchedulesPage({
       }
     }
     return Array.from(groups.values());
-  }, [filteredSpaces, venues]);
+  }, [filteredSpaces, venues, isEn]);
 
   // Live KPI metrics for the currently edited space
   const openDaysCount = useMemo(
@@ -503,14 +629,14 @@ export function SchedulesPage({
   // Same-sport courts in the same venue count (for the replication checkbox)
   const sameSportSiblingsInVenue = useMemo(() => {
     if (!selectedSpace) return [];
-    const currentSport = getSpaceSportName(selectedSpace);
+    const currentSport = getSpaceSportName(selectedSpace, isEn);
     return spaces.filter(
       (s) =>
         s.venueId === selectedSpace.venueId &&
         s.id !== selectedSpace.id &&
-        getSpaceSportName(s) === currentSport
+        getSpaceSportName(s, isEn) === currentSport
     );
-  }, [spaces, selectedSpace]);
+  }, [spaces, selectedSpace, isEn]);
 
   function showToast(message: string, isError = false) {
     setToast({ message, isError });
@@ -734,8 +860,13 @@ export function SchedulesPage({
       })
     );
 
-    const dayLabel = DAY_LABELS_ES[sourceDay.dayOfWeek]?.full || "día";
-    showToast(`📋 Horario de ${dayLabel} aplicado a Lunes–Viernes`, false);
+    const dayLabel = dayLabels[sourceDay.dayOfWeek]?.full || (isEn ? "day" : "día");
+    showToast(
+      isEn
+        ? `📋 ${dayLabel} schedule applied to Monday–Friday`
+        : `📋 Horario de ${dayLabel} aplicado a Lunes–Viernes`,
+      false
+    );
   }
 
   // Apply 1-click smart templates
@@ -793,7 +924,9 @@ export function SchedulesPage({
         : res.data?.days;
       setDays(normalizeDays(rawDays));
       showToast(
-        `📥 Horario copiado desde "${sourceSpace?.spaceNumber || "cancha seleccionada"}"`,
+        isEn
+          ? `📥 Schedule copied from "${sourceSpace?.spaceNumber || "selected court"}"`
+          : `📥 Horario copiado desde "${sourceSpace?.spaceNumber || "cancha seleccionada"}"`,
         false
       );
     } finally {
@@ -806,10 +939,14 @@ export function SchedulesPage({
     for (const day of days) {
       if (!day.isOpen) continue;
       const shifts = day.shifts || [];
-      const dayLabel = DAY_LABELS_ES[day.dayOfWeek]?.full || `Día ${day.dayOfWeek}`;
+      const dayLabel =
+        dayLabels[day.dayOfWeek]?.full ||
+        (isEn ? `Day ${day.dayOfWeek}` : `Día ${day.dayOfWeek}`);
 
       if (shifts.length === 0) {
-        return `${dayLabel}: Agrega al menos un turno o marca el día como cerrado.`;
+        return isEn
+          ? `${dayLabel}: Add at least one shift or mark the day as closed.`
+          : `${dayLabel}: Agrega al menos un turno o marca el día como cerrado.`;
       }
 
       for (let i = 0; i < shifts.length; i++) {
@@ -817,7 +954,9 @@ export function SchedulesPage({
         const openH = parseTimeHour(s.openTime, false);
         const closeH = parseTimeHour(s.closeTime, true);
         if (openH >= closeH) {
-          return `${dayLabel} (Turno T${i + 1}): La hora de apertura (${formatTime(s.openTime)}) debe ser anterior a la de cierre (${formatCloseTimeLabel(s.closeTime)}).`;
+          return isEn
+            ? `${dayLabel} (Shift T${i + 1}): Opening time (${formatTime(s.openTime)}) must be earlier than closing time (${formatCloseTimeLabel(s.closeTime)}).`
+            : `${dayLabel} (Turno T${i + 1}): La hora de apertura (${formatTime(s.openTime)}) debe ser anterior a la de cierre (${formatCloseTimeLabel(s.closeTime)}).`;
         }
       }
 
@@ -828,7 +967,9 @@ export function SchedulesPage({
         const prevEnd = parseTimeHour(sorted[i - 1].closeTime, true);
         const currStart = parseTimeHour(sorted[i].openTime, false);
         if (prevEnd > currStart) {
-          return `${dayLabel}: Los turnos ${formatTime(sorted[i - 1].openTime)}–${formatCloseTimeLabel(sorted[i - 1].closeTime)} y ${formatTime(sorted[i].openTime)}–${formatCloseTimeLabel(sorted[i].closeTime)} se solapan.`;
+          return isEn
+            ? `${dayLabel}: Shifts ${formatTime(sorted[i - 1].openTime)}–${formatCloseTimeLabel(sorted[i - 1].closeTime)} and ${formatTime(sorted[i].openTime)}–${formatCloseTimeLabel(sorted[i].closeTime)} overlap.`
+            : `${dayLabel}: Los turnos ${formatTime(sorted[i - 1].openTime)}–${formatCloseTimeLabel(sorted[i - 1].closeTime)} y ${formatTime(sorted[i].openTime)}–${formatCloseTimeLabel(sorted[i].closeTime)} se solapan.`;
         }
       }
     }
@@ -891,7 +1032,9 @@ export function SchedulesPage({
 
       if (enableSpaceAfterSave) {
         showToast(
-          `🚀 Horario guardado y "${selectedSpace.spaceNumber}" habilitada para reservas`,
+          isEn
+            ? `🚀 Schedule saved and "${selectedSpace.spaceNumber}" enabled for bookings`
+            : `🚀 Horario guardado y "${selectedSpace.spaceNumber}" habilitada para reservas`,
           false
         );
       } else if (applyToAllVenueSpaces || alsoApplyToSameSport) {
@@ -915,8 +1058,14 @@ export function SchedulesPage({
     [days, previewDayOfWeek]
   );
 
-  const selectedSportName = selectedSpace ? getSpaceSportName(selectedSpace) : "Deporte";
-  const selectedFormatLabel = selectedSpace ? getSpaceFormatLabel(selectedSpace) : "";
+  const selectedSportName = selectedSpace
+    ? getSpaceSportName(selectedSpace, isEn)
+    : isEn
+      ? "Sport"
+      : "Deporte";
+  const selectedFormatLabel = selectedSpace
+    ? getSpaceFormatLabel(selectedSpace, isEn)
+    : "";
   const selectedSportEmoji = getSportEmoji(selectedSportName);
   const selectedVenueName =
     selectedSpace?.venueName ||
@@ -936,7 +1085,7 @@ export function SchedulesPage({
               {topT("schedulesSubtitle", { venueName: selectedVenueName })}
             </span>
             <span className="badge badge-available text-[10px]">
-              Configuración por Cancha
+              {isEn ? "Per-Court Setup" : "Configuración por Cancha"}
             </span>
           </div>
           <h1 className="mt-0.5 text-[22px] font-extrabold text-foreground">
@@ -950,7 +1099,7 @@ export function SchedulesPage({
             className="btn btn-outline text-xs"
           >
             <span>⚙️</span>
-            <span>Ir a Configurador de Canchas</span>
+            <span>{isEn ? "Go to Court Configurator" : "Ir a Configurador de Canchas"}</span>
           </Link>
         )}
       </div>
@@ -969,6 +1118,7 @@ export function SchedulesPage({
             <button
               type="button"
               onClick={() => setToast(null)}
+              aria-label={isEn ? "Close notification" : "Cerrar notificación"}
               className="cursor-pointer border-none bg-transparent font-bold text-current"
             >
               ✕
@@ -987,12 +1137,191 @@ export function SchedulesPage({
           <div className="border-b border-border bg-muted/30 p-4">
             <div className="mb-2.5 flex items-center justify-between">
               <span className="text-xs font-extrabold tracking-wider text-muted-foreground uppercase">
-                1. Seleccionar Cancha
+                {isEn ? "1. Select Court" : "1. Seleccionar Cancha"}
               </span>
               <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold text-foreground">
-                {filteredSpaces.length} {filteredSpaces.length === 1 ? "cancha" : "canchas"}
+                {filteredSpaces.length}{" "}
+                {filteredSpaces.length === 1
+                  ? isEn
+                    ? "court"
+                    : "cancha"
+                  : isEn
+                    ? "courts"
+                    : "canchas"}
               </span>
             </div>
+
+            {/* Cascading Organization Selector (Platform Roles) */}
+            {showOrganizationFilter && (
+              <div ref={orgDropdownRef} className="relative mb-2">
+                <div
+                  className={`flex items-center gap-1.5 rounded-xl border bg-surface px-2.5 py-1.5 transition-all ${
+                    isOrgDropdownOpen
+                      ? "border-accent ring-2 ring-accent/30"
+                      : "border-border-medium hover:border-border-strong"
+                  }`}
+                >
+                  <span className="shrink-0 text-xs">🏢</span>
+                  <input
+                    type="text"
+                    value={isOrgDropdownOpen ? orgFilterQuery : activeOrgFilterName}
+                    onFocus={() => {
+                      setIsOrgDropdownOpen(true);
+                      setOrgFilterQuery("");
+                    }}
+                    onChange={(e) => {
+                      setIsOrgDropdownOpen(true);
+                      setOrgFilterQuery(e.target.value);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setIsOrgDropdownOpen(false);
+                        setOrgFilterQuery("");
+                      } else if (e.key === "Enter" && isOrgDropdownOpen) {
+                        e.preventDefault();
+                        if (filteredOrgOptions.length > 0) {
+                          const firstOrg = filteredOrgOptions[0];
+                          setActiveOrgFilter(firstOrg.id);
+                          setGlobalOrgId?.(firstOrg.id);
+                          setActiveVenueFilter("ALL");
+                          setActiveSportFilter("ALL");
+                          setIsOrgDropdownOpen(false);
+                          setOrgFilterQuery("");
+                          const orgVIds = new Set(firstOrg.venues.map((v) => v.id));
+                          const firstSp = spaces.find((sp) => orgVIds.has(sp.venueId));
+                          if (firstSp && !hasUnsavedChanges) {
+                            void handleSelectSpace(firstSp.id);
+                          }
+                        }
+                      }
+                    }}
+                    placeholder={isEn ? "Search organization or tax ID..." : "Buscar organización o RIF..."}
+                    aria-label={isEn ? "Filter by organization" : "Filtrar por organización"}
+                    className="w-full min-w-0 border-none bg-transparent text-[12.5px] font-bold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground"
+                  />
+                  {activeOrgFilter !== "ALL" && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveOrgFilter("ALL");
+                        setGlobalOrgId?.("ALL");
+                        setActiveVenueFilter("ALL");
+                        setOrgFilterQuery("");
+                        setIsOrgDropdownOpen(false);
+                      }}
+                      title={isEn ? "View all organizations" : "Ver todas las organizaciones"}
+                      className="cursor-pointer rounded-md border-none bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground hover:text-foreground"
+                    >
+                      ✕
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOrgDropdownOpen((prev) => !prev);
+                      setOrgFilterQuery("");
+                    }}
+                    className="cursor-pointer border-none bg-transparent px-1 text-xs text-muted-foreground"
+                    aria-label={isEn ? "Open organization list" : "Abrir lista de organizaciones"}
+                  >
+                    ▾
+                  </button>
+                </div>
+
+                {isOrgDropdownOpen && (
+                  <div className="absolute right-0 left-0 z-40 mt-1 max-h-60 overflow-y-auto rounded-xl border border-border-medium bg-surface p-1.5 shadow-xl">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveOrgFilter("ALL");
+                        setGlobalOrgId?.("ALL");
+                        setActiveVenueFilter("ALL");
+                        setIsOrgDropdownOpen(false);
+                        setOrgFilterQuery("");
+                      }}
+                      className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs font-bold transition-colors ${
+                        activeOrgFilter === "ALL"
+                          ? "bg-accent/20 text-foreground"
+                          : "text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <span>🌐 {isEn ? "All organizations" : "Todas las organizaciones"}</span>
+                      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                        {organizations.length}{" "}
+                        {isEn
+                          ? organizations.length === 1
+                            ? "ally"
+                            : "allies"
+                          : organizations.length === 1
+                            ? "aliado"
+                            : "aliados"}
+                      </span>
+                    </button>
+
+                    {filteredOrgOptions.length === 0 ? (
+                      <div className="px-3 py-3 text-center text-xs text-muted-foreground">
+                        {isEn
+                          ? `No organization found matching «${orgFilterQuery}»`
+                          : `No se encontró organización con «${orgFilterQuery}»`}
+                      </div>
+                    ) : (
+                      filteredOrgOptions.map((org) => {
+                        const isSelectedOrg = activeOrgFilter === org.id;
+                        return (
+                          <button
+                            key={org.id}
+                            type="button"
+                            onClick={() => {
+                              setActiveOrgFilter(org.id);
+                              setGlobalOrgId?.(org.id);
+                              setActiveVenueFilter("ALL");
+                              setActiveSportFilter("ALL");
+                              setIsOrgDropdownOpen(false);
+                              setOrgFilterQuery("");
+                              const orgVIds = new Set(org.venues.map((v) => v.id));
+                              const firstSp = spaces.find((sp) =>
+                                orgVIds.has(sp.venueId),
+                              );
+                              if (firstSp && !hasUnsavedChanges) {
+                                void handleSelectSpace(firstSp.id);
+                              }
+                            }}
+                            className={`mt-0.5 flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-semibold transition-colors ${
+                              isSelectedOrg
+                                ? "bg-accent/20 font-bold text-foreground"
+                                : "text-foreground hover:bg-muted"
+                            }`}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate font-bold text-foreground">
+                                🏢 {org.tradeName}
+                              </div>
+                              {org.rif && (
+                                <div className="truncate text-[10px] text-muted-foreground">
+                                  {org.rif}
+                                </div>
+                              )}
+                            </div>
+                            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                              {org.venuesCount}{" "}
+                              {org.venuesCount === 1
+                                ? isEn
+                                  ? "venue"
+                                  : "sede"
+                                : isEn
+                                  ? "venues"
+                                  : "sedes"}{" "}
+                              · {org.spacesCount}c
+                            </span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Searchable Venue Selector (Typeahead Combobox) */}
             <div ref={venueDropdownRef} className="relative mb-2">
@@ -1033,8 +1362,8 @@ export function SchedulesPage({
                       }
                     }
                   }}
-                  placeholder="Escribir o elegir sede..."
-                  aria-label="Filtrar por sede"
+                  placeholder={isEn ? "Type or select venue..." : "Escribir o elegir sede..."}
+                  aria-label={isEn ? "Filter by venue" : "Filtrar por sede"}
                   className="w-full min-w-0 border-none bg-transparent text-[12.5px] font-bold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground"
                 />
                 {activeVenueFilter !== "ALL" && (
@@ -1046,7 +1375,7 @@ export function SchedulesPage({
                       setVenueFilterQuery("");
                       setIsVenueDropdownOpen(false);
                     }}
-                    title="Ver todas las sedes"
+                    title={isEn ? "View all venues" : "Ver todas las sedes"}
                     className="cursor-pointer rounded-md border-none bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground hover:text-foreground"
                   >
                     ✕
@@ -1059,7 +1388,7 @@ export function SchedulesPage({
                     setVenueFilterQuery("");
                   }}
                   className="cursor-pointer border-none bg-transparent px-1 text-xs text-muted-foreground"
-                  aria-label="Abrir lista de sedes"
+                  aria-label={isEn ? "Open venue list" : "Abrir lista de sedes"}
                 >
                   ▾
                 </button>
@@ -1080,15 +1409,23 @@ export function SchedulesPage({
                         : "text-foreground hover:bg-muted"
                     }`}
                   >
-                    <span>🌐 Todas las sedes</span>
+                    <span>🌐 {isEn ? "All venues" : "Todas las sedes"}</span>
                     <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
-                      {spaces.length === 1 ? "1 cancha" : `${spaces.length} canchas`}
+                      {orgScopedSpaces.length === 1
+                        ? isEn
+                          ? "1 court"
+                          : "1 cancha"
+                        : isEn
+                          ? `${orgScopedSpaces.length} courts`
+                          : `${orgScopedSpaces.length} canchas`}
                     </span>
                   </button>
 
                   {filteredVenueOptions.length === 0 ? (
                     <div className="px-3 py-3 text-center text-xs text-muted-foreground">
-                      No se encontró ninguna sede con «{venueFilterQuery}»
+                      {isEn
+                        ? `No venue found matching «${venueFilterQuery}»`
+                        : `No se encontró ninguna sede con «${venueFilterQuery}»`}
                     </div>
                   ) : (
                     filteredVenueOptions.map((v) => {
@@ -1121,7 +1458,13 @@ export function SchedulesPage({
                         >
                           <span className="truncate">📍 {v.name}</span>
                           <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
-                            {v.count === 1 ? "1 cancha" : `${v.count} canchas`}
+                            {v.count === 1
+                              ? isEn
+                                ? "1 court"
+                                : "1 cancha"
+                              : isEn
+                                ? `${v.count} courts`
+                                : `${v.count} canchas`}
                           </span>
                         </button>
                       );
@@ -1135,7 +1478,7 @@ export function SchedulesPage({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="🔍 Buscar cancha o deporte..."
+              placeholder={isEn ? "🔍 Search court or sport..." : "🔍 Buscar cancha o deporte..."}
               className="input-field w-full px-3 py-2 text-[12.5px]"
             />
 
@@ -1150,7 +1493,7 @@ export function SchedulesPage({
                       : "border-border bg-surface text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Todas
+                  {isEn ? "All" : "Todas"}
                 </button>
                 {availableSports.map((sp) => (
                   <button
@@ -1174,7 +1517,9 @@ export function SchedulesPage({
           <div className="flex flex-1 flex-col gap-3.5 overflow-y-auto p-3">
             {spacesGroupedByVenue.length === 0 ? (
               <div className="py-8 text-center text-xs text-muted-foreground">
-                No se encontraron canchas con ese filtro.
+                {isEn
+                  ? "No courts found matching that filter."
+                  : "No se encontraron canchas con ese filtro."}
               </div>
             ) : (
               spacesGroupedByVenue.map((group) => (
@@ -1186,7 +1531,7 @@ export function SchedulesPage({
                   <div className="flex flex-col gap-1.5">
                     {group.items.map((sp) => {
                       const isSelected = sp.id === selectedSpace?.id;
-                      const sportName = getSpaceSportName(sp);
+                      const sportName = getSpaceSportName(sp, isEn);
                       const emoji = getSportEmoji(sportName);
                       const isEnabled = sp.status === "ENABLED";
 
@@ -1224,8 +1569,12 @@ export function SchedulesPage({
                                 }`}
                                 title={
                                   isEnabled
-                                    ? "Habilitada"
-                                    : "Deshabilitada (Pausada)"
+                                    ? isEn
+                                      ? "Enabled"
+                                      : "Habilitada"
+                                    : isEn
+                                      ? "Disabled (Paused)"
+                                      : "Deshabilitada (Pausada)"
                                 }
                               />
                             </div>
@@ -1244,11 +1593,19 @@ export function SchedulesPage({
                                   : "bg-muted text-muted-foreground"
                               }`}
                             >
-                              <span>{!isEnabled ? "⏸️ Deshabilitada ·" : "🕒"}</span>
+                              <span>
+                                {!isEnabled
+                                  ? isEn
+                                    ? "⏸️ Disabled ·"
+                                    : "⏸️ Deshabilitada ·"
+                                  : "🕒"}
+                              </span>
                               <span>
                                 {displayOpenDays > 0
-                                  ? `${displayOpenDays}d · ${displayWeeklyHours}h/sem`
-                                  : "Sin horario"}
+                                  ? `${displayOpenDays}d · ${displayWeeklyHours}${isEn ? "h/wk" : "h/sem"}`
+                                  : isEn
+                                    ? "No schedule"
+                                    : "Sin horario"}
                               </span>
                             </div>
                           </div>
@@ -1268,16 +1625,20 @@ export function SchedulesPage({
         {!selectedSpace ? (
           <div className="rounded-[20px] border border-border bg-surface p-10 text-center">
             <div className="text-lg font-bold text-foreground">
-              No hay canchas registradas todavía
+              {isEn
+                ? "No courts registered yet"
+                : "No hay canchas registradas todavía"}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              Crea primero una cancha en el Configurador de Canchas para definir sus turnos y horarios.
+              {isEn
+                ? "Create a court first in the Court Configurator to define its shifts and schedules."
+                : "Crea primero una cancha en el Configurador de Canchas para definir sus turnos y horarios."}
             </p>
             <Link
               href={ROUTES.spaces}
               className="btn btn-primary mt-4 inline-flex"
             >
-              + Crear Cancha
+              {isEn ? "+ Create Court" : "+ Crear Cancha"}
             </Link>
           </div>
         ) : (
@@ -1291,18 +1652,49 @@ export function SchedulesPage({
                   </div>
                   <div>
                     <div className="text-sm font-extrabold text-foreground">
-                      ¡Configura el horario de{" "}
-                      <span className="underline">{selectedSpace.spaceNumber}</span>{" "}
-                      para habilitarla!
+                      {isEn ? (
+                        <>
+                          Configure the schedule for{" "}
+                          <span className="underline">
+                            {selectedSpace.spaceNumber}
+                          </span>{" "}
+                          to enable it!
+                        </>
+                      ) : (
+                        <>
+                          ¡Configura el horario de{" "}
+                          <span className="underline">
+                            {selectedSpace.spaceNumber}
+                          </span>{" "}
+                          para habilitarla!
+                        </>
+                      )}
                     </div>
                     <div className="mt-0.5 text-xs text-muted-foreground">
-                      Esta cancha está actualmente <strong>Deshabilitada (Pausada)</strong>. Define sus turnos por día y haz clic en{" "}
-                      <strong>«Guardar Horario y Habilitar Cancha»</strong> para activarla en la app de clientes.
+                      {isEn ? (
+                        <>
+                          This court is currently{" "}
+                          <strong>Disabled (Paused)</strong>. Set its daily
+                          shifts and click{" "}
+                          <strong>«Save Schedule &amp; Enable Court»</strong> to
+                          activate it in the player app.
+                        </>
+                      ) : (
+                        <>
+                          Esta cancha está actualmente{" "}
+                          <strong>Deshabilitada (Pausada)</strong>. Define sus
+                          turnos por día y haz clic en{" "}
+                          <strong>«Guardar Horario y Habilitar Cancha»</strong>{" "}
+                          para activarla en la app de clientes.
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
                 <span className="badge badge-hold shrink-0">
-                  Paso 2 de 2: Definir Horario
+                  {isEn
+                    ? "Step 2 of 2: Set Schedule"
+                    : "Paso 2 de 2: Definir Horario"}
                 </span>
               </div>
             )}
@@ -1329,11 +1721,13 @@ export function SchedulesPage({
                     </span>
                     {selectedSpace.status === "ENABLED" ? (
                       <span className="badge badge-available">
-                        🟢 Habilitada en App
+                        {isEn ? "🟢 Enabled in App" : "🟢 Habilitada en App"}
                       </span>
                     ) : (
                       <span className="badge badge-hold">
-                        ⏸️ Deshabilitada (Pausada)
+                        {isEn
+                          ? "⏸️ Disabled (Paused)"
+                          : "⏸️ Deshabilitada (Pausada)"}
                       </span>
                     )}
                   </div>
@@ -1347,14 +1741,23 @@ export function SchedulesPage({
                       {selectedSportEmoji} {selectedFormatLabel}
                     </span>
                     <span className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-foreground">
-                      🌱 {selectedSpace.surfaceType || "Superficie Estándar"}
+                      🌱{" "}
+                      {selectedSpace.surfaceType ||
+                        (isEn ? "Standard Surface" : "Superficie Estándar")}
                     </span>
                     <span className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-foreground">
                       💵 {currencySymbol}
-                      {Number(selectedSpace.pricePerHour).toFixed(2)} / hora
+                      {Number(selectedSpace.pricePerHour).toFixed(2)}{" "}
+                      {isEn ? "/ hour" : "/ hora"}
                     </span>
                     <span className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-foreground">
-                      {selectedSpace.isCovered ? "🏠 Techada" : "☀️ Exterior"}
+                      {selectedSpace.isCovered
+                        ? isEn
+                          ? "🏠 Covered"
+                          : "🏠 Techada"
+                        : isEn
+                          ? "☀️ Outdoor"
+                          : "☀️ Exterior"}
                     </span>
                   </div>
                 </div>
@@ -1364,10 +1767,10 @@ export function SchedulesPage({
               <div className="flex items-center gap-3">
                 <div className="min-w-[115px] rounded-2xl border border-border bg-muted/60 px-3.5 py-2.5 text-center">
                   <span className="block font-display text-lg font-extrabold text-foreground">
-                    {openDaysCount} / 7 días
+                    {openDaysCount} / 7 {isEn ? "days" : "días"}
                   </span>
                   <span className="text-[10.5px] font-bold tracking-wider text-muted-foreground uppercase">
-                    Días Abiertos
+                    {isEn ? "Open Days" : "Días Abiertos"}
                   </span>
                 </div>
                 <div className="min-w-[115px] rounded-2xl border border-border bg-muted/60 px-3.5 py-2.5 text-center">
@@ -1375,7 +1778,7 @@ export function SchedulesPage({
                     {totalWeeklyHours} hrs
                   </span>
                   <span className="text-[10.5px] font-bold tracking-wider text-muted-foreground uppercase">
-                    Total Semanal
+                    {isEn ? "Weekly Total" : "Total Semanal"}
                   </span>
                 </div>
               </div>
@@ -1385,42 +1788,45 @@ export function SchedulesPage({
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3 shadow-xs">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[11px] font-extrabold tracking-wider text-muted-foreground uppercase">
-                  ⚡ Plantillas Rápidas:
+                  {isEn ? "⚡ Quick Templates:" : "⚡ Plantillas Rápidas:"}
                 </span>
                 <button
                   type="button"
                   onClick={() => handleApplyPreset("continuous")}
                   className="cursor-pointer rounded-xl border border-border bg-muted/60 px-3 py-1.5 text-xs font-bold text-foreground transition-all hover:border-accent hover:bg-accent/20"
                 >
-                  ☀️ Continuo ({formatTime("07:00")} – {formatTime("22:00")})
+                  ☀️ {isEn ? "Continuous" : "Continuo"} ({formatTime("07:00")} – {formatTime("22:00")})
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApplyPreset("night")}
                   className="cursor-pointer rounded-xl border border-border bg-muted/60 px-3 py-1.5 text-xs font-bold text-foreground transition-all hover:border-accent hover:bg-accent/20"
                 >
-                  🌙 Nocturno ({formatTime("06:00")} – {formatTime("23:00")})
+                  🌙 {isEn ? "Night" : "Nocturno"} ({formatTime("06:00")} – {formatTime("23:00")})
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApplyPreset("split")}
                   className="cursor-pointer rounded-xl border border-border bg-muted/60 px-3 py-1.5 text-xs font-bold text-foreground transition-all hover:border-accent hover:bg-accent/20"
                 >
-                  ✂️ 2 Turnos ({formatTime("07:00")}–{formatTime("12:00")} y {formatTime("15:00")}–{formatTime("22:00")})
+                  ✂️{" "}
+                  {isEn
+                    ? `2 Shifts (${formatTime("07:00")}–${formatTime("12:00")} & ${formatTime("15:00")}–${formatTime("22:00")})`
+                    : `2 Turnos (${formatTime("07:00")}–${formatTime("12:00")} y ${formatTime("15:00")}–${formatTime("22:00")})`}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApplyPreset("weekdays")}
                   className="cursor-pointer rounded-xl border border-border bg-muted/60 px-3 py-1.5 text-xs font-bold text-foreground transition-all hover:border-accent hover:bg-accent/20"
                 >
-                  🏢 Lun–Vie + Sáb Mediodía
+                  🏢 {isEn ? "Mon–Fri + Sat Noon" : "Lun–Vie + Sáb Mediodía"}
                 </button>
               </div>
 
               {spaces.length > 1 && (
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-muted-foreground">
-                    📥 Copiar de:
+                    {isEn ? "📥 Copy from:" : "📥 Copiar de:"}
                   </span>
                   <select
                     value={cloneSourceSpaceId}
@@ -1428,11 +1834,15 @@ export function SchedulesPage({
                     disabled={isLoadingSchedules}
                     className="input-field form-select px-3 py-1.5 text-xs font-semibold"
                   >
-                    <option value="">Seleccionar otra cancha...</option>
+                    <option value="">
+                      {isEn
+                        ? "Select another court..."
+                        : "Seleccionar otra cancha..."}
+                    </option>
                     {spaces
                       .filter((s) => s.id !== selectedSpace.id)
                       .map((s) => {
-                        const sSport = getSpaceSportName(s);
+                        const sSport = getSpaceSportName(s, isEn);
                         const sEmoji = getSportEmoji(sSport);
                         const sVenue =
                           s.venueName ||
@@ -1455,28 +1865,40 @@ export function SchedulesPage({
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/30 px-5 py-3.5">
                 <div>
                   <span className="text-[13px] font-extrabold text-foreground">
-                    📅 Matriz Semanal de Turnos por Día
+                    {isEn
+                      ? "📅 Weekly Daily Shifts Matrix"
+                      : "📅 Matriz Semanal de Turnos por Día"}
                   </span>
                   <span className="ml-2.5 text-xs text-muted-foreground">
-                    Agrega tantos turnos (T1, T2, T3...) como necesites para adaptar bloqueos fijos, clubes o mantenimientos
+                    {isEn
+                      ? "Add as many shifts (T1, T2, T3...) as needed to accommodate fixed blocks, clubs, or maintenance"
+                      : "Agrega tantos turnos (T1, T2, T3...) como necesites para adaptar bloqueos fijos, clubes o mantenimientos"}
                   </span>
                 </div>
                 <span className="text-[11px] font-bold text-muted-foreground">
                   {timeFormat === "12h"
-                    ? "Línea de tiempo visual (12:00 AM → 12:00 AM)"
-                    : "Línea de tiempo visual 24h (00:00 → 24:00)"}
+                    ? isEn
+                      ? "Visual timeline (12:00 AM → 12:00 AM)"
+                      : "Línea de tiempo visual (12:00 AM → 12:00 AM)"
+                    : isEn
+                      ? "24h visual timeline (00:00 → 24:00)"
+                      : "Línea de tiempo visual 24h (00:00 → 24:00)"}
                 </span>
               </div>
 
               {isLoadingSchedules ? (
                 <div className="py-12 text-center text-sm font-semibold text-muted-foreground">
-                  ⏳ Cargando horarios de la cancha...
+                  {isEn
+                    ? "⏳ Loading court schedules..."
+                    : "⏳ Cargando horarios de la cancha..."}
                 </div>
               ) : (
                 <div className="divide-y divide-border">
                   {days.map((day, dayIdx) => {
-                    const dayInfo = DAY_LABELS_ES[day.dayOfWeek] || {
-                      full: `Día ${day.dayOfWeek}`,
+                    const dayInfo = dayLabels[day.dayOfWeek] || {
+                      full: isEn
+                        ? `Day ${day.dayOfWeek}`
+                        : `Día ${day.dayOfWeek}`,
                       short: `D${day.dayOfWeek}`,
                     };
                     const shifts = day.shifts || [];
@@ -1517,9 +1939,17 @@ export function SchedulesPage({
                             <div className="text-[11px] font-semibold text-muted-foreground">
                               {day.isOpen
                                 ? `${dayHours}h · ${shifts.length} ${
-                                    shifts.length === 1 ? "turno" : "turnos"
+                                    shifts.length === 1
+                                      ? isEn
+                                        ? "shift"
+                                        : "turno"
+                                      : isEn
+                                        ? "shifts"
+                                        : "turnos"
                                   }`
-                                : "Cerrado"}
+                                : isEn
+                                  ? "Closed"
+                                  : "Cerrado"}
                             </div>
                           </div>
                         </div>
@@ -1572,14 +2002,20 @@ export function SchedulesPage({
                                     {hasRecess && prevShift && (
                                       <span
                                         className="inline-flex items-center gap-1 rounded-lg bg-muted px-2 py-1 text-[11px] font-semibold text-muted-foreground"
-                                        title="Receso o bloqueo fijo entre turnos"
+                                        title={
+                                          isEn
+                                            ? "Break or fixed block between shifts"
+                                            : "Receso o bloqueo fijo entre turnos"
+                                        }
                                       >
-                                        ☕ Receso {formatTime(prevShift.closeTime)}–{formatTime(shift.openTime)}
+                                        ☕ {isEn ? "Break" : "Receso"}{" "}
+                                        {formatTime(prevShift.closeTime)}–
+                                        {formatTime(shift.openTime)}
                                       </span>
                                     )}
                                     {isOverlapping && (
                                       <span className="inline-flex items-center gap-1 rounded-lg bg-status-cancelled-bg px-2 py-1 text-[11px] font-bold text-status-cancelled-fg">
-                                        ⚠️ Solapado
+                                        ⚠️ {isEn ? "Overlapping" : "Solapado"}
                                       </span>
                                     )}
 
@@ -1612,7 +2048,11 @@ export function SchedulesPage({
                                             e.target.value
                                           )
                                         }
-                                        aria-label={`${dayInfo.full} Turno ${sIdx + 1} Apertura`}
+                                        aria-label={
+                                          isEn
+                                            ? `${dayInfo.full} Shift ${sIdx + 1} Open`
+                                            : `${dayInfo.full} Turno ${sIdx + 1} Apertura`
+                                        }
                                         className="w-auto cursor-pointer border-none bg-transparent py-0.5 font-mono text-[12.5px] font-bold text-foreground outline-none"
                                       >
                                         {validOpenOptions.map((h) => (
@@ -1640,7 +2080,11 @@ export function SchedulesPage({
                                             e.target.value
                                           )
                                         }
-                                        aria-label={`${dayInfo.full} Turno ${sIdx + 1} Cierre`}
+                                        aria-label={
+                                          isEn
+                                            ? `${dayInfo.full} Shift ${sIdx + 1} Close`
+                                            : `${dayInfo.full} Turno ${sIdx + 1} Cierre`
+                                        }
                                         className="w-auto cursor-pointer border-none bg-transparent py-0.5 font-mono text-[12.5px] font-bold text-foreground outline-none"
                                       >
                                         {validCloseOptions.map((h) => (
@@ -1660,7 +2104,11 @@ export function SchedulesPage({
                                           onClick={() =>
                                             handleRemoveShiftFromDay(dayIdx, sIdx)
                                           }
-                                          title={`Quitar turno T${sIdx + 1}`}
+                                          title={
+                                            isEn
+                                              ? `Remove shift T${sIdx + 1}`
+                                              : `Quitar turno T${sIdx + 1}`
+                                          }
                                           className="ml-0.5 cursor-pointer rounded-md border-none bg-transparent px-1.5 py-0.5 text-xs font-bold text-muted-foreground transition-colors hover:bg-status-cancelled-bg hover:text-status-cancelled-fg"
                                         >
                                           ✕
@@ -1677,12 +2125,18 @@ export function SchedulesPage({
                                 className="inline-flex cursor-pointer items-center gap-1 rounded-xl border border-dashed border-border-medium bg-transparent px-2.5 py-1.5 text-[11.5px] font-bold text-muted-foreground transition-all hover:border-accent hover:bg-accent/15 hover:text-foreground"
                               >
                                 <span>+</span>
-                                <span>Agregar Turno (T{shifts.length + 1})</span>
+                                <span>
+                                  {isEn
+                                    ? `Add Shift (T${shifts.length + 1})`
+                                    : `Agregar Turno (T${shifts.length + 1})`}
+                                </span>
                               </button>
                             </>
                           ) : (
                             <span className="text-xs font-semibold text-muted-foreground">
-                              🔒 Cancha cerrada este día — sin bloques disponibles para reservar
+                              {isEn
+                                ? "🔒 Court closed on this day — no slots available for booking"
+                                : "🔒 Cancha cerrada este día — sin bloques disponibles para reservar"}
                             </span>
                           )}
                         </div>
@@ -1733,10 +2187,14 @@ export function SchedulesPage({
                           <button
                             type="button"
                             onClick={() => handleCopyDayToWeekdays(dayIdx)}
-                            title={`Copiar horario de ${dayInfo.full} a Lunes–Viernes`}
+                            title={
+                              isEn
+                                ? `Copy ${dayInfo.full} schedule to Monday–Friday`
+                                : `Copiar horario de ${dayInfo.full} a Lunes–Viernes`
+                            }
                             className="cursor-pointer rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[11px] font-bold whitespace-nowrap text-muted-foreground transition-all hover:border-accent hover:bg-accent/15 hover:text-foreground"
                           >
-                            📋 A Lun–Vie
+                            {isEn ? "📋 To Mon–Fri" : "📋 A Lun–Vie"}
                           </button>
                         </div>
                       </div>
@@ -1751,21 +2209,35 @@ export function SchedulesPage({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="text-[13px] font-extrabold text-foreground">
-                    👁️ Vista Previa de Bloques Reservables (App Clientes)
+                    {isEn
+                      ? "👁️ Bookable Slots Preview (Player App)"
+                      : "👁️ Vista Previa de Bloques Reservables (App Clientes)"}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Así verán los jugadores los bloques de 1 hora para{" "}
-                    <strong className="text-foreground">
-                      {selectedSpace.spaceNumber}
-                    </strong>{" "}
-                    según los turnos configurados:
+                    {isEn ? (
+                      <>
+                        How players will see 1-hour slots for{" "}
+                        <strong className="text-foreground">
+                          {selectedSpace.spaceNumber}
+                        </strong>{" "}
+                        based on configured shifts:
+                      </>
+                    ) : (
+                      <>
+                        Así verán los jugadores los bloques de 1 hora para{" "}
+                        <strong className="text-foreground">
+                          {selectedSpace.spaceNumber}
+                        </strong>{" "}
+                        según los turnos configurados:
+                      </>
+                    )}
                   </div>
                 </div>
 
                 {/* Day selector pills for preview */}
                 <div className="flex flex-wrap gap-1.5">
                   {ORDERED_DAYS.map((dow) => {
-                    const label = DAY_LABELS_ES[dow]?.short || String(dow);
+                    const label = dayLabels[dow]?.short || String(dow);
                     const isSelectedDay = previewDayOfWeek === dow;
                     return (
                       <button
@@ -1788,8 +2260,9 @@ export function SchedulesPage({
               <div className="mt-3.5 flex flex-wrap items-center gap-2">
                 {!previewDay || !previewDay.isOpen || !previewDay.shifts?.length ? (
                   <span className="text-xs font-semibold text-muted-foreground">
-                    🔒 Cancha cerrada los{" "}
-                    {DAY_LABELS_ES[previewDayOfWeek]?.full || "días seleccionados"}.
+                    {isEn
+                      ? `🔒 Court closed on ${dayLabels[previewDayOfWeek]?.full || "selected days"}.`
+                      : `🔒 Cancha cerrada los ${dayLabels[previewDayOfWeek]?.full || "días seleccionados"}.`}
                   </span>
                 ) : (
                   previewDay.shifts.map((shift, sIdx) => {
@@ -1806,7 +2279,9 @@ export function SchedulesPage({
                       <React.Fragment key={sIdx}>
                         {prevShift && (
                           <span className="inline-flex items-center gap-1 rounded-xl border border-dashed border-border-medium bg-muted/60 px-2.5 py-1.5 text-xs font-bold text-muted-foreground">
-                            ☕ Receso {formatTime(prevShift.closeTime)}–{formatTime(shift.openTime)}
+                            ☕ {isEn ? "Break" : "Receso"}{" "}
+                            {formatTime(prevShift.closeTime)}–
+                            {formatTime(shift.openTime)}
                           </span>
                         )}
                         {hours.map((slot) => (
@@ -1846,10 +2321,21 @@ export function SchedulesPage({
                         className="size-4 accent-accent"
                       />
                       <span>
-                        Replicar también a las demás canchas de{" "}
-                        <strong>{selectedSportName}</strong> en{" "}
-                        <strong>{selectedVenueName}</strong> (+
-                        {sameSportSiblingsInVenue.length})
+                        {isEn ? (
+                          <>
+                            Also replicate to other{" "}
+                            <strong>{selectedSportName}</strong> courts at{" "}
+                            <strong>{selectedVenueName}</strong> (+
+                            {sameSportSiblingsInVenue.length})
+                          </>
+                        ) : (
+                          <>
+                            Replicar también a las demás canchas de{" "}
+                            <strong>{selectedSportName}</strong> en{" "}
+                            <strong>{selectedVenueName}</strong> (+
+                            {sameSportSiblingsInVenue.length})
+                          </>
+                        )}
                       </span>
                     </label>
                   )}
@@ -1877,7 +2363,7 @@ export function SchedulesPage({
                     onClick={handleDiscardChanges}
                     className="btn btn-outline text-xs"
                   >
-                    Descartar cambios
+                    {isEn ? "Discard changes" : "Descartar cambios"}
                   </button>
 
                   {selectedSpace.status === "DISABLED" ? (
@@ -1888,7 +2374,9 @@ export function SchedulesPage({
                         onClick={() => handleSaveSchedules(false)}
                         className="btn btn-outline text-xs"
                       >
-                        💾 Guardar solo horario
+                        {isEn
+                          ? "💾 Save schedule only"
+                          : "💾 Guardar solo horario"}
                       </button>
                       <button
                         type="button"
@@ -1897,8 +2385,12 @@ export function SchedulesPage({
                         className="btn btn-primary text-xs font-extrabold"
                       >
                         {isSaving
-                          ? "⏳ Guardando..."
-                          : "🚀 Guardar Horario y Habilitar Cancha"}
+                          ? isEn
+                            ? "⏳ Saving..."
+                            : "⏳ Guardando..."
+                          : isEn
+                            ? "🚀 Save Schedule & Enable Court"
+                            : "🚀 Guardar Horario y Habilitar Cancha"}
                       </button>
                     </>
                   ) : (
@@ -1909,7 +2401,9 @@ export function SchedulesPage({
                       className="btn btn-primary text-xs font-extrabold"
                     >
                       {isSaving
-                        ? "⏳ Guardando..."
+                        ? isEn
+                          ? "⏳ Saving..."
+                          : "⏳ Guardando..."
                         : `💾 ${schedT("btnSave")}`}
                     </button>
                   )}

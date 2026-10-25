@@ -24,11 +24,16 @@ export interface AuthCookieOptions {
   expires?: Date;
 }
 
+const isSecureCookie = () =>
+  process.env.COOKIE_SECURE !== undefined
+    ? process.env.COOKIE_SECURE === "true"
+    : process.env.NODE_ENV === "production";
+
 const baseCookieOptions = () =>
   ({
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecureCookie(),
     path: "/",
   }) as const;
 

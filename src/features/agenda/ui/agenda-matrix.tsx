@@ -17,6 +17,7 @@ export interface AgendaMatrixProps {
   spaces: CourtSpace[];
   selectedDayPart?: AgendaDayPart;
   isValidator?: boolean;
+  isFullscreen?: boolean;
   selectedRange?: AgendaSelectedRange | null;
   onSelectedRangeChange?: (range: AgendaSelectedRange | null) => void;
   onSlotClick: (court: CourtSpace, startTime: string, endTime?: string) => void;
@@ -67,6 +68,7 @@ export function AgendaMatrix({
   spaces,
   selectedDayPart = "all",
   isValidator = false,
+  isFullscreen = false,
   selectedRange: controlledRange,
   onSelectedRangeChange,
   onSlotClick,
@@ -206,7 +208,11 @@ export function AgendaMatrix({
   });
 
   return (
-    <div className="space-y-3">
+    <div
+      className={
+        isFullscreen ? "flex flex-1 min-h-0 flex-col gap-3" : "space-y-3"
+      }
+    >
       {/* Multi-Hour Selection Action Banner */}
       {selectedRange && selectedCourt && (
         <div
@@ -290,7 +296,11 @@ export function AgendaMatrix({
 
       <div
         id="agenda-matrix-scroll-container"
-        className="max-h-[calc(100vh-190px)] overflow-auto rounded-2xl border border-border bg-surface shadow-card"
+        className={
+          isFullscreen
+            ? "flex-1 min-h-0 overflow-auto rounded-2xl border border-border bg-surface shadow-card"
+            : "max-h-[calc(100vh-190px)] overflow-auto rounded-2xl border border-border bg-surface shadow-card"
+        }
       >
         <table className="w-full min-w-[760px] border-separate border-spacing-0 select-none">
           {/* STICKY HEADER ROW */}
@@ -329,7 +339,7 @@ export function AgendaMatrix({
                         className={`mb-0.5 max-w-[210px] truncate text-[10px] font-bold uppercase tracking-wider transition-colors duration-150 ${
                           isTargetSpace
                             ? "text-accent"
-                            : "text-accent-foreground/80"
+                            : "text-link"
                         }`}
                       >
                         {space.venueName}
@@ -497,7 +507,7 @@ export function AgendaMatrix({
                                   rel="noreferrer"
                                   onClick={(e) => e.stopPropagation()}
                                   title={t("whatsappContactTitle")}
-                                  className="flex size-5 shrink-0 items-center justify-center rounded bg-emerald-500/20 text-emerald-600 hover:scale-110 transition-transform"
+                                  className="flex size-5 shrink-0 items-center justify-center rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:scale-110 transition-transform"
                                 >
                                   <MessageSquare className="size-3" />
                                 </a>
@@ -560,7 +570,7 @@ export function AgendaMatrix({
                           >
                             <div className="flex items-center justify-between gap-1 text-xs font-extrabold">
                               <span className="inline-flex items-center gap-1 truncate">
-                                <Check className="size-3.5 shrink-0 text-primary" />
+                                <Check className="size-3.5 shrink-0 text-link" />
                                 <span>{t("slotSelected")}</span>
                               </span>
                               <span className="text-[10px] font-bold">

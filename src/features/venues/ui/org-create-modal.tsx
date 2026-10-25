@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import { SearchableSelect } from "@/features/users/ui/searchable-select";
 import type {
@@ -79,9 +79,27 @@ export function CreateOrganizationModal({
   onClose,
   onSuccess,
 }: CreateOrganizationModalProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const t = useTranslations("venues.org");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const operatorOptions = OPERATOR_OPTIONS.map((opt) =>
+    opt.value === "0212"
+      ? { ...opt, label: isEn ? "0212 (Landline / CCS)" : "0212 (Fijo / CCS)" }
+      : opt.value === "OTRO"
+        ? { ...opt, label: isEn ? "Other carrier" : "Otra operadora" }
+        : opt,
+  );
+
+  const docPrefixOptions = [
+    { value: "J", label: isEn ? "J - Corporate" : "J - Jurídico" },
+    { value: "V", label: isEn ? "V - Venezuelan" : "V - Venezolano" },
+    { value: "E", label: isEn ? "E - Foreigner" : "E - Extranjero" },
+    { value: "G", label: isEn ? "G - Government" : "G - Gubernamental" },
+    { value: "P", label: isEn ? "P - Passport" : "P - Pasaporte" },
+  ];
 
   // Section 1: Corporate & Fiscal Identity
   const [tradeName, setTradeName] = useState("");
@@ -170,7 +188,11 @@ export function CreateOrganizationModal({
       : "";
 
     if (!tradeName.trim() || !legalName.trim() || !formattedRif) {
-      setErrorMsg("Completa el nombre comercial, razón social fiscal y RIF.");
+      setErrorMsg(
+        isEn
+          ? "Complete the trade name, legal business name, and Tax ID (RIF)."
+          : "Completa el nombre comercial, razón social fiscal y RIF."
+      );
       return;
     }
 
@@ -184,7 +206,9 @@ export function CreateOrganizationModal({
       contactSubscriber.replace(/\D/g, "").length < 7
     ) {
       setErrorMsg(
-        "Ingresa un número de teléfono de contacto válido (mínimo 7 dígitos)."
+        isEn
+          ? "Enter a valid contact phone number (minimum 7 digits)."
+          : "Ingresa un número de teléfono de contacto válido (mínimo 7 dígitos)."
       );
       return;
     }
@@ -243,7 +267,12 @@ export function CreateOrganizationModal({
       onSuccess(res.data);
       onClose();
     } else if (!res.ok) {
-      setErrorMsg(res.error.code || "Error al crear la organización aliada");
+      setErrorMsg(
+        res.error.code ||
+          (isEn
+            ? "Error creating ally organization"
+            : "Error al crear la organización aliada")
+      );
     }
   }
 
@@ -263,10 +292,14 @@ export function CreateOrganizationModal({
             <span className="text-xl">🏛️</span>
             <div>
               <h3 className="m-0 text-[17px] font-bold text-foreground">
-                Registrar Nueva Organización Aliada
+                {isEn
+                  ? "Register New Ally Organization"
+                  : "Registrar Nueva Organización Aliada"}
               </h3>
               <p className="m-0 text-xs text-muted-foreground">
-                Alta corporativa, condiciones comerciales BCV y coordenadas de liquidación
+                {isEn
+                  ? "Corporate registration, BCV commercial terms, and settlement coordinates"
+                  : "Alta corporativa, condiciones comerciales BCV y coordenadas de liquidación"}
               </p>
             </div>
           </div>
@@ -293,7 +326,9 @@ export function CreateOrganizationModal({
           {/* SECTION 1: Corporate & Fiscal Identity */}
           <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3.5">
             <div className="text-xs font-extrabold tracking-wider text-link uppercase">
-              1. Identidad Corporativa & Fiscal
+              {isEn
+                ? "1. Corporate & Tax Identity"
+                : "1. Identidad Corporativa & Fiscal"}
             </div>
 
             <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
@@ -304,7 +339,11 @@ export function CreateOrganizationModal({
                 <input
                   type="text"
                   className="input-field form-input"
-                  placeholder="ej. Pádel & Fútbol Club Caracas"
+                  placeholder={
+                    isEn
+                      ? "e.g. Padel & Soccer Club Caracas"
+                      : "ej. Pádel & Fútbol Club Caracas"
+                  }
                   required
                   value={tradeName}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -320,7 +359,11 @@ export function CreateOrganizationModal({
                 <input
                   type="text"
                   className="input-field form-input"
-                  placeholder="ej. Inversiones Deportivas Caracas C.A."
+                  placeholder={
+                    isEn
+                      ? "e.g. Inversiones Deportivas Caracas C.A."
+                      : "ej. Inversiones Deportivas Caracas C.A."
+                  }
                   required
                   value={legalName}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -333,17 +376,17 @@ export function CreateOrganizationModal({
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
               <div className="sm:col-span-3">
                 <label className="mb-1 block text-xs font-semibold text-foreground">
-                  Tipo RIF *
+                  {isEn ? "RIF Type *" : "Tipo RIF *"}
                 </label>
                 <SearchableSelect
                   value={rifPrefix}
                   onChange={(val: string) => setRifPrefix(val)}
-                  options={DOC_PREFIX_OPTIONS}
+                  options={docPrefixOptions}
                 />
               </div>
               <div className="sm:col-span-4">
                 <label className="mb-1 block text-xs font-semibold text-foreground">
-                  Número RIF *
+                  {isEn ? "RIF Number *" : "Número RIF *"}
                 </label>
                 <input
                   type="text"
@@ -365,7 +408,9 @@ export function CreateOrganizationModal({
                 <input
                   type="email"
                   className="input-field form-input"
-                  placeholder="finanzas@clubaliado.com"
+                  placeholder={
+                    isEn ? "finance@allyclub.com" : "finanzas@clubaliado.com"
+                  }
                   required
                   value={contactEmail}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -377,7 +422,11 @@ export function CreateOrganizationModal({
 
             <div>
               <label className="mb-1 block text-xs font-semibold text-foreground">
-                {t("contactPhone")} (Código de País + Operadora + Número) *
+                {t("contactPhone")} (
+                {isEn
+                  ? "Country Code + Carrier + Number"
+                  : "Código de País + Operadora + Número"}
+                ) *
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
                 <div className="sm:col-span-4">
@@ -392,7 +441,7 @@ export function CreateOrganizationModal({
                     <SearchableSelect
                       value={contactOperator}
                       onChange={(val: string) => setContactOperator(val)}
-                      options={OPERATOR_OPTIONS}
+                      options={operatorOptions}
                     />
                   </div>
                 )}
@@ -424,7 +473,11 @@ export function CreateOrganizationModal({
               <input
                 type="text"
                 className="input-field form-input"
-                placeholder="Av. Principal de Las Mercedes, Caracas, Miranda"
+                placeholder={
+                  isEn
+                    ? "Main Ave of Las Mercedes, Caracas, Miranda"
+                    : "Av. Principal de Las Mercedes, Caracas, Miranda"
+                }
                 required
                 value={fiscalAddress}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -437,7 +490,9 @@ export function CreateOrganizationModal({
           {/* SECTION 2: Commercial Terms & BCV Currency */}
           <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3.5">
             <div className="text-xs font-extrabold tracking-wider text-link uppercase">
-              2. Condiciones Comerciales & Moneda BCV
+              {isEn
+                ? "2. Commercial Terms & BCV Currency"
+                : "2. Condiciones Comerciales & Moneda BCV"}
             </div>
 
             <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
@@ -457,7 +512,9 @@ export function CreateOrganizationModal({
 
               <div>
                 <label className="mb-1 block text-xs font-semibold text-foreground">
-                  Comisión Plataforma (%)
+                  {isEn
+                    ? "Platform Commission (%)"
+                    : "Comisión Plataforma (%)"}
                 </label>
                 <input
                   type="number"
@@ -493,7 +550,9 @@ export function CreateOrganizationModal({
           {/* SECTION 3: Payment Collection Mode & Banking Settlement */}
           <div className="rounded-xl border border-accent/40 bg-accent/5 p-4 space-y-3.5">
             <div className="text-xs font-extrabold tracking-wider text-foreground uppercase">
-              3. Modalidad de Cobro & Cuenta Corporativa de Liquidación
+              {isEn
+                ? "3. Collection Mode & Corporate Settlement Account"
+                : "3. Modalidad de Cobro & Cuenta Corporativa de Liquidación"}
             </div>
 
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -547,7 +606,7 @@ export function CreateOrganizationModal({
                     : "border-transparent bg-transparent text-muted-foreground hover:bg-muted"
                 }`}
               >
-                🏦 Transferencia Bancaria
+                {isEn ? "🏦 Bank Transfer" : "🏦 Transferencia Bancaria"}
               </button>
               <button
                 type="button"
@@ -561,7 +620,9 @@ export function CreateOrganizationModal({
                     : "border-transparent bg-transparent text-muted-foreground hover:bg-muted"
                 }`}
               >
-                📲 Pago Móvil Corporativo
+                {isEn
+                  ? "📲 Corporate Pago Móvil"
+                  : "📲 Pago Móvil Corporativo"}
               </button>
             </div>
 
@@ -614,17 +675,19 @@ export function CreateOrganizationModal({
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   <div className="sm:col-span-4">
                     <label className="mb-1 block text-xs font-semibold text-foreground">
-                      Tipo Doc.
+                      {isEn ? "Doc. Type" : "Tipo Doc."}
                     </label>
                     <SearchableSelect
                       value={bankDocPrefix}
                       onChange={(val: string) => setBankDocPrefix(val)}
-                      options={DOC_PREFIX_OPTIONS}
+                      options={docPrefixOptions}
                     />
                   </div>
                   <div className="sm:col-span-8">
                     <label className="mb-1 block text-xs font-semibold text-foreground">
-                      RIF / Cédula del Titular
+                      {isEn
+                        ? "Holder Tax ID / Document"
+                        : "RIF / Cédula del Titular"}
                     </label>
                     <input
                       type="text"
@@ -659,7 +722,9 @@ export function CreateOrganizationModal({
               <div className="space-y-3 rounded-xl border border-border bg-surface p-3.5">
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-foreground">
-                    Banco Receptor Pago Móvil
+                    {isEn
+                      ? "Pago Móvil Receiving Bank"
+                      : "Banco Receptor Pago Móvil"}
                   </label>
                   <SearchableSelect
                     value={payoutPagoMovilBank}
@@ -670,7 +735,9 @@ export function CreateOrganizationModal({
 
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-foreground">
-                    Teléfono Afiliado a Pago Móvil
+                    {isEn
+                      ? "Phone Affiliated to Pago Móvil"
+                      : "Teléfono Afiliado a Pago Móvil"}
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
                     <div className="sm:col-span-4">
@@ -685,7 +752,7 @@ export function CreateOrganizationModal({
                         <SearchableSelect
                           value={pmOperator}
                           onChange={(val: string) => setPmOperator(val)}
-                          options={OPERATOR_OPTIONS}
+                          options={operatorOptions}
                         />
                       </div>
                     )}
@@ -712,17 +779,19 @@ export function CreateOrganizationModal({
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   <div className="sm:col-span-4">
                     <label className="mb-1 block text-xs font-semibold text-foreground">
-                      Tipo Doc.
+                      {isEn ? "Doc. Type" : "Tipo Doc."}
                     </label>
                     <SearchableSelect
                       value={pmDocPrefix}
                       onChange={(val: string) => setPmDocPrefix(val)}
-                      options={DOC_PREFIX_OPTIONS}
+                      options={docPrefixOptions}
                     />
                   </div>
                   <div className="sm:col-span-8">
                     <label className="mb-1 block text-xs font-semibold text-foreground">
-                      RIF / Cédula Afiliado
+                      {isEn
+                        ? "Affiliated Tax ID / Document"
+                        : "RIF / Cédula Afiliado"}
                     </label>
                     <input
                       type="text"
@@ -740,12 +809,18 @@ export function CreateOrganizationModal({
 
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-foreground">
-                    Beneficiario / Titular del Pago Móvil
+                    {isEn
+                      ? "Pago Móvil Beneficiary / Holder"
+                      : "Beneficiario / Titular del Pago Móvil"}
                   </label>
                   <input
                     type="text"
                     className="input-field form-input"
-                    placeholder="Razón Social o Nombre del Beneficiario"
+                    placeholder={
+                      isEn
+                        ? "Beneficiary Legal Name or Full Name"
+                        : "Razón Social o Nombre del Beneficiario"
+                    }
                     value={payoutPagoMovilHolder}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setPayoutPagoMovilHolder(e.target.value)
@@ -775,7 +850,9 @@ export function CreateOrganizationModal({
               isLoading={loading}
               id="btn-submit-create-org"
             >
-              Crear Organización Aliada ✓
+              {isEn
+                ? "Create Ally Organization ✓"
+                : "Crear Organización Aliada ✓"}
             </Button>
           </div>
         </form>

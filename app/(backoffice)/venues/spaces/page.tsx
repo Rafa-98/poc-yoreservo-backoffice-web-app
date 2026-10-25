@@ -1,5 +1,6 @@
 import React from "react";
 import { Metadata } from "next";
+import { cookies } from "next/headers";
 import { requireSession } from "@/shared/auth/index.server";
 import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
 import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE } from "@/shared/lib";
@@ -9,6 +10,7 @@ import {
   getSpacesAction,
   getVenuesListAction,
 } from "@/features/venues/actions/venues-actions";
+import { deriveOrganizationsFromVenues } from "@/features/venues/model/types";
 import {
   getAmenitiesAction,
   getSurfacesAction,
@@ -27,8 +29,11 @@ interface PageProps {
 }
 
 export default async function Page({ searchParams }: PageProps) {
-  await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.spaces]);
+  const session = await requireSession(ROUTE_ALLOWED_ROLES[ROUTES.spaces]);
   const params = await searchParams;
+  const cookieStore = await cookies();
+  const savedVenueCookie = cookieStore.get("yoreservo_active_venue")?.value;
+  const savedOrgCookie = cookieStore.get("yoreservo_active_org")?.value;
 
   const [venuesRes, catsRes, orgRes, ratesRes, surfacesRes, amenitiesRes] =
     await Promise.all([
@@ -56,8 +61,26 @@ export default async function Page({ searchParams }: PageProps) {
       ? ratesRes.data.activeUsd.rate
       : DEFAULT_BCV_USD_RATE;
 
-  const targetVenueId = params.venueId || venues[0]?.id || "";
-  const spacesRes = targetVenueId ? await getSpacesAction(targetVenueId) : null;
+  const isPlatformRole =
+    session.user.role === "PLATFORM_ADMIN" ||
+    session.user.role === "PLATFORM_ACCOUNTING";
+  const orgs = deriveOrganizationsFromVenues(venues);
+  const resolvedOrgId = isPlatformRole
+    ? savedOrgCookie === "ALL" ||
+      (savedOrgCookie && orgs.some((o) => o.id === savedOrgCookie))
+      ? savedOrgCookie
+      : orgs[0]?.id || "ALL"
+    : orgs[0]?.id || "ALL";
+
+  const targetVenueId = params.venueId || savedVenueCookie || "ALL";
+  const queryVenueParam =
+    targetVenueId === "ALL" && isPlatformRole && resolvedOrgId !== "ALL"
+      ? `ORG:${resolvedOrgId}`
+      : targetVenueId || venues[0]?.id || "";
+
+  const spacesRes = queryVenueParam
+    ? await getSpacesAction(queryVenueParam)
+    : null;
   const spaces = spacesRes?.ok && spacesRes.data ? spacesRes.data : [];
 
   return (

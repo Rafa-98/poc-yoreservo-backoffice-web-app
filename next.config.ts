@@ -13,6 +13,7 @@ const assetsUrl = new URL(process.env.ASSETS_BASE_URL || "http://localhost:3000"
 
 const nextConfig: NextConfig = {
   /* config options here */
+  output: "standalone",
   experimental: {
     agentFeedback: true,
     agentUpgrade: "security",
@@ -47,6 +48,21 @@ const nextConfig: NextConfig = {
         protocol: "http",
         hostname: "localhost",
         port: "4000",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.cloudfront.net",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.amazonaws.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.nivis.cloud",
         pathname: "/**",
       },
     ],

@@ -79,7 +79,8 @@ export function PaymentsInboxPage({
   initialData,
   userRole = "PLATFORM_ADMIN",
 }: PaymentsInboxPageProps) {
-  const { activeVenueId } = useActiveVenue();
+  const { activeVenueId, activeOrganizationId, scopedVenues } =
+    useActiveVenue();
   const { setPendingPaymentsCount } = useSidebarBadge();
 
   const defaultTab: PaymentCustodyTab =
@@ -118,7 +119,7 @@ export function PaymentsInboxPage({
     [datePreset, customFromDate, customToDate],
   );
 
-  // Re-fetch from backend when Venue or Date Range changes
+  // Re-fetch from backend when Organization, Venue, or Date Range changes
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -126,9 +127,15 @@ export function PaymentsInboxPage({
     }
 
     let cancelled = false;
+    const effectiveVenueParam =
+      activeVenueId && activeVenueId !== "ALL"
+        ? activeVenueId
+        : activeOrganizationId && activeOrganizationId !== "ALL"
+        ? `ORG:${activeOrganizationId}`
+        : undefined;
+
     getPaymentsInboxAction({
-      venueId:
-        activeVenueId && activeVenueId !== "ALL" ? activeVenueId : undefined,
+      venueId: effectiveVenueParam,
       fromDate: activeBounds.fromDate,
       toDate: activeBounds.toDate,
     }).then((res) => {
@@ -140,17 +147,35 @@ export function PaymentsInboxPage({
     return () => {
       cancelled = true;
     };
-  }, [activeVenueId, activeBounds.fromDate, activeBounds.toDate]);
+  }, [
+    activeVenueId,
+    activeOrganizationId,
+    activeBounds.fromDate,
+    activeBounds.toDate,
+  ]);
 
-  // 1. Venue + Date scoped payments
+  const scopedVenueIdSet = useMemo(
+    () => new Set(scopedVenues.map((v) => v.id)),
+    [scopedVenues],
+  );
+
+  // 1. Organization + Venue + Date scoped payments
   const venueAndDateScopedItems = useMemo(() => {
     return items.filter((p) => {
-      if (
-        activeVenueId &&
-        activeVenueId !== "ALL" &&
-        p.reservation?.space?.venue?.id !== activeVenueId
-      ) {
-        return false;
+      const paymentVenueId = p.reservation?.space?.venue?.id;
+      const paymentOrgId = p.reservation?.space?.venue?.organizationId;
+      if (activeVenueId && activeVenueId !== "ALL") {
+        if (paymentVenueId !== activeVenueId) return false;
+      } else if (activeOrganizationId && activeOrganizationId !== "ALL") {
+        if (paymentOrgId) {
+          if (paymentOrgId !== activeOrganizationId) return false;
+        } else if (
+          scopedVenueIdSet.size > 0 &&
+          paymentVenueId &&
+          !scopedVenueIdSet.has(paymentVenueId)
+        ) {
+          return false;
+        }
       }
 
       const pDate =
@@ -163,7 +188,14 @@ export function PaymentsInboxPage({
       }
       return true;
     });
-  }, [items, activeVenueId, activeBounds.fromDate, activeBounds.toDate]);
+  }, [
+    items,
+    activeVenueId,
+    activeOrganizationId,
+    scopedVenueIdSet,
+    activeBounds.fromDate,
+    activeBounds.toDate,
+  ]);
 
   // Custody tab counts across the active Sede + Date Range
   const custodyCounts = useMemo(() => {

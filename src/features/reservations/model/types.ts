@@ -63,6 +63,7 @@ export interface ReservationFilter {
   dateFilter?: 'today' | 'tomorrow' | 'week' | 'month' | 'custom';
   customFromDate?: string;
   customToDate?: string;
+  organizationId?: string;
   venueId?: string;
   sport?: string;
   paymentMethod?: string;

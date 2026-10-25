@@ -33,7 +33,13 @@ export default async function Page() {
   const users = usersRes.ok && usersRes.data ? usersRes.data.users : [];
   const sessions = sessionsRes.ok && sessionsRes.data ? sessionsRes.data : [];
   const venues = venuesRes.ok && venuesRes.data
-    ? venuesRes.data.map((v) => ({ id: v.id, name: v.name }))
+    ? venuesRes.data.map((v) => ({
+        id: v.id,
+        name: v.name,
+        organizationId: v.organizationId,
+        organizationName: v.organizationName,
+        spacesCount: v.spacesCount,
+      }))
     : [];
 
   return (

@@ -12,6 +12,11 @@
   },
   "kpis": {
     "totalBookings": "Total Monthly Bookings",
+    "totalBookingsToday": "Today's Total Bookings",
+    "totalBookingsTomorrow": "Tomorrow's Total Bookings",
+    "totalBookingsWeek": "Total Weekly Bookings",
+    "totalBookingsMonth": "Total Monthly Bookings",
+    "totalBookingsCustom": "Total Period Bookings",
     "totalGrowth": "+18% vs last month",
     "totalConfirmedRatio": "{confirmed} of {total} confirmed",
     "confirmedPaid": "Confirmed & Paid",

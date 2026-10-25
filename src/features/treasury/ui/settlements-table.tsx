@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { BackofficeRole } from "@/shared/config";
 import { Button } from "@/shared/ui/button";
 import type { SettlementBatchItem, SettlementDirection } from "../model/types";
@@ -18,14 +18,17 @@ interface SettlementsTableProps {
 
 const PAGE_SIZE = 5;
 
-function formatBatchDateEs(batch: SettlementBatchItem): {
+function formatBatchDateLocalized(
+  batch: SettlementBatchItem,
+  isEn: boolean,
+): {
   primaryDate: string;
   secondaryWindow: string;
 } {
   if (batch.createdAt) {
     const dt = new Date(batch.createdAt);
     if (!Number.isNaN(dt.getTime())) {
-      const primaryDate = new Intl.DateTimeFormat("es-VE", {
+      const primaryDate = new Intl.DateTimeFormat(isEn ? "en-US" : "es-VE", {
         day: "2-digit",
         month: "short",
         year: "numeric",
@@ -38,15 +41,19 @@ function formatBatchDateEs(batch: SettlementBatchItem): {
       const end = batch.periodEndDate
         ? new Date(`${batch.periodEndDate.slice(0, 10)}T12:00:00Z`)
         : null;
-      const fmtShort = new Intl.DateTimeFormat("es-VE", {
+      const fmtShort = new Intl.DateTimeFormat(isEn ? "en-US" : "es-VE", {
         day: "2-digit",
         month: "short",
       });
       const secondaryWindow =
         start && end && !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())
           ? start.toISOString().slice(0, 10) === end.toISOString().slice(0, 10)
-            ? `Corte del ${fmtShort.format(end)}`
-            : `Ventana: ${fmtShort.format(start)} – ${fmtShort.format(end)}`
+            ? isEn
+              ? `Cutoff on ${fmtShort.format(end)}`
+              : `Corte del ${fmtShort.format(end)}`
+            : isEn
+              ? `Window: ${fmtShort.format(start)} – ${fmtShort.format(end)}`
+              : `Ventana: ${fmtShort.format(start)} – ${fmtShort.format(end)}`
           : batch.periodDisplay || "";
       return { primaryDate, secondaryWindow };
     }
@@ -55,7 +62,7 @@ function formatBatchDateEs(batch: SettlementBatchItem): {
   return {
     primaryDate:
       batch.periodDisplay || `${batch.periodStartDate} – ${batch.periodEndDate}`,
-    secondaryWindow: "Corte registrado",
+    secondaryWindow: isEn ? "Recorded cutoff" : "Corte registrado",
   };
 }
 
@@ -67,6 +74,7 @@ export function SettlementsTable({
   onOpenDrawer,
 }: SettlementsTableProps) {
   const t = useTranslations("settlements");
+  const isEn = useLocale().toLowerCase().startsWith("en");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -94,13 +102,21 @@ export function SettlementsTable({
         <div>
           <h3 className="font-display text-base font-bold text-foreground">
             {isAllyToPlatform
-              ? "🧾 Lotes de Comisiones (Cobro Directo del Aliado → YoReservo)"
-              : "💸 Lotes de Liquidación (Custodia YoReservo → Aliado)"}
+              ? isEn
+                ? "🧾 Commission Batches (Ally Direct Collection → YoReservo)"
+                : "🧾 Lotes de Comisiones (Cobro Directo del Aliado → YoReservo)"
+              : isEn
+                ? "💸 Settlement Batches (YoReservo Custody → Ally)"
+                : "💸 Lotes de Liquidación (Custodia YoReservo → Aliado)"}
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
             {isAllyToPlatform
-              ? "Cortes generados sobre reservas cobradas directamente por el Aliado y pendientes o pagadas a YoReservo"
-              : "Cortes generados sobre reservas cobradas por YoReservo: Recaudado Bruto − Comisión YoReservo = Neto para el Aliado"}
+              ? isEn
+                ? "Cutoffs generated on bookings collected directly by the Ally and pending or paid to YoReservo"
+                : "Cortes generados sobre reservas cobradas directamente por el Aliado y pendientes o pagadas a YoReservo"
+              : isEn
+                ? "Cutoffs generated on bookings collected by YoReservo: Gross Collected − YoReservo Fee = Net for Ally"
+                : "Cortes generados sobre reservas cobradas por YoReservo: Recaudado Bruto − Comisión YoReservo = Neto para el Aliado"}
           </p>
         </div>
 
@@ -133,18 +149,36 @@ export function SettlementsTable({
         <table className="w-full text-left text-xs" id="settlements-table">
           <thead>
             <tr className="border-b border-border bg-muted/40 font-bold uppercase tracking-wider text-[11px] text-muted-foreground">
-              <th className="px-5 py-3.5">Lote & Fecha de Corte</th>
-              <th className="px-4 py-3.5">Organización / Moneda</th>
-              <th className="px-4 py-3.5 text-right">
-                {isAllyToPlatform ? "Cobrado por Aliado" : "Recaudado Bruto"}
+              <th className="px-5 py-3.5">
+                {isEn ? "Batch & Cutoff Date" : "Lote & Fecha de Corte"}
               </th>
-              <th className="px-4 py-3.5 text-right">Comisión YoReservo</th>
+              <th className="px-4 py-3.5">
+                {isEn ? "Organization / Currency" : "Organización / Moneda"}
+              </th>
               <th className="px-4 py-3.5 text-right">
                 {isAllyToPlatform
-                  ? "Total a Pagar a YoReservo"
-                  : "Neto para el Aliado"}
+                  ? isEn
+                    ? "Collected by Ally"
+                    : "Cobrado por Aliado"
+                  : isEn
+                    ? "Gross Collected"
+                    : "Recaudado Bruto"}
               </th>
-              <th className="px-5 py-3.5 text-right">Estado & Detalle</th>
+              <th className="px-4 py-3.5 text-right">
+                {isEn ? "YoReservo Commission" : "Comisión YoReservo"}
+              </th>
+              <th className="px-4 py-3.5 text-right">
+                {isAllyToPlatform
+                  ? isEn
+                    ? "Total Owed to YoReservo"
+                    : "Total a Pagar a YoReservo"
+                  : isEn
+                    ? "Net for Ally"
+                    : "Neto para el Aliado"}
+              </th>
+              <th className="px-5 py-3.5 text-right">
+                {isEn ? "Status & Details" : "Estado & Detalle"}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
@@ -155,11 +189,17 @@ export function SettlementsTable({
                     <span className="text-3xl">📂</span>
                     <h4 className="font-display text-sm font-bold text-foreground">
                       {isAllyToPlatform
-                        ? "No hay lotes de comisión en este período"
-                        : "No hay lotes de liquidación en este período"}
+                        ? isEn
+                          ? "No commission batches in this period"
+                          : "No hay lotes de comisión en este período"
+                        : isEn
+                          ? "No settlement batches in this period"
+                          : "No hay lotes de liquidación en este período"}
                     </h4>
                     <p className="text-xs text-muted-foreground">
-                      Ajusta el rango de fechas o genera un nuevo lote desde la bolsa acumulada superior cuando existan pagos verificados.
+                      {isEn
+                        ? "Adjust the date range or generate a new batch from the accrued pool above when verified payments exist."
+                        : "Ajusta el rango de fechas o genera un nuevo lote desde la bolsa acumulada superior cuando existan pagos verificados."}
                     </p>
                   </div>
                 </td>
@@ -183,7 +223,10 @@ export function SettlementsTable({
                 const isDisbursed = batch.status === "DISBURSED";
                 const isUnderReview = batch.status === "PAYMENT_UNDER_REVIEW";
                 const isOverdue = batch.status === "OVERDUE";
-                const { primaryDate, secondaryWindow } = formatBatchDateEs(batch);
+                const { primaryDate, secondaryWindow } = formatBatchDateLocalized(
+                  batch,
+                  isEn,
+                );
 
                 return (
                   <tr
@@ -226,8 +269,12 @@ export function SettlementsTable({
                         <span className="inline-flex items-center rounded-md bg-muted border border-border px-2 py-0.5 text-[10px] font-bold text-foreground">
                           {batch.totalReservations}{" "}
                           {batch.totalReservations === 1
-                            ? "reserva"
-                            : "reservas"}
+                            ? isEn
+                              ? "booking"
+                              : "reserva"
+                            : isEn
+                              ? "bookings"
+                              : "reservas"}
                         </span>
                         <span className="inline-flex items-center rounded-md bg-muted border border-border px-2 py-0.5 text-[10px] font-bold text-foreground">
                           {isEur ? "💶 EUR" : "💵 USD"}
@@ -246,7 +293,13 @@ export function SettlementsTable({
                         {currCode}
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5">
-                        {isAllyToPlatform ? "Cobrado directo" : "Recaudado"}
+                        {isAllyToPlatform
+                          ? isEn
+                            ? "Collected directly"
+                            : "Cobrado directo"
+                          : isEn
+                            ? "Collected"
+                            : "Recaudado"}
                       </div>
                     </td>
 
@@ -268,7 +321,13 @@ export function SettlementsTable({
                         {currCode}
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5">
-                        {isAllyToPlatform ? "Comisión generada" : "Retención YoReservo"}
+                        {isAllyToPlatform
+                          ? isEn
+                            ? "Commission generated"
+                            : "Comisión generada"
+                          : isEn
+                            ? "YoReservo retention"
+                            : "Retención YoReservo"}
                       </div>
                     </td>
 
@@ -296,7 +355,7 @@ export function SettlementsTable({
                         })}
                       </div>
                       <div className="text-[10px] text-muted-foreground">
-                        Tasa:{" "}
+                        {isEn ? "Rate:" : "Tasa:"}{" "}
                         {rateUsed.toLocaleString("es-VE", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
@@ -312,7 +371,13 @@ export function SettlementsTable({
                           <span className="inline-flex items-center gap-1 rounded-full bg-status-confirmed-bg border border-status-confirmed-border px-2.5 py-1 text-[11px] font-bold text-status-confirmed-fg">
                             <span>✓</span>
                             <span>
-                              {isAllyToPlatform ? "Pagado" : "Transferido"}
+                              {isAllyToPlatform
+                                ? isEn
+                                  ? "Paid"
+                                  : "Pagado"
+                                : isEn
+                                  ? "Transferred"
+                                  : "Transferido"}
                             </span>
                           </span>
                         ) : isUnderReview ? (
@@ -330,8 +395,12 @@ export function SettlementsTable({
                             <span>⏳</span>
                             <span>
                               {isAllyToPlatform
-                                ? "Por Pagar"
-                                : "Por Transferir"}
+                                ? isEn
+                                  ? "Pending Payment"
+                                  : "Por Pagar"
+                                : isEn
+                                  ? "Pending Transfer"
+                                  : "Por Transferir"}
                             </span>
                           </span>
                         )}
@@ -345,7 +414,7 @@ export function SettlementsTable({
                           id={`btn-view-settlement-${batch.id}`}
                         >
                           <span>👁️</span>
-                          <span>Ver Detalles</span>
+                          <span>{isEn ? "View Details" : "Ver Detalles"}</span>
                         </Button>
                       </div>
                     </td>
@@ -361,7 +430,7 @@ export function SettlementsTable({
       <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border bg-surface px-6 py-3.5 text-xs text-muted-foreground">
         <div>
           {batches.length === 0 ? (
-            <span>Mostrando 0 lotes</span>
+            <span>{isEn ? "Showing 0 batches" : "Mostrando 0 lotes"}</span>
           ) : (
             <span>
               {t("showing")}{" "}
@@ -389,7 +458,9 @@ export function SettlementsTable({
               ← {t("btnPrev")}
             </Button>
             <span className="px-2 font-semibold text-foreground">
-              Página {safePage} de {totalPages}
+              {isEn
+                ? `Page ${safePage} of ${totalPages}`
+                : `Página ${safePage} de ${totalPages}`}
             </span>
             <Button
               type="button"

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, Lock, Search, X } from "lucide-react";
+import { useLocale } from "next-intl";
 
 export interface SearchableOption {
   value: string;
@@ -28,15 +29,23 @@ export function SearchableSelect({
   options,
   value,
   onChange,
-  placeholder = "Seleccionar...",
-  searchPlaceholder = "Escribir para buscar...",
-  emptyText = "Sin coincidencias",
+  placeholder,
+  searchPlaceholder,
+  emptyText,
   disabled = false,
   id,
   className = "",
   dropdownClassName = "",
   dropdownAlign = "left",
 }: SearchableSelectProps) {
+  const isEn = useLocale().toLowerCase().startsWith("en");
+  const resolvedPlaceholder =
+    placeholder ?? (isEn ? "Select..." : "Seleccionar...");
+  const resolvedSearchPlaceholder =
+    searchPlaceholder ?? (isEn ? "Type to search..." : "Escribir para buscar...");
+  const resolvedEmptyText =
+    emptyText ?? (isEn ? "No matches found" : "Sin coincidencias");
+
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -115,7 +124,7 @@ export function SearchableSelect({
             <span className="shrink-0 text-sm">{selectedOption.icon}</span>
           )}
           <span className="truncate">
-            {selectedOption ? selectedOption.label : placeholder}
+            {selectedOption ? selectedOption.label : resolvedPlaceholder}
           </span>
         </span>
 
@@ -152,7 +161,7 @@ export function SearchableSelect({
                   setIsOpen(false);
                 }
               }}
-              placeholder={searchPlaceholder}
+              placeholder={resolvedSearchPlaceholder}
               className="w-full rounded-xl border border-border bg-background py-1.5 pl-8 pr-7 text-xs text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
             />
             {query && (
@@ -170,7 +179,7 @@ export function SearchableSelect({
           <div className="max-h-56 overflow-y-auto space-y-0.5 pr-0.5">
             {filteredOptions.length === 0 ? (
               <div className="py-4 text-center text-xs text-muted-foreground">
-                {emptyText}
+                {resolvedEmptyText}
               </div>
             ) : (
               filteredOptions.map((opt) => {

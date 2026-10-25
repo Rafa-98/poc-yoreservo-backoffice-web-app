@@ -83,6 +83,10 @@ export default async function Page() {
 
   const mappedVenues = venues.map((v) => ({
     id: v.id,
+    organizationId: v.organizationId,
+    organizationName: v.organizationName,
+    organizationLegalName: v.organizationLegalName,
+    organizationRif: v.organizationRif,
     name: v.name,
     referenceCurrencyCode: v.referenceCurrencyCode || referenceCurrencyCode,
     spacesCount:

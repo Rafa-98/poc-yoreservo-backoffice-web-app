@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import { SearchableSelect } from "./searchable-select";
 import { inviteUserAction } from "../actions/users-actions";
@@ -63,6 +63,30 @@ export function InviteUserModal({
 }: InviteUserModalProps) {
   const t = useTranslations("users.modalInvite");
   const tFilters = useTranslations("users.filters");
+  const isEn = useLocale().toLowerCase().startsWith("en");
+
+  const localizedOperatorOptions = useMemo(
+    () =>
+      OPERATOR_OPTIONS.map((op) =>
+        op.value === "OTRO"
+          ? { ...op, label: isEn ? "Other carrier" : "Otra operadora" }
+          : op,
+      ),
+    [isEn],
+  );
+  const localizedDocTypeOptions = useMemo(
+    () =>
+      isEn
+        ? [
+            { value: "V", label: "V - Venezuelan" },
+            { value: "E", label: "E - Foreigner" },
+            { value: "J", label: "J - Corporate" },
+            { value: "G", label: "G - Government" },
+            { value: "P", label: "P - Passport" },
+          ]
+        : DOC_TYPE_OPTIONS,
+    [isEn],
+  );
 
   const [name, setName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -338,7 +362,7 @@ export function InviteUserModal({
                   id="inv-phone-operator"
                   value={operator}
                   onChange={setOperator}
-                  options={OPERATOR_OPTIONS}
+                  options={localizedOperatorOptions}
                   searchPlaceholder={tFilters("searchOptionPlaceholder")}
                   emptyText={tFilters("noOptionsFound")}
                 />
@@ -374,7 +398,7 @@ export function InviteUserModal({
                   id="inv-doc-type"
                   value={docType}
                   onChange={(val) => setDocType(val as DocumentType)}
-                  options={DOC_TYPE_OPTIONS}
+                  options={localizedDocTypeOptions}
                   searchPlaceholder={tFilters("searchOptionPlaceholder")}
                   emptyText={tFilters("noOptionsFound")}
                 />

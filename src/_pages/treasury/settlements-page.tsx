@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import type { BackofficeRole } from "@/shared/config";
+import { useActiveVenue } from "@/features/venues/context/venue-context";
 import {
   SettlementsKpiStrip,
   type SettlementsDynamicKpis,
@@ -61,6 +62,7 @@ function getDateBoundsForPeriod(
   period: string,
   customFrom?: string,
   customTo?: string,
+  isEn?: boolean,
 ): { fromIso: string | null; toIso: string | null; label: string } {
   const now = new Date();
   const todayIso = getCaracasDateIso(now);
@@ -68,7 +70,7 @@ function getDateBoundsForPeriod(
   const fmtHuman = (iso: string) => {
     const d = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
     if (Number.isNaN(d.getTime())) return iso;
-    return new Intl.DateTimeFormat("es-VE", {
+    return new Intl.DateTimeFormat(isEn ? "en-US" : "es-VE", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -80,7 +82,7 @@ function getDateBoundsForPeriod(
     return {
       fromIso: todayIso,
       toIso: todayIso,
-      label: `Hoy (${fmtHuman(todayIso)})`,
+      label: `${isEn ? "Today" : "Hoy"} (${fmtHuman(todayIso)})`,
     };
   }
 
@@ -89,7 +91,7 @@ function getDateBoundsForPeriod(
     return {
       fromIso: yest,
       toIso: yest,
-      label: `Ayer (${fmtHuman(yest)})`,
+      label: `${isEn ? "Yesterday" : "Ayer"} (${fmtHuman(yest)})`,
     };
   }
 
@@ -126,7 +128,7 @@ function getDateBoundsForPeriod(
   return {
     fromIso: null,
     toIso: null,
-    label: "Histórico completo",
+    label: isEn ? "Full history" : "Histórico completo",
   };
 }
 
@@ -144,6 +146,11 @@ export function SettlementsPage({
   },
 }: SettlementsPageProps) {
   const t = useTranslations("settlements");
+  const isEn = useLocale().toLowerCase().startsWith("en");
+  const {
+    activeOrganizationId: globalOrgId,
+    setActiveOrganizationId: setGlobalOrgId,
+  } = useActiveVenue();
   const effectiveEurRate = bcvEurRate ?? bcvRate;
 
   const [batches, setBatches] = useState<SettlementBatchItem[]>(initialBatches);
@@ -161,11 +168,21 @@ export function SettlementsPage({
     period: "LAST_7_DAYS",
     fromDate: defaultFrom,
     toDate: defaultTo,
-    organizationId: "ALL",
+    organizationId: globalOrgId || "ALL",
     stateFilter: "ALL",
     direction: "PLATFORM_TO_ALLY",
     status: "ALL",
   });
+
+  useEffect(() => {
+    if (globalOrgId) {
+      setFilter((prev) =>
+        prev.organizationId === globalOrgId
+          ? prev
+          : { ...prev, organizationId: globalOrgId },
+      );
+    }
+  }, [globalOrgId]);
 
   // Map organizationId -> states[] so selecting a State filter in the advanced selector filters batches & pools
   const orgStatesMap = useMemo(() => {
@@ -188,8 +205,8 @@ export function SettlementsPage({
   } | null>(null);
 
   const { fromIso, toIso, label: periodRangeLabel } = useMemo(
-    () => getDateBoundsForPeriod(filter.period, filter.fromDate, filter.toDate),
-    [filter.period, filter.fromDate, filter.toDate],
+    () => getDateBoundsForPeriod(filter.period, filter.fromDate, filter.toDate, isEn),
+    [filter.period, filter.fromDate, filter.toDate, isEn],
   );
 
   // Filter unsettled pools by active direction, selected organization, and state filter
@@ -486,15 +503,21 @@ export function SettlementsPage({
           type: "success",
           message:
             direction === "ALLY_TO_PLATFORM"
-              ? `Lote de comisión ${code} generado exitosamente. El contador acumulado se ha reiniciado a 0,00 para las próximas reservas.`
-              : `Lote de pago ${code} generado exitosamente. El monto quedó congelado en espera de transferencia y el contador se reinició a 0,00.`,
+              ? isEn
+                ? `Commission batch ${code} generated successfully. The accrued counter has been reset to 0.00 for upcoming bookings.`
+                : `Lote de comisión ${code} generado exitosamente. El contador acumulado se ha reiniciado a 0,00 para las próximas reservas.`
+              : isEn
+                ? `Payout batch ${code} generated successfully. The amount is frozen pending transfer and the counter has been reset to 0.00.`
+                : `Lote de pago ${code} generado exitosamente. El monto quedó congelado en espera de transferencia y el contador se reinició a 0,00.`,
         });
       } else {
         setFeedbackBanner({
           type: "error",
           message:
             res.error.code ||
-            "No se encontraron reservas verificadas pendientes para generar el lote.",
+            (isEn
+              ? "No pending verified bookings were found to generate the batch."
+              : "No se encontraron reservas verificadas pendientes para generar el lote."),
         });
       }
     } finally {
@@ -581,11 +604,15 @@ export function SettlementsPage({
               {t("title")}
             </h1>
             <span className="rounded-full bg-status-available-bg border border-status-available-border px-2.5 py-0.5 text-xs font-bold text-status-available-fg">
-              Liquidación Continua en Tiempo Real
+              {isEn
+                ? "Continuous Real-Time Settlement"
+                : "Liquidación Continua en Tiempo Real"}
             </span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Control de saldos acumulados al instante tras cada pago verificado, generación de lotes de pago y liquidación a aliados
+            {isEn
+              ? "Instant tracking of accrued balances after each verified payment, batch generation, and ally disbursements"
+              : "Control de saldos acumulados al instante tras cada pago verificado, generación de lotes de pago y liquidación a aliados"}
           </p>
         </div>
       </header>
@@ -614,7 +641,12 @@ export function SettlementsPage({
         {/* FILTER & MODE SELECTION BAR */}
         <SettlementsFilterBar
           filter={filter}
-          onChangeFilter={(upd) => setFilter((prev) => ({ ...prev, ...upd }))}
+          onChangeFilter={(upd) => {
+            setFilter((prev) => ({ ...prev, ...upd }));
+            if (upd.organizationId !== undefined) {
+              setGlobalOrgId(upd.organizationId || "ALL");
+            }
+          }}
           organizations={organizations}
           periodRangeLabel={periodRangeLabel}
           directionCounts={directionCounts}

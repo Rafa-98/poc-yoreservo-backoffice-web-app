@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { BackofficeRole } from "@/shared/config";
 import { Button } from "@/shared/ui/button";
 import type { SettlementBatchItem, SettlementItemDetail } from "../model/types";
@@ -27,6 +27,7 @@ export function SettlementStatementDrawer({
   onOpenPayout,
 }: SettlementStatementDrawerProps) {
   const t = useTranslations("settlements");
+  const isEn = useLocale().toLowerCase().startsWith("en");
   const [detailBatch, setDetailBatch] = useState<SettlementBatchItem | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -137,11 +138,19 @@ export function SettlementStatementDrawer({
 
   const netBoxTitle = isAllyToPlatform
     ? isDisbursed
-      ? "Comisión Pagada"
-      : "Comisión por Pagar"
+      ? isEn
+        ? "Commission Paid"
+        : "Comisión Pagada"
+      : isEn
+        ? "Commission Due"
+        : "Comisión por Pagar"
     : isDisbursed
-      ? "Neto Transferido"
-      : "Neto por Transferir";
+      ? isEn
+        ? "Net Transferred"
+        : "Neto Transferido"
+      : isEn
+        ? "Net to Transfer"
+        : "Neto por Transferir";
 
   const displayItems: SettlementItemDetail[] = current.items ?? [];
 
@@ -168,22 +177,30 @@ export function SettlementStatementDrawer({
             </div>
             <div>
               <div className="font-display text-base font-extrabold tracking-tight text-foreground">
-                YoReservo C.A. • Tesorería & Liquidaciones
+                {isEn
+                  ? "YoReservo C.A. • Treasury & Settlements"
+                  : "YoReservo C.A. • Tesorería & Liquidaciones"}
               </div>
               <div className="text-[11px] text-muted-foreground">
-                RIF: J-50123456-7 • Comprobante Oficial de Conciliación Financiera
+                {isEn
+                  ? "RIF: J-50123456-7 • Official Financial Reconciliation Statement"
+                  : "RIF: J-50123456-7 • Comprobante Oficial de Conciliación Financiera"}
               </div>
             </div>
           </div>
           <div className="text-right text-[11px] text-muted-foreground">
             <div className="font-bold text-foreground">
               {current.direction === "ALLY_TO_PLATFORM"
-                ? "FACTURA DE COMISIONES"
-                : "FINIQUITO DE LIQUIDACIÓN"}
+                ? isEn
+                  ? "COMMISSION INVOICE"
+                  : "FACTURA DE COMISIONES"
+                : isEn
+                  ? "SETTLEMENT STATEMENT"
+                  : "FINIQUITO DE LIQUIDACIÓN"}
             </div>
             <div>
-              Emitido:{" "}
-              {new Date().toLocaleDateString("es-VE", {
+              {isEn ? "Issued:" : "Emitido:"}{" "}
+              {new Date().toLocaleDateString(isEn ? "en-US" : "es-VE", {
                 day: "2-digit",
                 month: "short",
                 year: "numeric",
@@ -244,13 +261,16 @@ export function SettlementStatementDrawer({
                 </div>
                 <div className="text-xs font-bold text-foreground mt-0.5" id="drawer-payout-date">
                   {current.disbursedAt
-                    ? new Date(current.disbursedAt).toLocaleDateString("es-VE", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
+                    ? new Date(current.disbursedAt).toLocaleDateString(
+                        isEn ? "en-US" : "es-VE",
+                        {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        },
+                      )
                     : t("pendingExecution")}
                 </div>
               </div>
@@ -260,11 +280,13 @@ export function SettlementStatementDrawer({
             <div className="border-t border-border pt-3 space-y-2 text-xs">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <span className="text-muted-foreground">Cuenta Destino: </span>
+                  <span className="text-muted-foreground">
+                    {isEn ? "Destination Account: " : "Cuenta Destino: "}
+                  </span>
                   <span className="font-semibold text-foreground">
                     {current.direction === "ALLY_TO_PLATFORM"
                       ? current.payoutMethod === "BANK_TRANSFER"
-                        ? `🏦 Transferencia: ${
+                        ? `🏦 ${isEn ? "Transfer" : "Transferencia"}: ${
                             current.platformPaymentCoordinates?.bankTransfer?.bankName || "Banesco"
                           } (${
                             current.platformPaymentCoordinates?.bankTransfer?.bankCode || "0134"
@@ -272,7 +294,7 @@ export function SettlementStatementDrawer({
                             current.platformPaymentCoordinates?.bankTransfer?.beneficiaryName || "YoReservo C.A."
                           } (${
                             current.platformPaymentCoordinates?.bankTransfer?.documentId || "J-50123456-7"
-                          } • Cta: ${
+                          } • ${isEn ? "Acct" : "Cta"}: ${
                             current.platformPaymentCoordinates?.bankTransfer?.accountNumber || "01340001920001298491"
                           })`
                         : `📲 Pago Móvil: ${
@@ -302,7 +324,7 @@ export function SettlementStatementDrawer({
                           current.organization?.payoutIdDocument ||
                           current.organization?.rif
                         })`
-                      : `🏦 Transferencia: ${
+                      : `🏦 ${isEn ? "Transfer" : "Transferencia"}: ${
                           current.organization?.payoutBank || "—"
                         } ${
                           current.organization?.payoutAccountNumber
@@ -322,7 +344,9 @@ export function SettlementStatementDrawer({
                 </div>
 
                 <div className="text-right">
-                  <span className="text-muted-foreground">Moneda / Tasa BCV: </span>
+                  <span className="text-muted-foreground">
+                    {isEn ? "Currency / BCV Rate: " : "Moneda / Tasa BCV: "}
+                  </span>
                   <span className="font-bold text-foreground">
                     {isEur ? "💶 EUR" : "💵 USD"} •{" "}
                     {rateUsed.toLocaleString("es-VE", {
@@ -353,7 +377,11 @@ export function SettlementStatementDrawer({
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-xl border border-border bg-surface p-3.5 text-center">
               <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                {isAllyToPlatform ? "Cobrado por Aliado" : t("drawerGmv")}
+                {isAllyToPlatform
+                  ? isEn
+                    ? "Collected by Ally"
+                    : "Cobrado por Aliado"
+                  : t("drawerGmv")}
               </div>
               <div className="font-display text-base font-extrabold text-foreground mt-1" id="drawer-gmv">
                 {sym}{current.grossAmount.toFixed(2)} {currCode}
@@ -498,20 +526,33 @@ export function SettlementStatementDrawer({
           <div className="hidden print:flex items-center justify-between border-t border-border pt-6 mt-8 text-[11px] text-muted-foreground">
             <div>
               <div className="font-bold text-foreground">
-                Documento conciliado digitalmente por YoReservo C.A.
+                {isEn
+                  ? "Document digitally reconciled by YoReservo C.A."
+                  : "Documento conciliado digitalmente por YoReservo C.A."}
               </div>
               <div>
-                Tasa Oficial BCV Aplicada: Bs.{" "}
+                {isEn ? "Applied Official BCV Rate: Bs. " : "Tasa Oficial BCV Aplicada: Bs. "}
                 {rateUsed.toLocaleString("es-VE", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}{" "}
-                / {currCode} • Lote #{current.batchCode}
+                / {currCode} • {isEn ? "Batch" : "Lote"} #{current.batchCode}
               </div>
             </div>
             <div className="text-right">
-              <div className="font-bold text-foreground">Sello de Auditoría Financiera</div>
-              <div>Estado: {isDisbursed ? "LIQUIDADO / CONCILIADO" : "PENDIENTE DE EJECUCIÓN"}</div>
+              <div className="font-bold text-foreground">
+                {isEn ? "Financial Audit Seal" : "Sello de Auditoría Financiera"}
+              </div>
+              <div>
+                {isEn ? "Status:" : "Estado:"}{" "}
+                {isDisbursed
+                  ? isEn
+                    ? "SETTLED / RECONCILED"
+                    : "LIQUIDADO / CONCILIADO"
+                  : isEn
+                    ? "PENDING EXECUTION"
+                    : "PENDIENTE DE EJECUCIÓN"}
+              </div>
             </div>
           </div>
         </div>

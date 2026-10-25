@@ -1,11 +1,12 @@
 "use client";
 
 import React from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 interface CatalogsSubnavProps {
   activeTab: "sports" | "surfaces" | "amenities";
   onChangeTab: (tab: "sports" | "surfaces" | "amenities") => void;
+  sportsCount?: number;
   surfacesCount: number;
   amenitiesCount: number;
 }
@@ -13,10 +14,13 @@ interface CatalogsSubnavProps {
 export function CatalogsSubnav({
   activeTab,
   onChangeTab,
+  sportsCount,
   surfacesCount,
   amenitiesCount,
 }: CatalogsSubnavProps) {
   const t = useTranslations("catalogs.tabs");
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
 
   return (
     <nav className="flex gap-2 border-b border-border bg-surface px-6">
@@ -31,7 +35,10 @@ export function CatalogsSubnav({
         id="tab-sports"
       >
         <span>🎾</span>
-        <span>{t("sports")}</span>
+        <span>
+          {isEn ? "Sports & Categories" : "Deportes & Categorías"}
+          {typeof sportsCount === "number" ? ` (${sportsCount})` : ""}
+        </span>
       </button>
 
       <button

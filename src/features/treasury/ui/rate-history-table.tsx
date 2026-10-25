@@ -291,7 +291,7 @@ export function RateHistoryTable({
 
         {isLoading && (
           <div className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            <Loader2 className="size-3.5 animate-spin text-primary" />
+            <Loader2 className="size-3.5 animate-spin text-link" />
             <span>{t("loadingPage")}</span>
           </div>
         )}

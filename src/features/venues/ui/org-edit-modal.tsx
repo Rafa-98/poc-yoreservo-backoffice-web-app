@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import { SearchableSelect } from "@/features/users/ui/searchable-select";
 import type {
@@ -158,9 +158,32 @@ export function OrgEditModal({
     propIsPlatformAdmin !== undefined
       ? propIsPlatformAdmin
       : userRole === "PLATFORM_ADMIN";
+  const isPlatformOrg = Boolean(org?.isPlatformOrg);
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const t = useTranslations("venues.org");
 
+  const operatorOptions = OPERATOR_OPTIONS.map((opt) =>
+    opt.value === "0212"
+      ? { ...opt, label: isEn ? "0212 (Landline / CCS)" : "0212 (Fijo / CCS)" }
+      : opt.value === "OTRO"
+        ? { ...opt, label: isEn ? "Other carrier" : "Otra operadora" }
+        : opt,
+  );
+
+  const docPrefixOptions = [
+    { value: "J", label: isEn ? "J - Corporate" : "J - Jurídico" },
+    { value: "V", label: isEn ? "V - Venezuelan" : "V - Venezolano" },
+    { value: "E", label: isEn ? "E - Foreigner" : "E - Extranjero" },
+    { value: "G", label: isEn ? "G - Government" : "G - Gubernamental" },
+    { value: "P", label: isEn ? "P - Passport" : "P - Pasaporte" },
+  ];
+
   const [tradeName, setTradeName] = useState(org?.tradeName || "");
+  const [legalName, setLegalName] = useState(org?.legalName || "");
+  const initialParsedRif = parseDocId(org?.rif);
+  const [rifPrefix, setRifPrefix] = useState(initialParsedRif.prefix);
+  const [rifNumber, setRifNumber] = useState(initialParsedRif.number);
   const [contactEmail, setContactEmail] = useState(org?.contactEmail || "");
 
   // Separated Contact Phone
@@ -235,6 +258,10 @@ export function OrgEditModal({
   useEffect(() => {
     if (open && org) {
       setTradeName(org.tradeName);
+      setLegalName(org.legalName || "");
+      const parsedOrgRif = parseDocId(org.rif);
+      setRifPrefix(parsedOrgRif.prefix);
+      setRifNumber(parsedOrgRif.number);
       setContactEmail(org.contactEmail);
 
       const parsedContact = parseSeparatedPhone(org.contactPhone);
@@ -244,7 +271,11 @@ export function OrgEditModal({
 
       setFiscalAddress(org.fiscalAddress);
       setReferenceCurrencyCode(org.referenceCurrencyCode || "USD");
-      setPaymentCollectionMode(org.paymentCollectionMode || "PLATFORM_CUSTODY");
+      setPaymentCollectionMode(
+        org.isPlatformOrg
+          ? "PLATFORM_CUSTODY"
+          : org.paymentCollectionMode || "PLATFORM_CUSTODY"
+      );
 
       const prefMethod =
         org.preferredPayoutMethod === "PAGO_MOVIL"
@@ -285,12 +316,14 @@ export function OrgEditModal({
       );
 
       setCommissionPctInput(
-        org.commissionPct ??
-          (org.commissionRate > 1
-            ? org.commissionRate
-            : Math.round((org.commissionRate ?? 0.05) * 1000) / 10)
+        org.isPlatformOrg
+          ? 0
+          : org.commissionPct ??
+              (org.commissionRate > 1
+                ? org.commissionRate
+                : Math.round((org.commissionRate ?? 0.05) * 1000) / 10)
       );
-      setMinimumMonthlyFeeInput(org.minimumMonthlyFee ?? 0);
+      setMinimumMonthlyFeeInput(org.isPlatformOrg ? 0 : org.minimumMonthlyFee ?? 0);
       setError(null);
     }
   }, [open, org]);
@@ -302,8 +335,33 @@ export function OrgEditModal({
     setError(null);
 
     if (!tradeName.trim()) {
-      setError("El nombre comercial es obligatorio.");
+      setError(
+        isEn ? "Trade name is required." : "El nombre comercial es obligatorio."
+      );
       return;
+    }
+
+    const formattedOrgRif = rifNumber.trim()
+      ? `${rifPrefix}-${rifNumber.trim().replace(/^[JVEGP]-?/i, "")}`.toUpperCase()
+      : org.rif;
+
+    if (isPlatformAdmin) {
+      if (!legalName.trim()) {
+        setError(
+          isEn
+            ? "Legal business name is required."
+            : "La razón social fiscal es obligatoria."
+        );
+        return;
+      }
+      if (!rifNumber.trim()) {
+        setError(
+          isEn
+            ? "Corporate Tax ID (RIF) is required."
+            : "El RIF corporativo es obligatorio."
+        );
+        return;
+      }
     }
 
     const formattedContactPhone = formatSeparatedPhone(
@@ -316,14 +374,16 @@ export function OrgEditModal({
       contactSubscriber.replace(/\D/g, "").length < 7
     ) {
       setError(
-        "Ingresa un número de teléfono de contacto válido (mínimo 7 dígitos)."
+        isEn
+          ? "Enter a valid contact phone number (minimum 7 digits)."
+          : "Ingresa un número de teléfono de contacto válido (mínimo 7 dígitos)."
       );
       return;
     }
 
     const formattedBankDoc = bankDocNumber.trim()
       ? `${bankDocPrefix}-${bankDocNumber.trim().replace(/^[JVEGP]-?/i, "")}`
-      : org.rif;
+      : formattedOrgRif;
 
     const formattedPmPhone = formatSeparatedPhone(
       pmCountry,
@@ -332,12 +392,14 @@ export function OrgEditModal({
     );
     const formattedPmDoc = pmDocNumber.trim()
       ? `${pmDocPrefix}-${pmDocNumber.trim().replace(/^[JVEGP]-?/i, "")}`
-      : org.rif;
+      : formattedOrgRif;
 
     if (preferredPayoutMethod === "BANK_TRANSFER") {
       if (!payoutBank.trim()) {
         setError(
-          "Selecciona el banco para la cuenta de transferencia bancaria."
+          isEn
+            ? "Select the bank for the bank transfer account."
+            : "Selecciona el banco para la cuenta de transferencia bancaria."
         );
         setActiveSettlementTab("BANK_TRANSFER");
         return;
@@ -345,14 +407,18 @@ export function OrgEditModal({
       const cleanAcc = payoutAccountNumber.replace(/\D/g, "");
       if (cleanAcc.length !== 20) {
         setError(
-          `El número de cuenta bancaria debe tener exactamente 20 dígitos (actualmente tiene ${cleanAcc.length}).`
+          isEn
+            ? `The bank account number must have exactly 20 digits (currently has ${cleanAcc.length}).`
+            : `El número de cuenta bancaria debe tener exactamente 20 dígitos (actualmente tiene ${cleanAcc.length}).`
         );
         setActiveSettlementTab("BANK_TRANSFER");
         return;
       }
       if (!payoutAccountHolder.trim()) {
         setError(
-          "Ingresa el nombre o razón social del titular de la cuenta bancaria."
+          isEn
+            ? "Enter the name or legal business name of the bank account holder."
+            : "Ingresa el nombre o razón social del titular de la cuenta bancaria."
         );
         setActiveSettlementTab("BANK_TRANSFER");
         return;
@@ -360,7 +426,9 @@ export function OrgEditModal({
     } else {
       if (!payoutPagoMovilBank.trim()) {
         setError(
-          "Selecciona el banco receptor para liquidaciones por Pago Móvil."
+          isEn
+            ? "Select the receiving bank for the Pago Móvil coordinates."
+            : "Selecciona el banco receptor para las coordenadas de Pago Móvil."
         );
         setActiveSettlementTab("PAGO_MOVIL");
         return;
@@ -370,14 +438,18 @@ export function OrgEditModal({
         pmSubscriber.replace(/\D/g, "").length < 7
       ) {
         setError(
-          "Ingresa un teléfono válido para recibir liquidaciones por Pago Móvil."
+          isEn
+            ? "Enter a valid phone number for the Pago Móvil coordinates."
+            : "Ingresa un teléfono válido para las coordenadas de Pago Móvil."
         );
         setActiveSettlementTab("PAGO_MOVIL");
         return;
       }
       if (!pmDocNumber.trim()) {
         setError(
-          "Ingresa el RIF o Cédula asociado al Pago Móvil de liquidación."
+          isEn
+            ? "Enter the Tax ID (RIF) or ID associated with the corporate Pago Móvil."
+            : "Ingresa el RIF o Cédula asociado al Pago Móvil corporativo."
         );
         setActiveSettlementTab("PAGO_MOVIL");
         return;
@@ -389,11 +461,19 @@ export function OrgEditModal({
       const payload: UpdateOrganizationInput = {
         organizationId: org.id,
         tradeName: tradeName.trim(),
+        ...(isPlatformAdmin
+          ? {
+              legalName: legalName.trim(),
+              rif: formattedOrgRif,
+            }
+          : {}),
         contactEmail: contactEmail.trim(),
         contactPhone: formattedContactPhone,
         fiscalAddress: fiscalAddress.trim(),
         referenceCurrencyCode,
-        paymentCollectionMode,
+        paymentCollectionMode: isPlatformOrg
+          ? "PLATFORM_CUSTODY"
+          : paymentCollectionMode,
         preferredPayoutMethod,
         payoutBank,
         payoutAccountType,
@@ -407,16 +487,27 @@ export function OrgEditModal({
           payoutPagoMovilHolder.trim() || payoutAccountHolder.trim(),
         ...(isPlatformAdmin
           ? {
-              commissionRate: Math.max(0, Number(commissionPctInput)),
-              manualCommissionRate: Math.max(0, Number(commissionPctInput)),
-              minimumMonthlyFee: Math.max(0, Number(minimumMonthlyFeeInput)),
+              commissionRate: isPlatformOrg
+                ? 0
+                : Math.max(0, Number(commissionPctInput)),
+              manualCommissionRate: isPlatformOrg
+                ? 0
+                : Math.max(0, Number(commissionPctInput)),
+              minimumMonthlyFee: isPlatformOrg
+                ? 0
+                : Math.max(0, Number(minimumMonthlyFeeInput)),
             }
           : {}),
       };
 
       const res = await updateOrganizationAction(payload, org.id);
       if (!res.ok) {
-        setError(res.error.code || "Error al actualizar la organización");
+        setError(
+          res.error.code ||
+            (isEn
+              ? "Error updating organization"
+              : "Error al actualizar la organización")
+        );
         return;
       }
       onSuccess(res.data);
@@ -445,10 +536,20 @@ export function OrgEditModal({
             <span className="text-xl">🏛️</span>
             <div>
               <h3 className="m-0 text-[17px] font-extrabold text-foreground">
-                {t("modalTitle")}
+                {isPlatformOrg
+                  ? isEn
+                    ? "Edit YoReservo Corporate Profile"
+                    : "Editar Ficha Corporativa YoReservo"
+                  : t("modalTitle")}
               </h3>
               <p className="m-0 text-xs text-muted-foreground">
-                Actualiza los datos de contacto y coordenadas corporativas de liquidación
+                {isPlatformOrg
+                  ? isEn
+                    ? "Update YoReservo's tax identity and receiving accounts for ally commission payments"
+                    : "Actualiza la identidad fiscal de YoReservo y las cuentas receptoras para el pago de comisiones de aliados"
+                  : isEn
+                    ? "Update contact details and corporate settlement coordinates"
+                    : "Actualiza los datos de contacto y coordenadas corporativas de liquidación"}
               </p>
             </div>
           </div>
@@ -476,11 +577,23 @@ export function OrgEditModal({
           <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3.5">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="text-xs font-extrabold tracking-wider text-link uppercase">
-                1. Identidad Fiscal y Contacto Corporativo
+                {isEn
+                  ? "1. Tax Identity & Corporate Contact"
+                  : "1. Identidad Fiscal y Contacto Corporativo"}
               </div>
-              <span className="inline-flex items-center rounded-full border border-border bg-surface px-2.5 py-0.5 text-[10px] font-bold text-muted-foreground">
-                🔒 RIF y Razón Social no modificables
-              </span>
+              {isPlatformAdmin ? (
+                <span className="inline-flex items-center rounded-full border border-accent/40 bg-accent/15 px-2.5 py-0.5 text-[10px] font-bold text-link">
+                  {isEn
+                    ? "🛡️ Editable Tax Identity (Platform Admin)"
+                    : "🛡️ Identidad Fiscal Editable (Admin Plataforma)"}
+                </span>
+              ) : (
+                <span className="inline-flex items-center rounded-full border border-border bg-surface px-2.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+                  {isEn
+                    ? "🔒 Tax ID & Legal Name non-modifiable"
+                    : "🔒 RIF y Razón Social no modificables"}
+                </span>
+              )}
             </div>
 
             <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
@@ -495,43 +608,106 @@ export function OrgEditModal({
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     setTradeName(e.target.value)
                   }
-                  placeholder="Ej: San Agustín Sport Complex"
+                  placeholder={
+                    isEn
+                      ? "E.g.: San Agustín Sport Complex"
+                      : "Ej: San Agustín Sport Complex"
+                  }
                   required
                 />
               </div>
 
               <div>
-                <label className="mb-1 flex items-center justify-between text-xs font-bold text-muted-foreground">
-                  <span>{t("legalName")}</span>
-                  <span className="text-[10px] font-semibold">
-                    🔒 Bloqueado
-                  </span>
-                </label>
-                <input
-                  type="text"
-                  className="input-field form-input opacity-65 cursor-not-allowed bg-muted"
-                  value={org.legalName}
-                  disabled
-                  readOnly
-                />
+                {isPlatformAdmin ? (
+                  <>
+                    <label className="mb-1 block text-xs font-bold text-foreground">
+                      {t("legalName")} *
+                    </label>
+                    <input
+                      type="text"
+                      className="input-field form-input"
+                      value={legalName}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setLegalName(e.target.value)
+                      }
+                      placeholder={
+                        isEn
+                          ? "E.g.: YoReservo Platform C.A."
+                          : "Ej: YoReservo Platform C.A."
+                      }
+                      required
+                    />
+                  </>
+                ) : (
+                  <>
+                    <label className="mb-1 flex items-center justify-between text-xs font-bold text-muted-foreground">
+                      <span>{t("legalName")}</span>
+                      <span className="text-[10px] font-semibold">
+                        {isEn ? "🔒 Locked" : "🔒 Bloqueado"}
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input-field form-input opacity-65 cursor-not-allowed bg-muted"
+                      value={org.legalName}
+                      disabled
+                      readOnly
+                    />
+                  </>
+                )}
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
               <div>
-                <label className="mb-1 flex items-center justify-between text-xs font-bold text-muted-foreground">
-                  <span>{t("rif")}</span>
-                  <span className="text-[10px] font-semibold">
-                    🔒 Bloqueado
-                  </span>
-                </label>
-                <input
-                  type="text"
-                  className="input-field form-input font-mono opacity-65 cursor-not-allowed bg-muted"
-                  value={org.rif}
-                  disabled
-                  readOnly
-                />
+                {isPlatformAdmin ? (
+                  <>
+                    <label className="mb-1 block text-xs font-bold text-foreground">
+                      {t("rif")} *
+                    </label>
+                    <div className="grid grid-cols-12 gap-2">
+                      <div className="col-span-4">
+                        <SearchableSelect
+                          value={rifPrefix}
+                          onChange={(val: string) => setRifPrefix(val)}
+                          options={docPrefixOptions}
+                        />
+                      </div>
+                      <div className="col-span-8">
+                        <input
+                          type="text"
+                          className="input-field form-input font-mono"
+                          value={rifNumber}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            setRifNumber(
+                              e.target.value
+                                .replace(/[^0-9-]/g, "")
+                                .slice(0, 14)
+                            )
+                          }
+                          placeholder="50000001-0"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <label className="mb-1 flex items-center justify-between text-xs font-bold text-muted-foreground">
+                      <span>{t("rif")}</span>
+                      <span className="text-[10px] font-semibold">
+                        {isEn ? "🔒 Locked" : "🔒 Bloqueado"}
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input-field form-input font-mono opacity-65 cursor-not-allowed bg-muted"
+                      value={org.rif}
+                      disabled
+                      readOnly
+                    />
+                  </>
+                )}
               </div>
 
               <div>
@@ -545,7 +721,9 @@ export function OrgEditModal({
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     setContactEmail(e.target.value)
                   }
-                  placeholder="finanzas@empresa.com"
+                  placeholder={
+                    isEn ? "finance@company.com" : "finanzas@empresa.com"
+                  }
                   required
                 />
               </div>
@@ -554,7 +732,11 @@ export function OrgEditModal({
             {/* Teléfono de Contacto Separado (Código de País + Operadora + Número) */}
             <div>
               <label className="mb-1.5 block text-xs font-bold text-foreground">
-                {t("contactPhone")} (Código de País + Operadora + Número) *
+                {t("contactPhone")} (
+                {isEn
+                  ? "Country Code + Carrier + Number"
+                  : "Código de País + Operadora + Número"}
+                ) *
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
                 <div className="sm:col-span-4">
@@ -569,7 +751,7 @@ export function OrgEditModal({
                     <SearchableSelect
                       value={contactOperator}
                       onChange={(val: string) => setContactOperator(val)}
-                      options={OPERATOR_OPTIONS}
+                      options={operatorOptions}
                     />
                   </div>
                 )}
@@ -606,7 +788,11 @@ export function OrgEditModal({
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     setFiscalAddress(e.target.value)
                   }
-                  placeholder="Av. Principal, Municipio, Estado"
+                  placeholder={
+                    isEn
+                      ? "Main Ave, Municipality, State"
+                      : "Av. Principal, Municipio, Estado"
+                  }
                 />
               </div>
               <div>
@@ -629,133 +815,227 @@ export function OrgEditModal({
           <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="text-xs font-extrabold tracking-wider text-link uppercase">
-                2. Modalidad de Cobro y Recaudación
+                {isEn
+                  ? "2. Payment & Collection Mode"
+                  : "2. Modalidad de Cobro y Recaudación"}
               </div>
-              {!isPlatformAdmin && (
-                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30">
-                  🔒 Gestionado por YoReservo
+              {isPlatformOrg ? (
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-surface text-muted-foreground border border-border">
+                  {isEn
+                    ? "🔒 Fixed Mode • YoReservo Official"
+                    : "🔒 Modalidad Fija • YoReservo Oficial"}
                 </span>
+              ) : (
+                !isPlatformAdmin && (
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                    {isEn
+                      ? "🔒 Managed by YoReservo"
+                      : "🔒 Gestionado por YoReservo"}
+                  </span>
+                )
               )}
             </div>
 
-            {!isPlatformAdmin && (
-              <p className="text-xs text-muted-foreground m-0">
-                La modalidad de recaudación forma parte del acuerdo comercial
-                con YoReservo. Para solicitar un cambio de modalidad, contacta a
-                Administración de Plataforma.
-              </p>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                disabled={!isPlatformAdmin}
-                onClick={() =>
-                  isPlatformAdmin &&
-                  setPaymentCollectionMode("PLATFORM_CUSTODY")
-                }
-                className={`text-left p-3.5 rounded-xl border transition-all ${
-                  paymentCollectionMode === "PLATFORM_CUSTODY"
-                    ? "border-accent bg-accent/10 ring-1 ring-accent"
-                    : "border-border bg-surface hover:border-border-medium"
-                } ${
-                  !isPlatformAdmin
-                    ? "opacity-75 cursor-not-allowed"
-                    : "cursor-pointer"
-                }`}
-              >
-                <div className="text-xs font-extrabold text-foreground mb-1">
-                  🛡️ {t("modeOption1Title")}
+            {isPlatformOrg ? (
+              <div className="rounded-xl border border-accent bg-accent/10 p-4 ring-1 ring-accent">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                  <div className="text-xs font-extrabold text-foreground">
+                    🛡️ {t("modeOption1Title")}
+                  </div>
+                  <span className="rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold text-emerald-500">
+                    {isEn
+                      ? "Active & Fixed • 0% Commission"
+                      : "Activa y Fija • 0% Comisión"}
+                  </span>
                 </div>
                 <p className="text-[11px] text-muted-foreground m-0 leading-relaxed">
-                  {t("modeOption1Desc", {
-                    netPct: activeNetPct,
-                  })}
+                  {isEn ? (
+                    <>
+                      As YoReservo&apos;s own organization, collection remains
+                      fixed and non-modifiable under{" "}
+                      <strong className="text-foreground">
+                        YoReservo Custody
+                      </strong>{" "}
+                      (100% direct revenue with no commission fees or monthly
+                      charges).
+                    </>
+                  ) : (
+                    <>
+                      Como organización propia de YoReservo, la recaudación se
+                      mantiene de forma fija e inmodificable bajo{" "}
+                      <strong className="text-foreground">
+                        Custodia YoReservo
+                      </strong>{" "}
+                      (100% ingreso directo sin cargos de comisión ni cuotas
+                      mensuales).
+                    </>
+                  )}
                 </p>
-              </button>
-
-              <button
-                type="button"
-                disabled={!isPlatformAdmin}
-                onClick={() =>
-                  isPlatformAdmin && setPaymentCollectionMode("ALLY_DIRECT")
-                }
-                className={`text-left p-3.5 rounded-xl border transition-all ${
-                  paymentCollectionMode === "ALLY_DIRECT"
-                    ? "border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500"
-                    : "border-border bg-surface hover:border-border-medium"
-                } ${
-                  !isPlatformAdmin
-                    ? "opacity-75 cursor-not-allowed"
-                    : "cursor-pointer"
-                }`}
-              >
-                <div className="text-xs font-extrabold text-foreground mb-1">
-                  ⚡ {t("modeOption2Title")}
-                </div>
-                <p className="text-[11px] text-muted-foreground m-0 leading-relaxed">
-                  {t("modeOption2Desc", {
-                    commissionPct: activeCommPct,
-                  })}
-                </p>
-              </button>
-            </div>
-
-            {isPlatformAdmin && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2 border-t border-border">
-                <div>
-                  <label className="mb-1 block text-xs font-bold text-foreground">
-                    Comisión Plataforma (%)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    max="100"
-                    className="input-field form-input"
-                    value={commissionPctInput}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setCommissionPctInput(Number(e.target.value))
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-bold text-foreground">
-                    {t("minimumMonthlyFeeLabel")} ({referenceCurrencyCode})
-                  </label>
-                  <input
-                    type="number"
-                    step="1"
-                    min="0"
-                    className="input-field form-input"
-                    value={minimumMonthlyFeeInput}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setMinimumMonthlyFeeInput(Number(e.target.value))
-                    }
-                  />
-                </div>
               </div>
+            ) : (
+              <>
+                {!isPlatformAdmin && (
+                  <p className="text-xs text-muted-foreground m-0">
+                    {isEn
+                      ? "The collection mode is part of the commercial agreement with YoReservo. To request a mode change, contact Platform Administration."
+                      : "La modalidad de recaudación forma parte del acuerdo comercial con YoReservo. Para solicitar un cambio de modalidad, contacta a Administración de Plataforma."}
+                  </p>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    disabled={!isPlatformAdmin}
+                    onClick={() =>
+                      isPlatformAdmin &&
+                      setPaymentCollectionMode("PLATFORM_CUSTODY")
+                    }
+                    className={`text-left p-3.5 rounded-xl border transition-all ${
+                      paymentCollectionMode === "PLATFORM_CUSTODY"
+                        ? "border-accent bg-accent/10 ring-1 ring-accent"
+                        : "border-border bg-surface hover:border-border-medium"
+                    } ${
+                      !isPlatformAdmin
+                        ? "opacity-75 cursor-not-allowed"
+                        : "cursor-pointer"
+                    }`}
+                  >
+                    <div className="text-xs font-extrabold text-foreground mb-1">
+                      🛡️ {t("modeOption1Title")}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground m-0 leading-relaxed">
+                      {t("modeOption1Desc", {
+                        netPct: activeNetPct,
+                      })}
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!isPlatformAdmin}
+                    onClick={() =>
+                      isPlatformAdmin && setPaymentCollectionMode("ALLY_DIRECT")
+                    }
+                    className={`text-left p-3.5 rounded-xl border transition-all ${
+                      paymentCollectionMode === "ALLY_DIRECT"
+                        ? "border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500"
+                        : "border-border bg-surface hover:border-border-medium"
+                    } ${
+                      !isPlatformAdmin
+                        ? "opacity-75 cursor-not-allowed"
+                        : "cursor-pointer"
+                    }`}
+                  >
+                    <div className="text-xs font-extrabold text-foreground mb-1">
+                      ⚡ {t("modeOption2Title")}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground m-0 leading-relaxed">
+                      {t("modeOption2Desc", {
+                        commissionPct: activeCommPct,
+                      })}
+                    </p>
+                  </button>
+                </div>
+
+                {isPlatformAdmin && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2 border-t border-border">
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-foreground">
+                        {isEn
+                          ? "Platform Commission (%)"
+                          : "Comisión Plataforma (%)"}
+                      </label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        max="100"
+                        className="input-field form-input"
+                        value={commissionPctInput}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          setCommissionPctInput(Number(e.target.value))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-foreground">
+                        {t("minimumMonthlyFeeLabel")} ({referenceCurrencyCode})
+                      </label>
+                      <input
+                        type="number"
+                        step="1"
+                        min="0"
+                        className="input-field form-input"
+                        value={minimumMonthlyFeeInput}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          setMinimumMonthlyFeeInput(Number(e.target.value))
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
-          {/* SECCIÓN 3: Cuenta Corporativa de Liquidación (Transferencia Bancaria y Pago Móvil) */}
+          {/* SECCIÓN 3: Cuenta Corporativa (Comisiones para YoReservo / Liquidación para Aliados) */}
           <div className="rounded-xl border border-accent/40 bg-accent/5 p-4 space-y-4">
             <div>
               <div className="text-xs font-extrabold tracking-wider text-foreground uppercase">
-                3. 🏦 Cuenta Corporativa de Liquidación (Transferencia Bancaria o Pago Móvil)
+                {isPlatformOrg
+                  ? isEn
+                    ? "3. 🏦 Corporate Commission Collection Account (Bank Transfer or Pago Móvil)"
+                    : "3. 🏦 Cuenta Corporativa Recaudadora de Comisiones (Transferencia Bancaria o Pago Móvil)"
+                  : isEn
+                    ? "3. 🏦 Corporate Settlement Account (Bank Transfer or Pago Móvil)"
+                    : "3. 🏦 Cuenta Corporativa de Liquidación (Transferencia Bancaria o Pago Móvil)"}
               </div>
               <p className="text-[11px] text-muted-foreground mt-0.5 mb-0">
-                YoReservo puede abonar las liquidaciones a tu organización vía{" "}
-                <strong>Transferencia Bancaria</strong> o{" "}
-                <strong>Pago Móvil Corporativo</strong>. Selecciona tu vía
-                preferida y configura ambas coordenadas.
+                {isPlatformOrg ? (
+                  isEn ? (
+                    <>
+                      Configure the bank and{" "}
+                      <strong>Corporate Pago Móvil</strong> coordinates that your
+                      ally organizations (in Direct Collection mode) will use to
+                      pay <strong>YoReservo</strong> their platform commissions.
+                    </>
+                  ) : (
+                    <>
+                      Configura las coordenadas bancarias y de{" "}
+                      <strong>Pago Móvil Corporativo</strong> que tus
+                      organizaciones aliadas (en modalidad Cobro Directo)
+                      utilizarán para pagar a <strong>YoReservo</strong> las
+                      comisiones correspondientes.
+                    </>
+                  )
+                ) : isEn ? (
+                  <>
+                    YoReservo can disburse settlements to your organization via{" "}
+                    <strong>Bank Transfer</strong> or{" "}
+                    <strong>Corporate Pago Móvil</strong>. Select your preferred
+                    method and configure both coordinates.
+                  </>
+                ) : (
+                  <>
+                    YoReservo puede abonar las liquidaciones a tu organización vía{" "}
+                    <strong>Transferencia Bancaria</strong> o{" "}
+                    <strong>Pago Móvil Corporativo</strong>. Selecciona tu vía
+                    preferida y configura ambas coordenadas.
+                  </>
+                )}
               </p>
             </div>
 
-            {/* Selector de Método Preferido de Liquidación */}
+            {/* Selector de Método Preferido */}
             <div className="rounded-xl border border-border bg-surface p-3.5">
               <label className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground block mb-2">
-                Vía Preferida para Recibir Pagos de Liquidación de YoReservo
+                {isPlatformOrg
+                  ? isEn
+                    ? "Preferred Method to Receive Ally Commission Payments"
+                    : "Vía Preferida para Recibir el Pago de Comisiones de Aliados"
+                  : isEn
+                    ? "Preferred Method to Receive Settlement Payouts from YoReservo"
+                    : "Vía Preferida para Recibir Pagos de Liquidación de YoReservo"}
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <button
@@ -774,16 +1054,18 @@ export function OrgEditModal({
                     <span className="text-lg">🏦</span>
                     <div>
                       <div className="text-xs font-extrabold text-foreground">
-                        Transferencia Bancaria
+                        {isEn ? "Bank Transfer" : "Transferencia Bancaria"}
                       </div>
                       <div className="text-[10px] text-muted-foreground">
-                        Cuenta nacional de 20 dígitos
+                        {isEn
+                          ? "20-digit national account"
+                          : "Cuenta nacional de 20 dígitos"}
                       </div>
                     </div>
                   </div>
                   {preferredPayoutMethod === "BANK_TRANSFER" && (
                     <span className="rounded-full bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 text-[10px] font-bold text-emerald-500">
-                      Preferido ✓
+                      {isEn ? "Preferred ✓" : "Preferido ✓"}
                     </span>
                   )}
                 </button>
@@ -804,16 +1086,20 @@ export function OrgEditModal({
                     <span className="text-lg">📲</span>
                     <div>
                       <div className="text-xs font-extrabold text-foreground">
-                        Pago Móvil Corporativo
+                        {isEn
+                          ? "Corporate Pago Móvil"
+                          : "Pago Móvil Corporativo"}
                       </div>
                       <div className="text-[10px] text-muted-foreground">
-                        Abono inmediato a teléfono afiliado
+                        {isEn
+                          ? "Instant transfer to affiliated phone"
+                          : "Abono inmediato a teléfono afiliado"}
                       </div>
                     </div>
                   </div>
                   {preferredPayoutMethod === "PAGO_MOVIL" && (
                     <span className="rounded-full bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 text-[10px] font-bold text-emerald-500">
-                      Preferido ✓
+                      {isEn ? "Preferred ✓" : "Preferido ✓"}
                     </span>
                   )}
                 </button>
@@ -831,7 +1117,9 @@ export function OrgEditModal({
                     : "border-transparent bg-transparent text-muted-foreground hover:bg-muted"
                 }`}
               >
-                🏦 Coordenadas Transferencia Bancaria
+                {isEn
+                  ? "🏦 Bank Transfer Coordinates"
+                  : "🏦 Coordenadas Transferencia Bancaria"}
               </button>
               <button
                 type="button"
@@ -842,7 +1130,9 @@ export function OrgEditModal({
                     : "border-transparent bg-transparent text-muted-foreground hover:bg-muted"
                 }`}
               >
-                📲 Coordenadas Pago Móvil
+                {isEn
+                  ? "📲 Pago Móvil Coordinates"
+                  : "📲 Coordenadas Pago Móvil"}
               </button>
             </div>
 
@@ -851,7 +1141,12 @@ export function OrgEditModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div>
                     <label className="mb-1.5 block text-xs font-bold text-foreground">
-                      {t("bankName")} *
+                      {isPlatformOrg
+                        ? isEn
+                          ? "Receiving Bank"
+                          : "Banco Receptor"
+                        : t("bankName")}{" "}
+                      *
                     </label>
                     <SearchableSelect
                       value={payoutBank}
@@ -880,7 +1175,8 @@ export function OrgEditModal({
                       {t("accountNumber")} *
                     </label>
                     <span className="text-[11px] font-mono text-muted-foreground">
-                      {payoutAccountNumber.replace(/\D/g, "").length}/20 dígitos
+                      {payoutAccountNumber.replace(/\D/g, "").length}/20{" "}
+                      {isEn ? "digits" : "dígitos"}
                     </span>
                   </div>
                   <input
@@ -900,17 +1196,19 @@ export function OrgEditModal({
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   <div className="sm:col-span-4">
                     <label className="mb-1.5 block text-xs font-bold text-foreground">
-                      Tipo Doc. Titular *
+                      {isEn ? "Holder Doc. Type *" : "Tipo Doc. Titular *"}
                     </label>
                     <SearchableSelect
                       value={bankDocPrefix}
                       onChange={(val: string) => setBankDocPrefix(val)}
-                      options={DOC_PREFIX_OPTIONS}
+                      options={docPrefixOptions}
                     />
                   </div>
                   <div className="sm:col-span-8">
                     <label className="mb-1.5 block text-xs font-bold text-foreground">
-                      RIF / Cédula del Titular *
+                      {isEn
+                        ? "Holder Tax ID / Document *"
+                        : "RIF / Cédula del Titular *"}
                     </label>
                     <input
                       type="text"
@@ -945,7 +1243,9 @@ export function OrgEditModal({
               <div className="space-y-3.5 rounded-xl border border-border bg-surface p-4">
                 <div>
                   <label className="mb-1.5 block text-xs font-bold text-foreground">
-                    Banco Receptor Pago Móvil *
+                    {isEn
+                      ? "Pago Móvil Receiving Bank *"
+                      : "Banco Receptor Pago Móvil *"}
                   </label>
                   <SearchableSelect
                     value={payoutPagoMovilBank}
@@ -956,7 +1256,9 @@ export function OrgEditModal({
 
                 <div>
                   <label className="mb-1.5 block text-xs font-bold text-foreground">
-                    Teléfono Afiliado a Pago Móvil (Código + Operadora + Número) *
+                    {isEn
+                      ? "Phone Affiliated to Pago Móvil (Code + Carrier + Number) *"
+                      : "Teléfono Afiliado a Pago Móvil (Código + Operadora + Número) *"}
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
                     <div className="sm:col-span-4">
@@ -971,7 +1273,7 @@ export function OrgEditModal({
                         <SearchableSelect
                           value={pmOperator}
                           onChange={(val: string) => setPmOperator(val)}
-                          options={OPERATOR_OPTIONS}
+                          options={operatorOptions}
                         />
                       </div>
                     )}
@@ -998,17 +1300,19 @@ export function OrgEditModal({
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   <div className="sm:col-span-4">
                     <label className="mb-1.5 block text-xs font-bold text-foreground">
-                      Tipo Doc. *
+                      {isEn ? "Doc. Type *" : "Tipo Doc. *"}
                     </label>
                     <SearchableSelect
                       value={pmDocPrefix}
                       onChange={(val: string) => setPmDocPrefix(val)}
-                      options={DOC_PREFIX_OPTIONS}
+                      options={docPrefixOptions}
                     />
                   </div>
                   <div className="sm:col-span-8">
                     <label className="mb-1.5 block text-xs font-bold text-foreground">
-                      RIF / Cédula Afiliado *
+                      {isEn
+                        ? "Affiliated Tax ID / Document *"
+                        : "RIF / Cédula Afiliado *"}
                     </label>
                     <input
                       type="text"
@@ -1026,7 +1330,9 @@ export function OrgEditModal({
 
                 <div>
                   <label className="mb-1 block text-xs font-bold text-foreground">
-                    Beneficiario / Titular del Pago Móvil *
+                    {isEn
+                      ? "Pago Móvil Beneficiary / Holder *"
+                      : "Beneficiario / Titular del Pago Móvil *"}
                   </label>
                   <input
                     type="text"
@@ -1035,7 +1341,11 @@ export function OrgEditModal({
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setPayoutPagoMovilHolder(e.target.value)
                     }
-                    placeholder="Nombre o Razón Social del Beneficiario"
+                    placeholder={
+                      isEn
+                        ? "Beneficiary Name or Legal Business Name"
+                        : "Nombre o Razón Social del Beneficiario"
+                    }
                   />
                 </div>
               </div>

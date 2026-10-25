@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Eye } from "lucide-react";
 import { useLocale } from "next-intl";
 import { Button, Spinner } from "@/shared/ui";
 import type {
@@ -46,6 +47,8 @@ export function SupportTicketsPage({
     message: string;
     isError: boolean;
   } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const canManage =
     userRole === "PLATFORM_ADMIN" || userRole === "ALLY_ADMIN";
@@ -116,6 +119,38 @@ export function SupportTicketsPage({
       return true;
     });
   }, [tickets, typeFilter, statusFilter, searchQuery]);
+
+  const totalItems = filteredTickets.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [typeFilter, statusFilter, searchQuery, pageSize]);
+
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedTickets = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return filteredTickets.slice(start, start + pageSize);
+  }, [filteredTickets, safeCurrentPage, pageSize]);
+
+  const startIndex =
+    totalItems === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1;
+  const endIndex = Math.min(safeCurrentPage * pageSize, totalItems);
+
+  const pageNumbers = useMemo(() => {
+    const pages: number[] = [];
+    const maxButtons = 5;
+    let startPage = Math.max(1, safeCurrentPage - Math.floor(maxButtons / 2));
+    const endPage = Math.min(totalPages, startPage + maxButtons - 1);
+    if (endPage - startPage + 1 < maxButtons) {
+      startPage = Math.max(1, endPage - maxButtons + 1);
+    }
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }, [safeCurrentPage, totalPages]);
 
   async function handleRefresh() {
     setIsRefreshing(true);
@@ -234,7 +269,7 @@ export function SupportTicketsPage({
       {/* Top Header */}
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-surface px-5 py-4">
         <div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-accent-foreground">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-link">
             🛟 {isEn ? "YoReservo Helpdesk & Triage" : "Centro de Soporte & Atención al Atleta"}
           </span>
           <h1 className="mt-1 font-display text-lg font-extrabold text-foreground">
@@ -288,9 +323,9 @@ export function SupportTicketsPage({
               {kpis.openCount + kpis.inProgressCount}
             </div>
             <div className="mt-1 text-[11px] text-muted-foreground">
-              {kpis.openCount} {isEn ? "new (OPEN)" : "nuevos (OPEN)"} •{" "}
+              {kpis.openCount} {isEn ? "new" : "nuevos"} •{" "}
               {kpis.inProgressCount}{" "}
-              {isEn ? "in progress" : "en curso (IN_PROGRESS)"}
+              {isEn ? "in review" : "en revisión"}
             </div>
           </div>
 
@@ -384,20 +419,16 @@ export function SupportTicketsPage({
                   {isEn ? "All Statuses" : "Todos los Estados"}
                 </option>
                 <option value="OPEN">
-                  {isEn ? "🟢 Open (OPEN)" : "🟢 Abiertos (OPEN)"}
+                  {isEn ? "🟢 Open" : "🟢 Abiertos"}
                 </option>
                 <option value="IN_PROGRESS">
-                  {isEn
-                    ? "🟡 In Review (IN_PROGRESS)"
-                    : "🟡 En Revisión (IN_PROGRESS)"}
+                  {isEn ? "🟡 In Review" : "🟡 En Revisión"}
                 </option>
                 <option value="RESOLVED">
-                  {isEn
-                    ? "✅ Resolved (RESOLVED)"
-                    : "✅ Resueltos (RESOLVED)"}
+                  {isEn ? "✅ Resolved" : "✅ Resueltos"}
                 </option>
                 <option value="CLOSED">
-                  {isEn ? "🔒 Closed (CLOSED)" : "🔒 Cerrados (CLOSED)"}
+                  {isEn ? "🔒 Closed" : "🔒 Cerrados"}
                 </option>
               </select>
 
@@ -438,72 +469,69 @@ export function SupportTicketsPage({
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
-                  <tr className="border-b border-border bg-muted/60 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                    <th className="px-4 py-3">
-                      {isEn ? "Ticket & Date" : "Ticket & Fecha"}
-                    </th>
-                    <th className="px-4 py-3">
+                  <tr className="border-b border-border bg-muted/50 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <th className="px-5 py-3.5">Ticket</th>
+                    <th className="px-4 py-3.5">
                       {isEn ? "Type & Category" : "Tipo & Categoría"}
                     </th>
-                    <th className="px-4 py-3">
-                      {isEn ? "Subject & Details" : "Asunto & Detalle"}
+                    <th className="px-4 py-3.5">
+                      {isEn ? "Subject" : "Asunto"}
                     </th>
-                    <th className="px-4 py-3">
+                    <th className="px-4 py-3.5">
                       {isEn ? "Athlete" : "Atleta"}
                     </th>
-                    <th className="px-4 py-3">
-                      {isEn ? "Context / Attachment" : "Contexto / Adjunto"}
+                    <th className="px-4 py-3.5">
+                      {isEn ? "Date" : "Fecha"}
                     </th>
-                    <th className="px-4 py-3">
+                    <th className="px-4 py-3.5">
                       {isEn ? "Status" : "Estado"}
                     </th>
-                    <th className="px-4 py-3 text-right">
+                    <th className="px-5 py-3.5 text-right">
                       {isEn ? "Actions" : "Acciones"}
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filteredTickets.map((ticket) => {
+                  {paginatedTickets.map((ticket) => {
                     const isBug = ticket.type === "BUG_REPORT";
-                    const isRowPending = pendingTicketId === ticket.id;
 
                     return (
                       <tr
                         key={ticket.id}
-                        className="transition-colors hover:bg-muted/40"
+                        onClick={() => openInspector(ticket)}
+                        className="cursor-pointer transition-colors hover:bg-muted/40"
                       >
-                        <td className="px-4 py-3.5 align-top">
-                          <div className="font-mono text-xs font-extrabold text-foreground">
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          <span className="inline-flex rounded-lg border border-border bg-muted/60 px-2.5 py-1 font-mono text-xs font-bold text-foreground">
                             #{ticket.ticketCode}
-                          </div>
-                          <div className="mt-0.5 text-[11px] text-muted-foreground">
-                            {formatDateTime(ticket.createdAt, locale)}
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-3.5 align-top">
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${
-                              isBug
-                                ? "border-rose-500/30 bg-rose-500/10 text-rose-500"
-                                : "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
-                            }`}
-                          >
-                            {isBug
-                              ? isEn
-                                ? "🐛 Bug Report"
-                                : "🐛 Reporte de Error"
-                              : isEn
-                              ? "💡 Suggestion"
-                              : "💡 Sugerencia"}
                           </span>
-                          <div className="mt-1 text-[11px] font-semibold text-foreground">
-                            {formatCategoryLabel(ticket.category, isEn)}
+                        </td>
+
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="flex flex-col gap-1">
+                            <span
+                              className={`inline-flex w-fit items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${
+                                isBug
+                                  ? "border-rose-500/30 bg-rose-500/10 text-rose-500"
+                                  : "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                              }`}
+                            >
+                              {isBug
+                                ? isEn
+                                  ? "🐛 Bug Report"
+                                  : "🐛 Reporte de Error"
+                                : isEn
+                                ? "💡 Suggestion"
+                                : "💡 Sugerencia"}
+                            </span>
+                            <span className="text-[11px] font-medium text-muted-foreground">
+                              {formatCategoryLabel(ticket.category, isEn)}
+                            </span>
                           </div>
                         </td>
 
-                        <td className="max-w-xs px-4 py-3.5 align-top">
-                          <div className="font-bold text-foreground">
+                        <td className="max-w-[280px] px-4 py-3.5">
+                          <div className="truncate font-bold text-foreground text-sm">
                             {ticket.subject ||
                               (isBug
                                 ? isEn
@@ -513,116 +541,38 @@ export function SupportTicketsPage({
                                 ? "User Suggestion"
                                 : "Sugerencia de mejora")}
                           </div>
-                          <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">
-                            {ticket.description}
-                          </p>
-                          {ticket.adminNotes && (
-                            <div className="mt-1.5 rounded-lg border border-accent/30 bg-accent/10 px-2 py-1 text-[10px] text-foreground">
-                              <strong>Nota Staff:</strong> {ticket.adminNotes}
-                            </div>
-                          )}
                         </td>
 
-                        <td className="px-4 py-3.5 align-top">
+                        <td className="px-4 py-3.5 whitespace-nowrap">
                           {ticket.user ? (
-                            <div>
-                              <div className="font-bold text-foreground">
-                                {ticket.user.name} {ticket.user.lastName}
-                              </div>
-                              <div className="text-[11px] text-muted-foreground">
-                                {ticket.user.email}
-                              </div>
-                              {ticket.user.phoneNumber && (
-                                <div className="font-mono text-[10px] text-muted-foreground">
-                                  {ticket.user.phoneNumber}
-                                </div>
-                              )}
+                            <div className="font-bold text-foreground text-sm">
+                              {ticket.user.name} {ticket.user.lastName}
                             </div>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
                         </td>
 
-                        <td className="px-4 py-3.5 align-top">
-                          <div className="flex flex-col gap-1">
-                            {ticket.reservationCode && (
-                              <span className="inline-flex w-fit items-center gap-1 rounded-md border border-border bg-muted px-2 py-0.5 font-mono text-[10px] font-bold text-foreground">
-                                🎫 #{ticket.reservationCode}
-                              </span>
-                            )}
-                            {typeof ticket.rating === "number" && (
-                              <span className="text-xs font-bold text-amber-500">
-                                {"★".repeat(ticket.rating)}
-                                {"☆".repeat(Math.max(0, 5 - ticket.rating))} (
-                                {ticket.rating}/5)
-                              </span>
-                            )}
-                            {ticket.attachmentUrl ? (
-                              <a
-                                href={ticket.attachmentUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex w-fit items-center gap-1 text-[11px] font-bold text-link hover:underline"
-                              >
-                                📎{" "}
-                                {isEn ? "View attachment ↗" : "Ver captura ↗"}
-                              </a>
-                            ) : (
-                              <span className="text-[11px] text-muted-foreground">
-                                {isEn ? "No attachment" : "Sin adjunto"}
-                              </span>
-                            )}
-                          </div>
+                        <td className="px-4 py-3.5 whitespace-nowrap text-muted-foreground font-semibold">
+                          {formatDateTime(ticket.createdAt, locale)}
                         </td>
 
-                        <td className="px-4 py-3.5 align-top">
+                        <td className="px-4 py-3.5 whitespace-nowrap">
                           <StatusPill status={ticket.status} isEn={isEn} />
                         </td>
 
-                        <td className="px-4 py-3.5 text-right align-top">
-                          <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => openInspector(ticket)}
-                              className="rounded-lg border border-border bg-surface px-2.5 py-1 text-[11px] font-bold text-foreground transition hover:bg-muted cursor-pointer"
-                            >
-                              🔍 {isEn ? "Inspect" : "Gestionar"}
-                            </button>
-
-                            {canManage && ticket.status === "OPEN" && (
-                              <button
-                                type="button"
-                                disabled={isRowPending}
-                                onClick={() =>
-                                  handleQuickStatusChange(ticket, "IN_PROGRESS")
-                                }
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-500 transition hover:bg-amber-500/20 cursor-pointer disabled:opacity-60"
-                              >
-                                {isRowPending && (
-                                  <Spinner className="size-3.5" />
-                                )}
-                                {isEn ? "Take" : "Tomar"}
-                              </button>
-                            )}
-
-                            {canManage &&
-                              (ticket.status === "OPEN" ||
-                                ticket.status === "IN_PROGRESS") && (
-                                <button
-                                  type="button"
-                                  disabled={isRowPending}
-                                  onClick={() =>
-                                    handleQuickStatusChange(ticket, "RESOLVED")
-                                  }
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-500 transition hover:bg-emerald-500/20 cursor-pointer disabled:opacity-60"
-                                >
-                                  {isRowPending && (
-                                    <Spinner className="size-3.5" />
-                                  )}
-                                  ✓ {isEn ? "Resolve" : "Resolver"}
-                                </button>
-                              )}
-                          </div>
+                        <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openInspector(ticket);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface hover:bg-muted hover:border-border-strong px-3 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer"
+                          >
+                            <Eye className="size-3.5 text-link" />
+                            <span>{isEn ? "View details" : "Ver detalles"}</span>
+                          </button>
                         </td>
                       </tr>
                     );
@@ -631,6 +581,71 @@ export function SupportTicketsPage({
               </table>
             </div>
           )}
+
+          {/* PAGINATION FOOTER */}
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border bg-muted/30 px-5 py-3 text-xs">
+            <div className="flex flex-wrap items-center gap-3 text-muted-foreground">
+              <span>
+                {isEn ? "Showing" : "Mostrando"}{" "}
+                <strong className="text-foreground">{startIndex}</strong>–
+                <strong className="text-foreground">{endIndex}</strong>{" "}
+                {isEn ? "of" : "de"}{" "}
+                <strong className="text-foreground">{totalItems}</strong>{" "}
+                {totalItems === 1 ? "ticket" : "tickets"}
+              </span>
+
+              <div className="flex items-center gap-1.5">
+                <span>{isEn ? "Rows per page:" : "Filas por página:"}</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  className="rounded-lg border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground focus:border-accent focus:outline-none cursor-pointer"
+                  aria-label={isEn ? "Rows per page" : "Filas por página"}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={safeCurrentPage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="rounded-lg border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+              >
+                ← {isEn ? "Previous" : "Anterior"}
+              </button>
+
+              {pageNumbers.map((pageNum) => (
+                <button
+                  key={pageNum}
+                  type="button"
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`min-w-[30px] rounded-lg border px-2 py-1 text-xs font-bold transition-all cursor-pointer ${
+                    pageNum === safeCurrentPage
+                      ? "border-accent bg-accent text-accent-foreground shadow-xs"
+                      : "border-border bg-surface text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                disabled={safeCurrentPage >= totalPages}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+                className="rounded-lg border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+              >
+                {isEn ? "Next" : "Siguiente"} →
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -845,7 +860,7 @@ export function SupportTicketsPage({
                 onSubmit={handleSaveModal}
                 className="space-y-3 border-t border-border pt-4"
               >
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end">
                   <div>
                     <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                       {isEn ? "Ticket Status" : "Estado del Ticket"}
@@ -859,22 +874,66 @@ export function SupportTicketsPage({
                       className="h-10 w-full rounded-lg border border-border bg-background px-3 text-xs font-bold text-foreground focus:border-accent focus:outline-none disabled:opacity-60"
                     >
                       <option value="OPEN">
-                        🟢 {isEn ? "OPEN (Pending)" : "OPEN (Abierto)"}
+                        🟢 {isEn ? "Open" : "Abierto"}
                       </option>
                       <option value="IN_PROGRESS">
-                        🟡{" "}
-                        {isEn
-                          ? "IN_PROGRESS (In Review)"
-                          : "IN_PROGRESS (En Revisión)"}
+                        🟡 {isEn ? "In Review" : "En Revisión"}
                       </option>
                       <option value="RESOLVED">
-                        ✅ {isEn ? "RESOLVED (Resolved)" : "RESOLVED (Resuelto)"}
+                        ✅ {isEn ? "Resolved" : "Resuelto"}
                       </option>
                       <option value="CLOSED">
-                        🔒 {isEn ? "CLOSED (Closed)" : "CLOSED (Cerrado)"}
+                        🔒 {isEn ? "Closed" : "Cerrado"}
                       </option>
                     </select>
                   </div>
+
+                  {canManage && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {selectedTicket.status === "OPEN" && (
+                        <button
+                          type="button"
+                          disabled={pendingTicketId === selectedTicket.id}
+                          onClick={() =>
+                            handleQuickStatusChange(
+                              selectedTicket,
+                              "IN_PROGRESS"
+                            )
+                          }
+                          className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 text-xs font-bold text-amber-500 transition hover:bg-amber-500/20 cursor-pointer disabled:opacity-60"
+                        >
+                          {pendingTicketId === selectedTicket.id && (
+                            <Spinner className="size-3.5" />
+                          )}
+                          <span>
+                            🟡 {isEn ? "Take Ticket" : "Tomar Ticket"}
+                          </span>
+                        </button>
+                      )}
+
+                      {(selectedTicket.status === "OPEN" ||
+                        selectedTicket.status === "IN_PROGRESS") && (
+                        <button
+                          type="button"
+                          disabled={pendingTicketId === selectedTicket.id}
+                          onClick={() =>
+                            handleQuickStatusChange(selectedTicket, "RESOLVED")
+                          }
+                          className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 text-xs font-bold text-emerald-500 transition hover:bg-emerald-500/20 cursor-pointer disabled:opacity-60"
+                        >
+                          {pendingTicketId === selectedTicket.id && (
+                            <Spinner className="size-3.5" />
+                          )}
+                          <span>
+                            ✓{" "}
+                            {isEn
+                              ? "Mark as Resolved"
+                              : "Marcar como Resuelto"}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div>

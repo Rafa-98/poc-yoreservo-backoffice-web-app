@@ -96,6 +96,7 @@ function mapVenueItem(v: any): VenueItem {
     ...v,
     id: String(v?.id ?? ""),
     organizationId: String(v?.organizationId ?? ""),
+    isPlatformOrg: Boolean(v?.isPlatformOrg ?? v?.organization?.isPlatformOrg),
     referenceCurrencyCode: v?.referenceCurrencyCode
       ? String(v.referenceCurrencyCode)
       : v?.organization?.referenceCurrencyCode
@@ -143,6 +144,7 @@ function mapOrganizationData(raw: any): OrganizationData {
     legalName: String(raw?.legalName ?? ""),
     rif: String(raw?.rif ?? raw?.taxId ?? ""),
     taxId: raw?.taxId ? String(raw.taxId) : undefined,
+    isPlatformOrg: Boolean(raw?.isPlatformOrg),
     contactEmail: String(raw?.contactEmail ?? ""),
     contactPhone: String(raw?.contactPhone ?? raw?.pagoMovilPhone ?? raw?.payoutPhoneNumber ?? ""),
     pagoMovilPhone: raw?.pagoMovilPhone
@@ -219,6 +221,12 @@ function mapOrganizationData(raw: any): OrganizationData {
             supportEmail: String(
               raw.platformConfig.supportEmail ?? "soporte@yoreservo.com"
             ),
+            supportPhones: Array.isArray(raw.platformConfig.supportPhones)
+              ? raw.platformConfig.supportPhones.map((p: any) => String(p))
+              : undefined,
+            supportEmails: Array.isArray(raw.platformConfig.supportEmails)
+              ? raw.platformConfig.supportEmails.map((e: any) => String(e))
+              : undefined,
           }
         : undefined,
     organizations: Array.isArray(raw?.organizations)
@@ -302,6 +310,7 @@ export async function createOrganizationAction(
     }
 
     revalidatePath(ROUTES.organization);
+    revalidatePath(ROUTES.platform);
     revalidatePath(ROUTES.venues);
     revalidatePath(ROUTES.spaces);
     revalidatePath(ROUTES.schedules);
@@ -334,6 +343,7 @@ export async function updateOrganizationStatusAction(
     }
 
     revalidatePath(ROUTES.organization);
+    revalidatePath(ROUTES.platform);
     revalidatePath(ROUTES.venues);
     revalidatePath(ROUTES.spaces);
     revalidatePath(ROUTES.schedules);
@@ -366,6 +376,7 @@ export async function updateOrganizationAction(
     }
 
     revalidatePath(ROUTES.organization);
+    revalidatePath(ROUTES.platform);
     revalidatePath(ROUTES.venues);
     revalidatePath(ROUTES.spaces);
     revalidatePath(ROUTES.schedules);
@@ -454,10 +465,17 @@ export async function updatePlatformConfigAction(
       return fail(msg);
     }
     revalidatePath(ROUTES.organization);
+    revalidatePath(ROUTES.platform);
     const body = res.body as any;
     return ok({
       supportWhatsapp: String(body?.supportWhatsapp ?? input.supportWhatsapp),
       supportEmail: String(body?.supportEmail ?? input.supportEmail),
+      supportPhones: Array.isArray(body?.supportPhones)
+        ? body.supportPhones.map((p: any) => String(p))
+        : input.supportPhones,
+      supportEmails: Array.isArray(body?.supportEmails)
+        ? body.supportEmails.map((e: any) => String(e))
+        : input.supportEmails,
     });
   } catch (error) {
     return fail(error instanceof Error ? error.message : "UNKNOWN_ERROR");

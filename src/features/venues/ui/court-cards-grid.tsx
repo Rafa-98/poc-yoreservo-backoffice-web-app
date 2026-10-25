@@ -1,14 +1,17 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { ROUTES } from "@/shared/config";
 import type { SpaceItem, VenueItem } from "../model/types";
 import type { AmenityItem } from "@/features/catalogs/model/types";
+import { VenueInlineCombobox } from "./venue-inline-combobox";
 
 interface CourtCardsGridProps {
   venues: VenueItem[];
+  selectedOrganizationId?: string;
+  onSelectOrganizationId?: (organizationId: string) => void;
   selectedVenueId: string;
   onSelectVenueId: (id: string) => void;
   spaces: SpaceItem[];
@@ -22,6 +25,8 @@ interface CourtCardsGridProps {
 
 export function CourtCardsGrid({
   venues,
+  selectedOrganizationId,
+  onSelectOrganizationId,
   selectedVenueId,
   onSelectVenueId,
   spaces,
@@ -32,6 +37,8 @@ export function CourtCardsGrid({
   onOpenEditCourt,
   onToggleCourtStatus,
 }: CourtCardsGridProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const t = useTranslations("venues.spaces");
 
   const currencySymbol = referenceCurrencyCode === "EUR" ? "€" : "$";
@@ -41,12 +48,19 @@ export function CourtCardsGrid({
   function getSportBadge(space: SpaceItem): string {
     const raw =
       typeof space.activityCategory?.name === "object"
-        ? space.activityCategory?.name?.es || space.activityCategory?.name?.en
+        ? isEn
+          ? space.activityCategory?.name?.en ||
+            space.activityCategory?.name?.es
+          : space.activityCategory?.name?.es ||
+            space.activityCategory?.name?.en
         : space.activityCategory?.name;
     const act =
       typeof space.activityCategory?.activity?.name === "object"
-        ? space.activityCategory?.activity?.name?.es ||
-          space.activityCategory?.activity?.name?.en
+        ? isEn
+          ? space.activityCategory?.activity?.name?.en ||
+            space.activityCategory?.activity?.name?.es
+          : space.activityCategory?.activity?.name?.es ||
+            space.activityCategory?.activity?.name?.en
         : space.activityCategory?.activity?.name;
 
     if (raw) return `⚽ ${raw}`;
@@ -54,191 +68,18 @@ export function CourtCardsGrid({
     return `⚽ ${t("defaultSport")}`;
   }
 
-  const totalSpacesCount = venues.reduce((acc, v) => acc + (v.spacesCount || 0), 0);
-
-  const [venueFilterQuery, setVenueFilterQuery] = useState("");
-  const [isVenueDropdownOpen, setIsVenueDropdownOpen] = useState(false);
-  const venueDropdownRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    function handleOutsideClick(e: MouseEvent) {
-      if (
-        venueDropdownRef.current &&
-        !venueDropdownRef.current.contains(e.target as Node)
-      ) {
-        setIsVenueDropdownOpen(false);
-        setVenueFilterQuery("");
-      }
-    }
-    if (isVenueDropdownOpen) {
-      document.addEventListener("mousedown", handleOutsideClick);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleOutsideClick);
-    };
-  }, [isVenueDropdownOpen]);
-
-  const filteredVenueOptions = useMemo(() => {
-    const q = venueFilterQuery.trim().toLowerCase();
-    if (!q) return venues;
-    return venues.filter((v) => v.name.toLowerCase().includes(q));
-  }, [venues, venueFilterQuery]);
-
-  const selectedVenueDisplayLabel = useMemo(() => {
-    const totalCount = totalSpacesCount || spaces.length;
-    const totalLabel = totalCount === 1 ? "1 cancha" : `${totalCount} canchas`;
-    if (selectedVenueId === "ALL" || !selectedVenueId) {
-      return `Todas las sedes (${totalLabel})`;
-    }
-    const found = venues.find((v) => v.id === selectedVenueId);
-    if (!found) {
-      return `Todas las sedes (${totalLabel})`;
-    }
-    const count = found.spacesCount ?? 0;
-    const countLabel = count === 1 ? "1 cancha" : `${count} canchas`;
-    return `${found.name} (${countLabel})`;
-  }, [selectedVenueId, venues, totalSpacesCount, spaces.length]);
-
   return (
     <section className="py-5">
-      {/* Venue Selector & Header */}
+      {/* Cascading Organization -> Venue Selector & Header */}
       <div className="flex flex-wrap items-center justify-between gap-3.5 px-5 pb-4">
-        <div className="flex items-center gap-2.5">
-          <label
-            htmlFor="venue-selector"
-            className="text-[13px] font-semibold text-muted-foreground"
-          >
-            {t("venueLabel")}
-          </label>
-
-          <div ref={venueDropdownRef} className="relative min-w-[290px] sm:min-w-[330px]">
-            <div
-              className={`flex items-center gap-1.5 rounded-xl border bg-surface px-3 py-2 transition-all ${
-                isVenueDropdownOpen
-                  ? "border-accent ring-2 ring-accent/30"
-                  : "border-border-medium hover:border-border-strong"
-              }`}
-            >
-              <span className="shrink-0 text-xs">📍</span>
-              <input
-                id="venue-selector"
-                type="text"
-                value={
-                  isVenueDropdownOpen
-                    ? venueFilterQuery
-                    : selectedVenueDisplayLabel
-                }
-                onFocus={() => {
-                  setIsVenueDropdownOpen(true);
-                  setVenueFilterQuery("");
-                }}
-                onChange={(e) => {
-                  setIsVenueDropdownOpen(true);
-                  setVenueFilterQuery(e.target.value);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    setIsVenueDropdownOpen(false);
-                    setVenueFilterQuery("");
-                  } else if (e.key === "Enter" && isVenueDropdownOpen) {
-                    e.preventDefault();
-                    if (filteredVenueOptions.length > 0) {
-                      onSelectVenueId(filteredVenueOptions[0].id);
-                      setIsVenueDropdownOpen(false);
-                      setVenueFilterQuery("");
-                    }
-                  }
-                }}
-                placeholder="Escribir o elegir sede..."
-                aria-label={t("venueLabel")}
-                className="w-full min-w-0 border-none bg-transparent text-[13px] font-bold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground"
-              />
-              {selectedVenueId && selectedVenueId !== "ALL" && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectVenueId("ALL");
-                    setVenueFilterQuery("");
-                    setIsVenueDropdownOpen(false);
-                  }}
-                  title="Ver todas las sedes"
-                  className="cursor-pointer rounded-md border-none bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground hover:text-foreground"
-                >
-                  ✕
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsVenueDropdownOpen((prev) => !prev);
-                  setVenueFilterQuery("");
-                }}
-                className="cursor-pointer border-none bg-transparent px-1 text-xs text-muted-foreground"
-                aria-label="Abrir lista de sedes"
-              >
-                ▾
-              </button>
-            </div>
-
-            {isVenueDropdownOpen && (
-              <div className="absolute right-0 left-0 z-30 mt-1 max-h-64 overflow-y-auto rounded-xl border border-border-medium bg-surface p-1.5 shadow-xl">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSelectVenueId("ALL");
-                    setIsVenueDropdownOpen(false);
-                    setVenueFilterQuery("");
-                  }}
-                  className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs font-bold transition-colors ${
-                    selectedVenueId === "ALL" || !selectedVenueId
-                      ? "bg-accent/20 text-foreground"
-                      : "text-foreground hover:bg-muted"
-                  }`}
-                >
-                  <span>🌐 Todas las sedes</span>
-                  <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
-                    {(totalSpacesCount || spaces.length) === 1
-                      ? "1 cancha"
-                      : `${totalSpacesCount || spaces.length} canchas`}
-                  </span>
-                </button>
-
-                {filteredVenueOptions.length === 0 ? (
-                  <div className="px-3 py-3 text-center text-xs text-muted-foreground">
-                    No se encontró ninguna sede con «{venueFilterQuery}»
-                  </div>
-                ) : (
-                  filteredVenueOptions.map((v) => {
-                    const isSelectedVenue = selectedVenueId === v.id;
-                    const count = v.spacesCount ?? 0;
-                    return (
-                      <button
-                        key={v.id}
-                        type="button"
-                        onClick={() => {
-                          onSelectVenueId(v.id);
-                          setIsVenueDropdownOpen(false);
-                          setVenueFilterQuery("");
-                        }}
-                        className={`mt-0.5 flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-semibold transition-colors ${
-                          isSelectedVenue
-                            ? "bg-accent/20 font-bold text-foreground"
-                            : "text-foreground hover:bg-muted"
-                        }`}
-                      >
-                        <span className="truncate">📍 {v.name}</span>
-                        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
-                          {count === 1 ? "1 cancha" : `${count} canchas`}
-                        </span>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+        <VenueInlineCombobox
+          id="venue-selector"
+          venues={venues}
+          selectedOrganizationId={selectedOrganizationId}
+          onSelectOrganizationId={onSelectOrganizationId}
+          selectedVenueId={selectedVenueId}
+          onSelectVenueId={onSelectVenueId}
+        />
 
         <button
           type="button"
@@ -256,10 +97,13 @@ export function CourtCardsGrid({
         {spaces.map((court) => {
           const isEnabled = court.status === "ENABLED";
           const pricePerHourNum = Number(court.pricePerHour) || 0;
-          const bcvTotal = (pricePerHourNum * bcvRate).toLocaleString("es-VE", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          });
+          const bcvTotal = (pricePerHourNum * bcvRate).toLocaleString(
+            isEn ? "en-US" : "es-VE",
+            {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }
+          );
           const surfaceName = court.surfaceType || t("defaultSurface");
           const courtVenueName =
             court.venueName ||
@@ -346,8 +190,12 @@ export function CourtCardsGrid({
                   •{" "}
                   {t("coveredLabel", {
                     value: court.isCovered
-                      ? "Techada (Indoor)"
-                      : "Aire Libre (Outdoor)",
+                      ? isEn
+                        ? "Covered (Indoor)"
+                        : "Techada (Indoor)"
+                      : isEn
+                        ? "Open Air (Outdoor)"
+                        : "Aire Libre (Outdoor)",
                   })}
                   {court.activeBookingsCount > 0 && (
                     <div className="mt-1 font-semibold text-link">

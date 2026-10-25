@@ -80,11 +80,11 @@ export function SpaceBlockModal({
   return (
     <>
       <div
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
 
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
         <div className="relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-modal animate-in zoom-in-95 duration-150">
           <div className="flex items-center justify-between border-b border-border pb-4">
             <div className="flex items-center gap-2.5">

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import type { OrganizationData, PaymentCollectionMode } from "../model/types";
 
@@ -48,6 +48,8 @@ export function OrgMasterCard({
         : true;
   const handleEditClick = onEditClick ?? onOpenEditModal ?? (() => {});
   const handleToggleStatus = onToggleOrgStatus ?? onToggleStatus;
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const t = useTranslations("venues.org");
 
   const [confirmDeactivateOpen, setConfirmDeactivateOpen] = useState(false);
@@ -88,11 +90,12 @@ export function OrgMasterCard({
               <span className="text-lg">🚫</span>
               <div>
                 <div className="text-xs font-extrabold text-rose-500 uppercase tracking-wider">
-                  Organización Desactivada
+                  {isEn ? "Organization Deactivated" : "Organización Desactivada"}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5 mb-0">
-                  Esta organización se encuentra inactiva y sus sedes tienen las
-                  reservas suspendidas.
+                  {isEn
+                    ? "This organization is inactive and its venues have bookings suspended."
+                    : "Esta organización se encuentra inactiva y sus sedes tienen las reservas suspendidas."}
                 </p>
               </div>
             </div>
@@ -104,7 +107,9 @@ export function OrgMasterCard({
                 disabled={isUpdatingStatus}
                 onClick={() => setConfirmDeactivateOpen(true)}
               >
-                ✅ Reactivar Organización
+                {isEn
+                  ? "✅ Reactivate Organization"
+                  : "✅ Reactivar Organización"}
               </Button>
             )}
           </div>
@@ -128,7 +133,13 @@ export function OrgMasterCard({
                       : "border-emerald-500/40 bg-emerald-500/15 text-emerald-500"
                   }`}
                 >
-                  {isInactive ? "● Inactiva" : "● RIF Verificado"}
+                  {isInactive
+                    ? isEn
+                      ? "● Inactive"
+                      : "● Inactiva"
+                    : isEn
+                      ? "● Verified Tax ID"
+                      : "● RIF Verificado"}
                 </span>
                 <span
                   className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${
@@ -138,8 +149,12 @@ export function OrgMasterCard({
                   }`}
                 >
                   {isAllyDirect
-                    ? "📲 Cobro Directo del Aliado"
-                    : "🏦 Custodia YoReservo"}
+                    ? isEn
+                      ? "📲 Ally Direct Collection"
+                      : "📲 Cobro Directo del Aliado"
+                    : isEn
+                      ? "🏦 YoReservo Custody"
+                      : "🏦 Custodia YoReservo"}
                 </span>
                 {org.isBookingPaused && !isInactive && (
                   <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-500">
@@ -167,8 +182,12 @@ export function OrgMasterCard({
                 onClick={() => onToggleBookingPause(!org.isBookingPaused)}
               >
                 {org.isBookingPaused
-                  ? "▶ Reanudar Reservas"
-                  : "⏸ Pausar Reservas"}
+                  ? isEn
+                    ? "▶ Resume Bookings"
+                    : "▶ Reanudar Reservas"
+                  : isEn
+                    ? "⏸ Pause Bookings"
+                    : "⏸ Pausar Reservas"}
               </Button>
             )}
 
@@ -181,8 +200,12 @@ export function OrgMasterCard({
                 onClick={() => setConfirmDeactivateOpen(true)}
               >
                 {isInactive
-                  ? "✅ Reactivar Organización"
-                  : "🚫 Desactivar Organización"}
+                  ? isEn
+                    ? "✅ Reactivate Organization"
+                    : "✅ Reactivar Organización"
+                  : isEn
+                    ? "🚫 Deactivate Organization"
+                    : "🚫 Desactivar Organización"}
               </Button>
             )}
 
@@ -193,7 +216,7 @@ export function OrgMasterCard({
                 size="sm"
                 onClick={handleEditClick}
               >
-                ✏️ Editar Organización
+                {isEn ? "✏️ Edit Organization" : "✏️ Editar Organización"}
               </Button>
             )}
           </div>
@@ -204,7 +227,9 @@ export function OrgMasterCard({
           {/* Left: Fiscal & Commercial Data */}
           <div className="p-5 rounded-xl bg-muted/30 border border-border">
             <h3 className="m-0 text-xs font-extrabold uppercase tracking-wider text-link mb-4">
-              🏛️ Datos Fiscales y Comerciales
+              {isEn
+                ? "🏛️ Tax & Commercial Details"
+                : "🏛️ Datos Fiscales y Comerciales"}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -262,10 +287,12 @@ export function OrgMasterCard({
               </div>
               <div>
                 <div className="text-[11px] text-muted-foreground">
-                  Esquema de Comisión
+                  {isEn ? "Commission Scheme" : "Esquema de Comisión"}
                 </div>
                 <div className="text-sm font-extrabold text-emerald-500 mt-0.5">
-                  {netPct}% Aliado / {commissionPct}% Plataforma
+                  {isEn
+                    ? `${netPct}% Ally / ${commissionPct}% Platform`
+                    : `${netPct}% Aliado / ${commissionPct}% Plataforma`}
                 </div>
               </div>
               {org.minimumMonthlyFee > 0 && (
@@ -275,7 +302,8 @@ export function OrgMasterCard({
                   </div>
                   <div className="text-sm font-bold text-foreground mt-0.5">
                     {org.referenceCurrencyCode}{" "}
-                    {org.minimumMonthlyFee.toFixed(2)} / mes
+                    {org.minimumMonthlyFee.toFixed(2)}{" "}
+                    {isEn ? "/ month" : "/ mes"}
                   </div>
                 </div>
               )}
@@ -287,12 +315,18 @@ export function OrgMasterCard({
             <div>
               <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
                 <h3 className="m-0 text-xs font-extrabold uppercase tracking-wider text-link">
-                  🏦 Cuenta Corporativa de Liquidación
+                  {isEn
+                    ? "🏦 Corporate Settlement Account"
+                    : "🏦 Cuenta Corporativa de Liquidación"}
                 </h3>
                 <span className="inline-flex items-center rounded-full border border-accent/40 bg-accent/15 px-2.5 py-0.5 text-[11px] font-bold text-link">
                   {prefersPagoMovil
-                    ? "📲 Vía Preferida: Pago Móvil"
-                    : "🏦 Vía Preferida: Transferencia Bancaria"}
+                    ? isEn
+                      ? "📲 Preferred Method: Pago Móvil"
+                      : "📲 Vía Preferida: Pago Móvil"
+                    : isEn
+                      ? "🏦 Preferred Method: Bank Transfer"
+                      : "🏦 Vía Preferida: Transferencia Bancaria"}
                 </span>
               </div>
 
@@ -307,11 +341,14 @@ export function OrgMasterCard({
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-extrabold text-foreground flex items-center gap-1.5">
-                      <span>🏦</span> Transferencia Bancaria Corporativa
+                      <span>🏦</span>{" "}
+                      {isEn
+                        ? "Corporate Bank Transfer"
+                        : "Transferencia Bancaria Corporativa"}
                     </span>
                     {!prefersPagoMovil && (
                       <span className="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-500">
-                        ● Principal
+                        {isEn ? "● Primary" : "● Principal"}
                       </span>
                     )}
                   </div>
@@ -321,15 +358,23 @@ export function OrgMasterCard({
                         {t("payoutBank")}
                       </span>
                       <span className="font-bold text-foreground">
-                        {org.payoutBank || "Sin configurar"}
+                        {org.payoutBank ||
+                          (isEn ? "Not configured" : "Sin configurar")}
                       </span>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        {t("accountType")} / RIF
+                        {t("accountType")} / {t("rif")}
                       </span>
                       <span className="font-semibold text-foreground">
-                        {org.payoutAccountType || "Corriente"} ·{" "}
+                        {org.payoutAccountType === "Ahorro"
+                          ? isEn
+                            ? "Savings"
+                            : "Ahorro"
+                          : isEn
+                            ? "Checking"
+                            : "Corriente"}{" "}
+                        ·{" "}
                         <strong className="font-mono">
                           {org.payoutIdDocument || org.rif}
                         </strong>
@@ -340,7 +385,8 @@ export function OrgMasterCard({
                         {t("accountNumber")}
                       </span>
                       <span className="font-mono font-bold text-foreground tracking-wider">
-                        {org.payoutAccountNumber || "Sin configurar"}
+                        {org.payoutAccountNumber ||
+                          (isEn ? "Not configured" : "Sin configurar")}
                       </span>
                     </div>
                     <div className="sm:col-span-2">
@@ -364,39 +410,42 @@ export function OrgMasterCard({
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-extrabold text-foreground flex items-center gap-1.5">
-                      <span>📲</span> Pago Móvil Corporativo de Liquidación
+                      <span>📲</span>{" "}
+                      {isEn
+                        ? "Corporate Settlement Pago Móvil"
+                        : "Pago Móvil Corporativo de Liquidación"}
                     </span>
                     {prefersPagoMovil && (
                       <span className="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-500">
-                        ● Principal
+                        {isEn ? "● Primary" : "● Principal"}
                       </span>
                     )}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Banco Pago Móvil
+                        {isEn ? "Pago Móvil Bank" : "Banco Pago Móvil"}
                       </span>
                       <span className="font-bold text-foreground">
                         {org.payoutPagoMovilBank ||
                           org.payoutBank ||
-                          "Sin configurar"}
+                          (isEn ? "Not configured" : "Sin configurar")}
                       </span>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Teléfono Afiliado
+                        {isEn ? "Affiliated Phone" : "Teléfono Afiliado"}
                       </span>
                       <span className="font-mono font-bold text-foreground">
                         {org.payoutPhoneNumber ||
                           org.pagoMovilPhone ||
                           org.contactPhone ||
-                          "Sin configurar"}
+                          (isEn ? "Not configured" : "Sin configurar")}
                       </span>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        RIF / Cédula
+                        {isEn ? "Tax ID / Document" : "RIF / Cédula"}
                       </span>
                       <span className="font-mono font-semibold text-foreground">
                         {org.payoutPagoMovilIdDocument ||
@@ -406,7 +455,7 @@ export function OrgMasterCard({
                     </div>
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Beneficiario
+                        {isEn ? "Beneficiary" : "Beneficiario"}
                       </span>
                       <span className="font-semibold text-foreground truncate block">
                         {org.payoutPagoMovilHolder ||
@@ -421,8 +470,12 @@ export function OrgMasterCard({
 
             <div className="mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-600 dark:text-emerald-400">
               {isAllyDirect
-                ? `⚡ Cobro Directo activo: el complejo recauda el 100% directamente del jugador y liquida la comisión de plataforma (${commissionPct}%).`
-                : `🛡️ Custodia YoReservo activa: YoReservo recauda los pagos y transfiere el neto de liquidación (${netPct}%) a la vía preferida configurada arriba.`}
+                ? isEn
+                  ? `⚡ Direct Collection active: the complex collects 100% directly from the player and settles the platform commission (${commissionPct}%).`
+                  : `⚡ Cobro Directo activo: el complejo recauda el 100% directamente del jugador y liquida la comisión de plataforma (${commissionPct}%).`
+                : isEn
+                  ? `🛡️ YoReservo Custody active: YoReservo collects payments and transfers the net settlement (${netPct}%) to the preferred method configured above.`
+                  : `🛡️ Custodia YoReservo activa: YoReservo recauda los pagos y transfiere el neto de liquidación (${netPct}%) a la vía preferida configurada arriba.`}
             </div>
           </div>
         </div>
@@ -440,16 +493,33 @@ export function OrgMasterCard({
           >
             <h3 className="m-0 text-base font-extrabold text-foreground">
               {isInactive
-                ? "✅ Reactivar Organización Aliada"
-                : "🚫 Desactivar Organización Completa"}
+                ? isEn
+                  ? "✅ Reactivate Ally Organization"
+                  : "✅ Reactivar Organización Aliada"
+                : isEn
+                  ? "🚫 Deactivate Complete Organization"
+                  : "🚫 Desactivar Organización Completa"}
             </h3>
             <div className="mt-3 flex flex-col gap-3 text-sm text-foreground">
               <p className="m-0">
                 {isInactive ? (
+                  isEn ? (
+                    <>
+                      Are you sure you want to reactivate the organization{" "}
+                      <strong>{org.tradeName}</strong> ({org.rif})? Its venues
+                      will become operational again and able to receive bookings.
+                    </>
+                  ) : (
+                    <>
+                      ¿Estás seguro de que deseas reactivar la organización{" "}
+                      <strong>{org.tradeName}</strong> ({org.rif})? Sus sedes
+                      volverán a estar operativas y podrán recibir reservas.
+                    </>
+                  )
+                ) : isEn ? (
                   <>
-                    ¿Estás seguro de que deseas reactivar la organización{" "}
-                    <strong>{org.tradeName}</strong> ({org.rif})? Sus sedes
-                    volverán a estar operativas y podrán recibir reservas.
+                    Are you sure you want to completely deactivate the
+                    organization <strong>{org.tradeName}</strong> ({org.rif})?
                   </>
                 ) : (
                   <>
@@ -461,17 +531,20 @@ export function OrgMasterCard({
               {!isInactive && (
                 <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-xs text-rose-500 space-y-1">
                   <div className="font-extrabold">
-                    ⚠️ Efectos inmediatos de la desactivación:
+                    {isEn
+                      ? "⚠️ Immediate effects of deactivation:"
+                      : "⚠️ Efectos inmediatos de la desactivación:"}
                   </div>
                   <ul className="list-disc pl-4 space-y-0.5 m-0">
                     <li>
-                      Se suspenderán automáticamente las nuevas reservas en
-                      todas sus sedes y canchas.
+                      {isEn
+                        ? "New bookings will be automatically suspended across all its venues and courts."
+                        : "Se suspenderán automáticamente las nuevas reservas en todas sus sedes y canchas."}
                     </li>
                     <li>
-                      El Administrador Aliado no podrá reactivar la organización
-                      por su cuenta (solo un Super Admin de YoReservo puede
-                      hacerlo).
+                      {isEn
+                        ? "The Ally Admin will not be able to reactivate the organization on their own (only a YoReservo Super Admin can do so)."
+                        : "El Administrador Aliado no podrá reactivar la organización por su cuenta (solo un Super Admin de YoReservo puede hacerlo)."}
                     </li>
                   </ul>
                 </div>
@@ -485,7 +558,7 @@ export function OrgMasterCard({
                 onClick={() => setConfirmDeactivateOpen(false)}
                 disabled={isUpdatingStatus}
               >
-                Cancelar
+                {isEn ? "Cancel" : "Cancelar"}
               </Button>
               <Button
                 type="button"
@@ -495,10 +568,16 @@ export function OrgMasterCard({
                 disabled={isUpdatingStatus}
               >
                 {isUpdatingStatus
-                  ? "Procesando..."
+                  ? isEn
+                    ? "Processing..."
+                    : "Procesando..."
                   : isInactive
-                    ? "Confirmar Reactivación ✓"
-                    : "Sí, Desactivar Organización"}
+                    ? isEn
+                      ? "Confirm Reactivation ✓"
+                      : "Confirmar Reactivación ✓"
+                    : isEn
+                      ? "Yes, Deactivate Organization"
+                      : "Sí, Desactivar Organización"}
               </Button>
             </div>
           </div>

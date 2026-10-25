@@ -12,6 +12,7 @@ import {
   type ActionResult,
 } from "@/shared/lib";
 import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
+import { deriveOrganizationsFromVenues, type VenueItem } from "@/features/venues/model/types";
 import type { AgendaData, VenueRef } from "../model/types";
 
 export async function getVenuesListAction(): Promise<ActionResult<VenueRef[]>> {
@@ -37,11 +38,15 @@ export async function getVenuesListAction(): Promise<ActionResult<VenueRef[]>> {
 export async function getAgendaAction(
   venueId?: string,
   date?: string,
+  organizationId?: string,
 ): Promise<ActionResult<AgendaData>> {
   const { user, accessToken } = await requireSessionWithToken(ROUTE_ALLOWED_ROLES[ROUTES.agenda]);
   try {
-    // 1. Resolve venueId
+    // 1. Resolve venueId & organization scope
     let resolvedVenueId = venueId;
+    const isPlatformRole =
+      user.role === "PLATFORM_ADMIN" || user.role === "PLATFORM_ACCOUNTING";
+
     if (!resolvedVenueId) {
       if (user.role === "ALLY_VALIDATOR" && user.managedVenueId) {
         resolvedVenueId = user.managedVenueId;
@@ -49,7 +54,34 @@ export async function getAgendaAction(
         const cookieStore = await cookies();
         const savedVenue = cookieStore.get("yoreservo_active_venue")?.value;
         resolvedVenueId = savedVenue || "ALL";
+
+        if (resolvedVenueId === "ALL" && isPlatformRole) {
+          const savedOrg =
+            organizationId || cookieStore.get("yoreservo_active_org")?.value;
+          if (savedOrg && savedOrg !== "ALL") {
+            resolvedVenueId = `ORG:${savedOrg}`;
+          } else if (!savedOrg) {
+            // Default to the first active organization for Platform roles
+            const venuesRes = await backendRequest("/backoffice/venues", {
+              accessToken,
+            });
+            if (venuesRes.ok && Array.isArray(venuesRes.body)) {
+              const orgs = deriveOrganizationsFromVenues(
+                venuesRes.body as VenueItem[],
+              );
+              if (orgs.length > 0) {
+                resolvedVenueId = `ORG:${orgs[0].id}`;
+              }
+            }
+          }
+        }
       }
+    } else if (
+      resolvedVenueId === "ALL" &&
+      organizationId &&
+      organizationId !== "ALL"
+    ) {
+      resolvedVenueId = `ORG:${organizationId}`;
     }
 
     if (!resolvedVenueId) {

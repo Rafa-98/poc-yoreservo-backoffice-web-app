@@ -17,7 +17,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import { SearchableSelect } from "@/features/users/ui/searchable-select";
 import { uploadBackofficeFileAction } from "@/shared/api/upload-action";
@@ -186,6 +186,7 @@ export function SettlementPayoutModal({
 }: SettlementPayoutModalProps) {
   const t = useTranslations("settlements");
   const tOverrides = useTranslations("treasury.settlementsOverrides");
+  const isEn = useLocale().toLowerCase().startsWith("en");
 
   const [payoutMethod, setPayoutMethod] = useState<SettlementPayoutMethod>("PAGO_MOVIL");
   const [originAccount, setOriginAccount] = useState("BANESCO_0134");
@@ -327,8 +328,12 @@ export function SettlementPayoutModal({
           "01340001920001298491",
         accountTypeLabel:
           platformCoords?.bankTransfer?.accountType === "SAVINGS"
-            ? "Cuenta de Ahorros"
-            : "Cuenta Corriente",
+            ? isEn
+              ? "Savings Account"
+              : "Cuenta de Ahorros"
+            : isEn
+              ? "Checking Account"
+              : "Cuenta Corriente",
         documentId: platformCoords?.bankTransfer?.documentId || "J-50123456-7",
         beneficiaryName:
           platformCoords?.bankTransfer?.beneficiaryName || "YoReservo C.A.",
@@ -347,8 +352,12 @@ export function SettlementPayoutModal({
         accountNumber: batch.organization?.payoutAccountNumber || "—",
         accountTypeLabel:
           batch.organization?.payoutAccountType === "SAVINGS"
-            ? "Cuenta de Ahorros"
-            : "Cuenta Corriente",
+            ? isEn
+              ? "Savings Account"
+              : "Cuenta de Ahorros"
+            : isEn
+              ? "Checking Account"
+              : "Cuenta Corriente",
         documentId:
           batch.organization?.payoutIdDocument ||
           batch.organization?.rif ||
@@ -411,18 +420,26 @@ export function SettlementPayoutModal({
 
     if (isInvoiceReport) {
       if (!allyOriginBank.trim()) {
-        setErrorMsg("Selecciona el banco desde donde realizaste el pago.");
+        setErrorMsg(
+          isEn
+            ? "Select the bank from which you made the payment."
+            : "Selecciona el banco desde donde realizaste el pago.",
+        );
         return;
       }
       if (payoutMethod === "PAGO_MOVIL" && phoneDigits.trim().length !== 7) {
         setErrorMsg(
-          "Ingresa los 7 dígitos del número de teléfono desde donde realizaste el Pago Móvil.",
+          isEn
+            ? "Enter the 7 digits of the phone number from which you made the Pago Móvil."
+            : "Ingresa los 7 dígitos del número de teléfono desde donde realizaste el Pago Móvil.",
         );
         return;
       }
       if (transferRef.trim().length < 6) {
         setErrorMsg(
-          "Ingresa el número de referencia bancaria (de 6 a 12 dígitos).",
+          isEn
+            ? "Enter the bank reference number (6 to 12 digits)."
+            : "Ingresa el número de referencia bancaria (de 6 a 12 dígitos).",
         );
         return;
       }
@@ -621,10 +638,12 @@ export function SettlementPayoutModal({
                 </label>
                 {!isAllyToPlatform && batch.organization?.preferredPayoutMethod && (
                   <span className="text-[11px] font-bold text-emerald-500">
-                    Preferido por Aliado:{" "}
+                    {isEn ? "Preferred by Ally:" : "Preferido por Aliado:"}{" "}
                     {batch.organization.preferredPayoutMethod === "PAGO_MOVIL"
                       ? "📲 Pago Móvil"
-                      : "🏦 Transferencia Bancaria"}
+                      : isEn
+                        ? "🏦 Bank Transfer"
+                        : "🏦 Transferencia Bancaria"}
                   </span>
                 )}
               </div>
@@ -641,7 +660,9 @@ export function SettlementPayoutModal({
                   } ${isInvoiceVerify ? "opacity-60 cursor-not-allowed" : ""}`}
                 >
                   <span>📲</span>
-                  <span>Pago Móvil Interbancario</span>
+                  <span>
+                    {isEn ? "Interbank Pago Móvil" : "Pago Móvil Interbancario"}
+                  </span>
                 </button>
 
                 <button
@@ -655,7 +676,9 @@ export function SettlementPayoutModal({
                   } ${isInvoiceVerify ? "opacity-60 cursor-not-allowed" : ""}`}
                 >
                   <span>🏦</span>
-                  <span>Transferencia Bancaria</span>
+                  <span>
+                    {isEn ? "Bank Transfer" : "Transferencia Bancaria"}
+                  </span>
                 </button>
               </div>
             </div>
@@ -673,16 +696,24 @@ export function SettlementPayoutModal({
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                     <ShieldCheck aria-hidden="true" className="size-3.5" />
                     {isAllyToPlatform
-                      ? "🛡️ Cuenta Oficial Verificada YoReservo"
-                      : "🏢 Cuenta Corporativa del Aliado"}
+                      ? isEn
+                        ? "🛡️ Verified Official YoReservo Account"
+                        : "🛡️ Cuenta Oficial Verificada YoReservo"
+                      : isEn
+                        ? "🏢 Ally Corporate Account"
+                        : "🏢 Cuenta Corporativa del Aliado"}
                   </span>
                   <h4 className="mt-1 font-display text-base font-bold tracking-tight text-foreground">
                     {payoutMethod === "PAGO_MOVIL"
-                      ? "Realizar Pago Móvil a:"
-                      : "Realizar Transferencia Bancaria a:"}
+                      ? isEn
+                        ? "Make Pago Móvil to:"
+                        : "Realizar Pago Móvil a:"
+                      : isEn
+                        ? "Make Bank Transfer to:"
+                        : "Realizar Transferencia Bancaria a:"}
                   </h4>
                   <p className="text-xs text-muted-foreground">
-                    Beneficiario:{" "}
+                    {isEn ? "Beneficiary:" : "Beneficiario:"}{" "}
                     <strong className="text-foreground">
                       {payoutMethod === "PAGO_MOVIL"
                         ? destPagoMovil.beneficiaryName
@@ -699,12 +730,14 @@ export function SettlementPayoutModal({
                   {copiedAll ? (
                     <>
                       <Check aria-hidden="true" className="size-4" />
-                      <span>¡Copiado todo!</span>
+                      <span>{isEn ? "Copied all!" : "¡Copiado todo!"}</span>
                     </>
                   ) : (
                     <>
                       <ClipboardCopy aria-hidden="true" className="size-4" />
-                      <span>📋 Copiar Todos los Datos</span>
+                      <span>
+                        {isEn ? "📋 Copy All Details" : "📋 Copiar Todos los Datos"}
+                      </span>
                     </>
                   )}
                 </button>
@@ -717,7 +750,7 @@ export function SettlementPayoutModal({
                   <div className="flex items-center justify-between gap-2">
                     <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                       <Building2 aria-hidden="true" className="size-3.5 text-emerald-500" />
-                      🏦 Banco
+                      🏦 {isEn ? "Bank" : "Banco"}
                     </span>
                     <CopyCardButton
                       value={
@@ -725,6 +758,8 @@ export function SettlementPayoutModal({
                           ? destPagoMovil.bankCode
                           : destBankTransfer.bankCode
                       }
+                      copyLabel={isEn ? "Copy" : "Copiar"}
+                      copiedLabel={isEn ? "Copied" : "Copiado"}
                     />
                   </div>
                   <p className="mt-2 font-display text-base font-extrabold text-foreground">
@@ -745,17 +780,19 @@ export function SettlementPayoutModal({
                     <div className="flex items-center justify-between gap-2">
                       <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                         <Phone aria-hidden="true" className="size-3.5 text-emerald-500" />
-                        📱 Número de teléfono
+                        📱 {isEn ? "Phone number" : "Número de teléfono"}
                       </span>
                       <CopyCardButton
                         value={destPagoMovil.phone.replace(/\s+/g, "")}
+                        copyLabel={isEn ? "Copy" : "Copiar"}
+                        copiedLabel={isEn ? "Copied" : "Copiado"}
                       />
                     </div>
                     <p className="mt-2 select-all font-mono text-base font-extrabold tracking-wide text-foreground">
                       {destPagoMovil.phone}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      Pago Móvil Interbancario
+                      {isEn ? "Interbank Pago Móvil" : "Pago Móvil Interbancario"}
                     </p>
                   </div>
                 ) : (
@@ -763,17 +800,20 @@ export function SettlementPayoutModal({
                     <div className="flex items-center justify-between gap-2">
                       <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                         <Hash aria-hidden="true" className="size-3.5 text-emerald-500" />
-                        🔢 Número de cuenta
+                        🔢 {isEn ? "Account number" : "Número de cuenta"}
                       </span>
                       <CopyCardButton
                         value={destBankTransfer.accountNumber.replace(/\s+/g, "")}
+                        copyLabel={isEn ? "Copy" : "Copiar"}
+                        copiedLabel={isEn ? "Copied" : "Copiado"}
                       />
                     </div>
                     <p className="mt-2 select-all break-all font-mono text-sm font-extrabold tracking-wide text-foreground">
                       {destBankTransfer.accountNumber}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      {destBankTransfer.accountTypeLabel} (20 dígitos)
+                      {destBankTransfer.accountTypeLabel} (
+                      {isEn ? "20 digits" : "20 dígitos"})
                     </p>
                   </div>
                 )}
@@ -782,7 +822,7 @@ export function SettlementPayoutModal({
                 <div className="flex flex-col justify-between rounded-xl border border-border bg-muted/40 p-3.5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                      🪪 RIF / Documento
+                      🪪 {isEn ? "RIF / Tax ID" : "RIF / Documento"}
                     </span>
                     <CopyCardButton
                       value={
@@ -790,6 +830,8 @@ export function SettlementPayoutModal({
                           ? destPagoMovil.documentId
                           : destBankTransfer.documentId
                       }
+                      copyLabel={isEn ? "Copy" : "Copiar"}
+                      copiedLabel={isEn ? "Copied" : "Copiado"}
                     />
                   </div>
                   <p className="mt-2 select-all font-mono text-base font-extrabold tracking-wide text-foreground">
@@ -809,9 +851,13 @@ export function SettlementPayoutModal({
                   <div className="flex items-center justify-between gap-2">
                     <span className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                       <CreditCard aria-hidden="true" className="size-3.5 text-emerald-500" />
-                      💰 Monto a transferir
+                      💰 {isEn ? "Amount to transfer" : "Monto a transferir"}
                     </span>
-                    <CopyCardButton value={exactAmountBsText} />
+                    <CopyCardButton
+                      value={exactAmountBsText}
+                      copyLabel={isEn ? "Copy" : "Copiar"}
+                      copiedLabel={isEn ? "Copied" : "Copiado"}
+                    />
                   </div>
                   <p
                     className="mt-2 select-all font-display text-lg font-extrabold tracking-tight text-foreground"
@@ -844,18 +890,32 @@ export function SettlementPayoutModal({
                 <h4 className="font-display text-base font-bold text-foreground">
                   {isInvoiceReport
                     ? payoutMethod === "PAGO_MOVIL"
-                      ? "Datos de tu Pago Móvil realizado"
-                      : "Datos de tu Transferencia Bancaria realizada"
+                      ? isEn
+                        ? "Details of your Pago Móvil"
+                        : "Datos de tu Pago Móvil realizado"
+                      : isEn
+                        ? "Details of your Bank Transfer"
+                        : "Datos de tu Transferencia Bancaria realizada"
                     : isInvoiceVerify
-                      ? "Datos del Pago Reportado por el Aliado"
-                      : "Registro del Desembolso Ejecutado"}
+                      ? isEn
+                        ? "Payment Details Reported by Ally"
+                        : "Datos del Pago Reportado por el Aliado"
+                      : isEn
+                        ? "Record Executed Disbursement"
+                        : "Registro del Desembolso Ejecutado"}
                 </h4>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {isInvoiceReport
-                    ? "Reporta los datos de tu pago de comisión a YoReservo para su conciliación."
+                    ? isEn
+                      ? "Report your commission payment details to YoReservo for reconciliation."
+                      : "Reporta los datos de tu pago de comisión a YoReservo para su conciliación."
                     : isInvoiceVerify
-                      ? "Verifica los datos reportados por la organización aliada en el estado de cuenta bancario."
-                      : "Registra la referencia y soporte del pago realizado al aliado."}
+                      ? isEn
+                        ? "Verify the details reported by the ally organization against the bank statement."
+                        : "Verifica los datos reportados por la organización aliada en el estado de cuenta bancario."
+                      : isEn
+                        ? "Record the reference and voucher for the payout executed to the ally."
+                        : "Registra la referencia y soporte del pago realizado al aliado."}
                 </p>
               </div>
 
@@ -870,13 +930,19 @@ export function SettlementPayoutModal({
                     <span className="flex items-center gap-2">
                       <Zap aria-hidden="true" className="size-4 shrink-0 text-emerald-500" />
                       <span>
-                        ⚡ Autocompletar con los datos de mi Organización (
-                        {savedAllyBank || "Banco"}
-                        {savedAllyPhoneRaw ? ` • ${savedAllyPhoneRaw}` : ""})
+                        {isEn
+                          ? `⚡ Autofill with my Organization's details (${savedAllyBank || "Bank"}${savedAllyPhoneRaw ? ` • ${savedAllyPhoneRaw}` : ""})`
+                          : `⚡ Autocompletar con los datos de mi Organización (${savedAllyBank || "Banco"}${savedAllyPhoneRaw ? ` • ${savedAllyPhoneRaw}` : ""})`}
                       </span>
                     </span>
                     <span className="shrink-0 rounded-lg bg-surface px-2.5 py-1 text-[11px] font-extrabold text-emerald-500 shadow-2xs">
-                      {autofilled ? "✓ Aplicado" : "1-Toque"}
+                      {autofilled
+                        ? isEn
+                          ? "✓ Applied"
+                          : "✓ Aplicado"
+                        : isEn
+                          ? "1-Tap"
+                          : "1-Toque"}
                     </span>
                   </button>
                 </div>
@@ -886,7 +952,9 @@ export function SettlementPayoutModal({
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
                   {isAllyToPlatform
-                    ? "Banco desde donde transferiste *"
+                    ? isEn
+                      ? "Bank from which you transferred *"
+                      : "Banco desde donde transferiste *"
                     : t("lblOriginAccount")}
                 </label>
                 {isAllyToPlatform ? (
@@ -902,8 +970,12 @@ export function SettlementPayoutModal({
                       value={allyOriginBank}
                       onChange={setAllyOriginBank}
                       options={VENEZUELAN_BANKS}
-                      placeholder="Elige tu banco"
-                      searchPlaceholder="Escribe el nombre o código del banco..."
+                      placeholder={isEn ? "Choose your bank" : "Elige tu banco"}
+                      searchPlaceholder={
+                        isEn
+                          ? "Type bank name or code..."
+                          : "Escribe el nombre o código del banco..."
+                      }
                     />
                   )
                 ) : (
@@ -924,7 +996,9 @@ export function SettlementPayoutModal({
               {isInvoiceReport && payoutMethod === "PAGO_MOVIL" && (
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                    Teléfono desde donde realizaste el Pago Móvil *
+                    {isEn
+                      ? "Phone number from which you made the Pago Móvil *"
+                      : "Teléfono desde donde realizaste el Pago Móvil *"}
                   </label>
                   <div className="grid grid-cols-12 gap-2.5">
                     <div className="col-span-3 sm:col-span-2">
@@ -933,7 +1007,11 @@ export function SettlementPayoutModal({
                         readOnly
                         value="+58 🇻🇪"
                         className="form-input text-center font-mono text-xs bg-muted/50 text-muted-foreground cursor-not-allowed"
-                        title="Código de país (Venezuela)"
+                        title={
+                          isEn
+                            ? "Country code (Venezuela)"
+                            : "Código de país (Venezuela)"
+                        }
                       />
                     </div>
                     <div className="col-span-4 sm:col-span-4">
@@ -941,8 +1019,10 @@ export function SettlementPayoutModal({
                         value={phoneOperator}
                         onChange={setPhoneOperator}
                         options={PHONE_OPERATORS}
-                        placeholder="Operadora"
-                        searchPlaceholder="Buscar operadora..."
+                        placeholder={isEn ? "Carrier" : "Operadora"}
+                        searchPlaceholder={
+                          isEn ? "Search carrier..." : "Buscar operadora..."
+                        }
                       />
                     </div>
                     <div className="col-span-5 sm:col-span-6">
@@ -967,7 +1047,11 @@ export function SettlementPayoutModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                    {isAllyToPlatform ? "Fecha del pago *" : t("lblPayoutDate")}
+                    {isAllyToPlatform
+                      ? isEn
+                        ? "Payment date *"
+                        : "Fecha del pago *"
+                      : t("lblPayoutDate")}
                   </label>
                   <input
                     type="date"
@@ -983,7 +1067,9 @@ export function SettlementPayoutModal({
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
                     {isAllyToPlatform
-                      ? "Número de referencia (6 a 12 dígitos) *"
+                      ? isEn
+                        ? "Reference number (6 to 12 digits) *"
+                        : "Número de referencia (6 a 12 dígitos) *"
                       : t("lblTransferRef")}
                   </label>
                   <input
@@ -999,12 +1085,14 @@ export function SettlementPayoutModal({
                           : e.target.value,
                       )
                     }
-                    placeholder="Ej. 0029384756"
+                    placeholder={isEn ? "e.g. 0029384756" : "Ej. 0029384756"}
                     className="form-input font-mono font-bold text-xs"
                     id="modal-transfer-ref"
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    Ingresa de 6 a 12 dígitos del comprobante bancario.
+                    {isEn
+                      ? "Enter 6 to 12 digits from the bank receipt."
+                      : "Ingresa de 6 a 12 dígitos del comprobante bancario."}
                   </p>
                 </div>
               </div>
@@ -1012,7 +1100,9 @@ export function SettlementPayoutModal({
               {/* Upload Voucher (Client App Style) */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Comprobante de pago — Imagen o PDF (opcional)
+                  {isEn
+                    ? "Payment receipt — Image or PDF (optional)"
+                    : "Comprobante de pago — Imagen o PDF (opcional)"}
                 </label>
                 <input
                   ref={fileInputRef}
@@ -1045,7 +1135,7 @@ export function SettlementPayoutModal({
                           rel="noopener noreferrer"
                           className="ml-2 text-emerald-500 underline font-bold"
                         >
-                          Ver archivo
+                          {isEn ? "View file" : "Ver archivo"}
                         </a>
                       )}
                     </div>
@@ -1054,7 +1144,7 @@ export function SettlementPayoutModal({
                       onClick={clearUploadedReceipt}
                       disabled={loading || uploadingFile}
                       className="grid size-6 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-border hover:text-foreground cursor-pointer"
-                      title="Quitar comprobante"
+                      title={isEn ? "Remove receipt" : "Quitar comprobante"}
                     >
                       <X aria-hidden="true" className="size-3.5" />
                     </button>
@@ -1077,8 +1167,12 @@ export function SettlementPayoutModal({
                     )}
                     <span>
                       {uploadingFile
-                        ? "Subiendo comprobante..."
-                        : "Subir captura o PDF del comprobante (máx. 5 MB)"}
+                        ? isEn
+                          ? "Uploading receipt..."
+                          : "Subiendo comprobante..."
+                        : isEn
+                          ? "Upload screenshot or PDF of receipt (max. 5 MB)"
+                          : "Subir captura o PDF del comprobante (máx. 5 MB)"}
                     </span>
                   </label>
                 )}
@@ -1102,7 +1196,9 @@ export function SettlementPayoutModal({
               {/* Bottom Confirmation Amount Box (Client App Reference) */}
               <div className="rounded-xl border border-border bg-muted/50 p-3.5">
                 <p className="text-xs text-muted-foreground">
-                  Monto a reportar en bolívares (calculado en {currCode} a tasa BCV Bs.{" "}
+                  {isEn
+                    ? `Amount to report in bolívares (calculated in ${currCode} at BCV rate Bs. `
+                    : `Monto a reportar en bolívares (calculado en ${currCode} a tasa BCV Bs. `}
                   {rateUsed.toLocaleString("es-VE", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,

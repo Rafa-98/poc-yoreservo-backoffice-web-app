@@ -14,6 +14,7 @@ export interface SpaceRef {
   venue: {
     id: string;
     name: string;
+    organizationId?: string;
   };
 }
 

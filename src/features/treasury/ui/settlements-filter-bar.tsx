@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { SettlementDirection, SettlementFilter } from "../model/types";
 import {
   OrganizationAdvancedSelector,
@@ -35,6 +35,7 @@ export function SettlementsFilterBar({
   counts,
 }: SettlementsFilterBarProps) {
   const t = useTranslations("settlements");
+  const isEn = useLocale().toLowerCase().startsWith("en");
 
   function handleSelectDirection(direction: SettlementDirection) {
     onChangeFilter({ direction });
@@ -60,10 +61,14 @@ export function SettlementsFilterBar({
             </span>
             <div>
               <div className="font-display text-xs sm:text-sm font-bold text-foreground">
-                Liquidaciones a Aliados (Custodia YoReservo)
+                {isEn
+                  ? "Payouts to Allies (YoReservo Custody)"
+                  : "Liquidaciones a Aliados (Custodia YoReservo)"}
               </div>
               <div className="text-[11px] text-muted-foreground mt-0.5">
-                Pagos cobrados en cuentas de YoReservo que se transfieren al Aliado
+                {isEn
+                  ? "Payments collected into YoReservo accounts that are transferred to the Ally"
+                  : "Pagos cobrados en cuentas de YoReservo que se transfieren al Aliado"}
               </div>
             </div>
           </div>
@@ -71,11 +76,18 @@ export function SettlementsFilterBar({
           <div className="flex flex-col items-end gap-1 shrink-0">
             <span className="rounded-full bg-surface border border-border px-2.5 py-0.5 text-[11px] font-bold text-foreground">
               {directionCounts.platformToAllyBatches}{" "}
-              {directionCounts.platformToAllyBatches === 1 ? "lote" : "lotes"}
+              {directionCounts.platformToAllyBatches === 1
+                ? isEn
+                  ? "batch"
+                  : "lote"
+                : isEn
+                  ? "batches"
+                  : "lotes"}
             </span>
             {directionCounts.platformToAllyUnsettledUsd > 0 && (
               <span className="rounded-full bg-status-hold-bg border border-status-hold-border px-2 py-0.5 text-[10px] font-bold text-status-hold-fg">
-                ⚡ ${directionCounts.platformToAllyUnsettledUsd.toFixed(2)} sin lote
+                ⚡ ${directionCounts.platformToAllyUnsettledUsd.toFixed(2)}{" "}
+                {isEn ? "unbatched" : "sin lote"}
               </span>
             )}
           </div>
@@ -97,10 +109,14 @@ export function SettlementsFilterBar({
             </span>
             <div>
               <div className="font-display text-xs sm:text-sm font-bold text-foreground">
-                Comisiones a YoReservo (Cobro Directo del Aliado)
+                {isEn
+                  ? "Commissions to YoReservo (Ally Direct Collection)"
+                  : "Comisiones a YoReservo (Cobro Directo del Aliado)"}
               </div>
               <div className="text-[11px] text-muted-foreground mt-0.5">
-                Comisiones generadas cuando el cliente paga directo al Aliado
+                {isEn
+                  ? "Commissions generated when the client pays directly to the Ally"
+                  : "Comisiones generadas cuando el cliente paga directo al Aliado"}
               </div>
             </div>
           </div>
@@ -108,11 +124,18 @@ export function SettlementsFilterBar({
           <div className="flex flex-col items-end gap-1 shrink-0">
             <span className="rounded-full bg-surface border border-border px-2.5 py-0.5 text-[11px] font-bold text-foreground">
               {directionCounts.allyToPlatformBatches}{" "}
-              {directionCounts.allyToPlatformBatches === 1 ? "lote" : "lotes"}
+              {directionCounts.allyToPlatformBatches === 1
+                ? isEn
+                  ? "batch"
+                  : "lote"
+                : isEn
+                  ? "batches"
+                  : "lotes"}
             </span>
             {directionCounts.allyToPlatformUnsettledUsd > 0 && (
               <span className="rounded-full bg-status-hold-bg border border-status-hold-border px-2 py-0.5 text-[10px] font-bold text-status-hold-fg">
-                ⚡ ${directionCounts.allyToPlatformUnsettledUsd.toFixed(2)} sin lote
+                ⚡ ${directionCounts.allyToPlatformUnsettledUsd.toFixed(2)}{" "}
+                {isEn ? "unbatched" : "sin lote"}
               </span>
             )}
           </div>
@@ -145,12 +168,20 @@ export function SettlementsFilterBar({
               className="form-select text-xs font-semibold h-9"
               id="settlements-period-filter"
             >
-              <option value="TODAY">📅 Hoy</option>
-              <option value="YESTERDAY">📅 Ayer</option>
-              <option value="LAST_7_DAYS">📅 Últimos 7 días</option>
-              <option value="THIS_MONTH">📅 Este mes</option>
-              <option value="CUSTOM">📆 Rango personalizado</option>
-              <option value="ALL">🗂️ Histórico completo</option>
+              <option value="TODAY">📅 {isEn ? "Today" : "Hoy"}</option>
+              <option value="YESTERDAY">📅 {isEn ? "Yesterday" : "Ayer"}</option>
+              <option value="LAST_7_DAYS">
+                📅 {isEn ? "Last 7 days" : "Últimos 7 días"}
+              </option>
+              <option value="THIS_MONTH">
+                📅 {isEn ? "This month" : "Este mes"}
+              </option>
+              <option value="CUSTOM">
+                📆 {isEn ? "Custom range" : "Rango personalizado"}
+              </option>
+              <option value="ALL">
+                🗂️ {isEn ? "Full history" : "Histórico completo"}
+              </option>
             </select>
           </div>
 
@@ -162,7 +193,7 @@ export function SettlementsFilterBar({
                 value={filter.fromDate || ""}
                 onChange={(e) => onChangeFilter({ fromDate: e.target.value })}
                 className="form-input text-xs h-9 w-[135px]"
-                aria-label="Desde"
+                aria-label={isEn ? "From" : "Desde"}
               />
               <span className="text-xs text-muted-foreground">→</span>
               <input
@@ -170,14 +201,16 @@ export function SettlementsFilterBar({
                 value={filter.toDate || ""}
                 onChange={(e) => onChangeFilter({ toDate: e.target.value })}
                 className="form-input text-xs h-9 w-[135px]"
-                aria-label="Hasta"
+                aria-label={isEn ? "To" : "Hasta"}
               />
             </div>
           )}
 
           {/* Explicit Active Date Range Pill */}
           <div className="inline-flex items-center gap-1.5 rounded-lg bg-muted/60 border border-border px-2.5 py-1.5 text-[11px] font-semibold text-foreground">
-            <span className="text-muted-foreground">Rango activo:</span>
+            <span className="text-muted-foreground">
+              {isEn ? "Active range:" : "Rango activo:"}
+            </span>
             <span>{periodRangeLabel}</span>
           </div>
 
@@ -185,13 +218,14 @@ export function SettlementsFilterBar({
           {organizations.length > 1 && (
             <OrganizationAdvancedSelector
               id="settlements-org-filter"
+              label={isEn ? "Organization:" : "Organización:"}
               organizations={organizations}
               selectedOrganizationId={filter.organizationId}
               onSelectOrganization={(orgId) =>
                 onChangeFilter({ organizationId: orgId })
               }
               allowAll
-              allLabel={t("filterAllVenues")}
+              allLabel={isEn ? "All Organizations" : "Todas las Organizaciones"}
               selectedStateFilter={filter.stateFilter || "ALL"}
               onChangeStateFilter={(state) =>
                 onChangeFilter({ stateFilter: state })
@@ -212,7 +246,7 @@ export function SettlementsFilterBar({
             }`}
             id="chip-status-all"
           >
-            Todos ({counts.all})
+            {isEn ? "All" : "Todos"} ({counts.all})
           </button>
 
           <button
@@ -225,7 +259,7 @@ export function SettlementsFilterBar({
             }`}
             id="chip-status-pending"
           >
-            Por Pagar ({counts.pending})
+            {isEn ? "Pending" : "Por Pagar"} ({counts.pending})
           </button>
 
           <button
@@ -238,7 +272,7 @@ export function SettlementsFilterBar({
             }`}
             id="chip-status-disbursed"
           >
-            Pagados ({counts.disbursed})
+            {isEn ? "Paid" : "Pagados"} ({counts.disbursed})
           </button>
         </div>
       </div>

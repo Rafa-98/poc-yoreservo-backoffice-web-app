@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLocale } from "next-intl";
 import type { SettlementDirection } from "../model/types";
 
 export interface SettlementsDynamicKpis {
@@ -31,6 +32,7 @@ export function SettlementsKpiStrip({
   direction,
   periodRangeLabel,
 }: SettlementsKpiStripProps) {
+  const isEn = useLocale().toLowerCase().startsWith("en");
   const isAllyToPlatform = direction === "ALLY_TO_PLATFORM";
   const currCode = dynamicKpis.primaryCurrencyCode;
   const sym = currCode === "EUR" ? "€" : "$";
@@ -42,14 +44,22 @@ export function SettlementsKpiStrip({
         <div className="flex items-start justify-between gap-2">
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {isAllyToPlatform
-              ? "⚡ Comisión Acumulada (Sin Lote)"
-              : "⚡ Saldo Acumulado (Sin Lote)"}
+              ? isEn
+                ? "⚡ Accrued Commission (Unbatched)"
+                : "⚡ Comisión Acumulada (Sin Lote)"
+              : isEn
+                ? "⚡ Accrued Balance (Unbatched)"
+                : "⚡ Saldo Acumulado (Sin Lote)"}
           </span>
           <span className="rounded-full bg-accent/15 border border-accent/40 px-2.5 py-0.5 text-[11px] font-bold text-foreground">
             {dynamicKpis.unsettledReservationsCount}{" "}
             {dynamicKpis.unsettledReservationsCount === 1
-              ? "reserva verificada"
-              : "reservas verificadas"}
+              ? isEn
+                ? "verified booking"
+                : "reserva verificada"
+              : isEn
+                ? "verified bookings"
+                : "reservas verificadas"}
           </span>
         </div>
 
@@ -74,9 +84,11 @@ export function SettlementsKpiStrip({
             })}
           </div>
           <div className="mt-2 pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
-            <span>🟢 Tiempo real (Pagos verificados)</span>
+            <span>
+              {isEn ? "🟢 Real-time (Verified payments)" : "🟢 Tiempo real (Pagos verificados)"}
+            </span>
             <span className="font-semibold text-foreground">
-              Bruto: {sym}
+              {isEn ? "Gross:" : "Bruto:"} {sym}
               {dynamicKpis.unsettledGrossRef.toFixed(2)} {currCode}
             </span>
           </div>
@@ -88,14 +100,22 @@ export function SettlementsKpiStrip({
         <div className="flex items-start justify-between gap-2">
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {isAllyToPlatform
-              ? "⏳ Lotes de Comisión por Cobrar"
-              : "⏳ Lotes por Transferir a Aliados"}
+              ? isEn
+                ? "⏳ Commission Batches Due"
+                : "⏳ Lotes de Comisión por Cobrar"
+              : isEn
+                ? "⏳ Batches Pending Transfer to Allies"
+                : "⏳ Lotes por Transferir a Aliados"}
           </span>
           <span className="rounded-full bg-status-hold-bg border border-status-hold-border px-2.5 py-0.5 text-[11px] font-bold text-status-hold-fg">
             {dynamicKpis.pendingBatchesCount}{" "}
             {dynamicKpis.pendingBatchesCount === 1
-              ? "lote en espera"
-              : "lotes en espera"}
+              ? isEn
+                ? "pending batch"
+                : "lote en espera"
+              : isEn
+                ? "pending batches"
+                : "lotes en espera"}
           </span>
         </div>
 
@@ -123,11 +143,11 @@ export function SettlementsKpiStrip({
             <span>📅 {periodRangeLabel}</span>
             {!isAllyToPlatform ? (
               <span className="font-semibold text-foreground">
-                Fee retenido: {sym}
+                {isEn ? "Retained fee:" : "Fee retenido:"} {sym}
                 {dynamicKpis.pendingBatchesFeeRef.toFixed(2)}
               </span>
             ) : (
-              <span>Cortes congelados</span>
+              <span>{isEn ? "Frozen cutoffs" : "Cortes congelados"}</span>
             )}
           </div>
         </div>
@@ -138,14 +158,22 @@ export function SettlementsKpiStrip({
         <div className="flex items-start justify-between gap-2">
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {isAllyToPlatform
-              ? "✓ Comisiones Recibidas en el Período"
-              : "✓ Total Transferido en el Período"}
+              ? isEn
+                ? "✓ Commissions Collected in Period"
+                : "✓ Comisiones Recibidas en el Período"
+              : isEn
+                ? "✓ Total Transferred in Period"
+                : "✓ Total Transferido en el Período"}
           </span>
           <span className="rounded-full bg-status-confirmed-bg border border-status-confirmed-border px-2.5 py-0.5 text-[11px] font-bold text-status-confirmed-fg">
             {dynamicKpis.disbursedBatchesCount}{" "}
             {dynamicKpis.disbursedBatchesCount === 1
-              ? "lote pagado"
-              : "lotes pagados"}
+              ? isEn
+                ? "paid batch"
+                : "lote pagado"
+              : isEn
+                ? "paid batches"
+                : "lotes pagados"}
           </span>
         </div>
 
@@ -173,7 +201,7 @@ export function SettlementsKpiStrip({
             <span>📅 {periodRangeLabel}</span>
             {!isAllyToPlatform && (
               <span className="font-semibold text-foreground">
-                Fee liquidado: {sym}
+                {isEn ? "Settled fee:" : "Fee liquidado:"} {sym}
                 {dynamicKpis.disbursedBatchesFeeRef.toFixed(2)}
               </span>
             )}

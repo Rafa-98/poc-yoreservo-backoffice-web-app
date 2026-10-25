@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Clock, Moon, Sun, Sunrise } from "lucide-react";
+import { Clock, Maximize2, Moon, Sun, Sunrise } from "lucide-react";
 import {
   addDaysToIsoDate,
   DEFAULT_VENUE_TIMEZONE,
@@ -24,6 +24,7 @@ export interface AgendaControlsBarProps {
   sportsList: { key: string; label: string; count: number }[];
   totalCourtsCount: number;
   venueTimezone?: string;
+  onOpenFullscreen?: () => void;
 }
 
 export function AgendaControlsBar({
@@ -36,6 +37,7 @@ export function AgendaControlsBar({
   sportsList,
   totalCourtsCount,
   venueTimezone = DEFAULT_VENUE_TIMEZONE,
+  onOpenFullscreen,
 }: AgendaControlsBarProps) {
   const t = useTranslations("agenda");
   const [mounted, setMounted] = useState(false);
@@ -201,59 +203,74 @@ export function AgendaControlsBar({
           })}
         </div>
 
-        {/* Time-of-Day Filter Toggles */}
-        <div
-          id="agenda-daypart-toggles"
-          className="inline-flex flex-wrap items-center rounded-xl border border-border bg-background p-1 text-xs font-semibold"
-        >
-          <button
-            type="button"
-            onClick={() => onDayPartChange("all")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all ${
-              selectedDayPart === "all"
-                ? "bg-accent text-accent-foreground font-bold shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+        {/* Time-of-Day Filter Toggles & Fullscreen Button */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div
+            id="agenda-daypart-toggles"
+            className="inline-flex flex-wrap items-center rounded-xl border border-border bg-background p-1 text-xs font-semibold"
           >
-            <Clock className="size-3.5" />
-            <span>{t("dayPartAll")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onDayPartChange("morning")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all ${
-              selectedDayPart === "morning"
-                ? "bg-accent text-accent-foreground font-bold shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Sunrise className="size-3.5" />
-            <span>{t("dayPartMorning")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onDayPartChange("afternoon")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all ${
-              selectedDayPart === "afternoon"
-                ? "bg-accent text-accent-foreground font-bold shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Sun className="size-3.5" />
-            <span>{t("dayPartAfternoon")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onDayPartChange("night")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all ${
-              selectedDayPart === "night"
-                ? "bg-accent text-accent-foreground font-bold shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Moon className="size-3.5" />
-            <span>{t("dayPartNight")}</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => onDayPartChange("all")}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all ${
+                selectedDayPart === "all"
+                  ? "bg-accent text-accent-foreground font-bold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Clock className="size-3.5" />
+              <span>{t("dayPartAll")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onDayPartChange("morning")}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all ${
+                selectedDayPart === "morning"
+                  ? "bg-accent text-accent-foreground font-bold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Sunrise className="size-3.5" />
+              <span>{t("dayPartMorning")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onDayPartChange("afternoon")}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all ${
+                selectedDayPart === "afternoon"
+                  ? "bg-accent text-accent-foreground font-bold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Sun className="size-3.5" />
+              <span>{t("dayPartAfternoon")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onDayPartChange("night")}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all ${
+                selectedDayPart === "night"
+                  ? "bg-accent text-accent-foreground font-bold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Moon className="size-3.5" />
+              <span>{t("dayPartNight")}</span>
+            </button>
+          </div>
+
+          {onOpenFullscreen && (
+            <button
+              type="button"
+              id="btn-agenda-fullscreen"
+              onClick={onOpenFullscreen}
+              className="inline-flex items-center gap-2 rounded-xl border border-border-medium bg-surface px-3.5 py-2 text-xs font-extrabold text-foreground shadow-xs hover:border-accent hover:bg-accent/15 transition-all active:scale-95 cursor-pointer"
+              title="Abrir horario en pantalla completa"
+            >
+              <Maximize2 className="size-3.5 text-link" />
+              <span>Ver horario en pantalla completa</span>
+            </button>
+          )}
         </div>
       </div>
     </section>

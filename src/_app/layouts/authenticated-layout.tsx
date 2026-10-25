@@ -13,6 +13,7 @@ const SIDEBAR_PINNED_STORAGE_KEY = "yoreservo:sidebar-pinned-v2";
 export interface AuthenticatedLayoutProps {
   user: SessionUser;
   initialVenues?: VenueItem[];
+  initialActiveOrganizationId?: string;
   initialActiveVenueId?: string;
   children: ReactNode;
 }
@@ -20,6 +21,7 @@ export interface AuthenticatedLayoutProps {
 export function AuthenticatedLayout({
   user,
   initialVenues = [],
+  initialActiveOrganizationId,
   initialActiveVenueId,
   children,
 }: AuthenticatedLayoutProps) {
@@ -56,6 +58,7 @@ export function AuthenticatedLayout({
       <VenueProvider
         user={user}
         initialVenues={initialVenues}
+        initialActiveOrganizationId={initialActiveOrganizationId}
         initialActiveVenueId={initialActiveVenueId}
       >
         <div className="relative flex h-screen w-full overflow-hidden bg-background">

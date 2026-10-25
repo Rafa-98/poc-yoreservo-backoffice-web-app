@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { CatalogsSubnav } from "@/features/catalogs/ui/catalogs-subnav";
 import { TaxonomyTree } from "@/features/catalogs/ui/taxonomy-tree";
 import { SurfacesTable } from "@/features/catalogs/ui/surfaces-table";
@@ -16,6 +16,7 @@ import {
   getTaxonomyAction,
 } from "@/features/catalogs/actions/catalogs-actions";
 import type {
+  ActivityCategoryItem,
   ActivityItem,
   ActivityTypeItem,
   AmenityItem,
@@ -34,6 +35,8 @@ export function CatalogsPage({
   initialAmenities,
 }: CatalogsPageProps) {
   const t = useTranslations("catalogs");
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
 
   const [activeTab, setActiveTab] = useState<"sports" | "surfaces" | "amenities">("sports");
 
@@ -43,11 +46,18 @@ export function CatalogsPage({
 
   // Modal states
   const [activityTypeIdForSport, setActivityTypeIdForSport] = useState<string | null>(null);
+  const [editingActivity, setEditingActivity] = useState<ActivityItem | null>(null);
   const [activityForCategory, setActivityForCategory] = useState<ActivityItem | null>(null);
+  const [editingCategory, setEditingCategory] = useState<ActivityCategoryItem | null>(null);
   const [isSurfaceModalOpen, setIsSurfaceModalOpen] = useState(false);
   const [editingSurface, setEditingSurface] = useState<SurfaceItem | null>(null);
   const [isAmenityModalOpen, setIsAmenityModalOpen] = useState(false);
   const [editingAmenity, setEditingAmenity] = useState<AmenityItem | null>(null);
+
+  const sportsCount = taxonomy.reduce(
+    (acc, tItem) => acc + (tItem.activities?.length || 0),
+    0,
+  );
 
   async function refreshTaxonomy() {
     const res = await getTaxonomyAction();
@@ -79,9 +89,6 @@ export function CatalogsPage({
             <h1 className="font-display text-2xl font-bold text-foreground">
               {t("title")}
             </h1>
-            <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-bold text-emerald-400">
-              {t("badge")}
-            </span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {t("subtitle")}
@@ -93,6 +100,7 @@ export function CatalogsPage({
       <CatalogsSubnav
         activeTab={activeTab}
         onChangeTab={setActiveTab}
+        sportsCount={sportsCount}
         surfacesCount={surfaces.length}
         amenitiesCount={amenities.length}
       />
@@ -102,14 +110,29 @@ export function CatalogsPage({
         {activeTab === "sports" && (
           <TaxonomyTree
             taxonomy={taxonomy}
-            onAddSport={(typeId) => setActivityTypeIdForSport(typeId)}
-            onAddCategory={(activity) => setActivityForCategory(activity)}
+            onAddSport={(typeId) => {
+              setEditingActivity(null);
+              setActivityTypeIdForSport(typeId);
+            }}
+            onEditSport={(typeId, activity) => {
+              setEditingActivity(activity);
+              setActivityTypeIdForSport(typeId);
+            }}
+            onAddCategory={(activity) => {
+              setEditingCategory(null);
+              setActivityForCategory(activity);
+            }}
+            onEditCategory={(activity, category) => {
+              setEditingCategory(category);
+              setActivityForCategory(activity);
+            }}
           />
         )}
 
         {activeTab === "surfaces" && (
           <SurfacesTable
             surfaces={surfaces}
+            taxonomy={taxonomy}
             onAddSurface={() => {
               setEditingSurface(null);
               setIsSurfaceModalOpen(true);
@@ -124,6 +147,7 @@ export function CatalogsPage({
         {activeTab === "amenities" && (
           <AmenitiesGrid
             amenities={amenities}
+            taxonomy={taxonomy}
             onAddAmenity={() => {
               setEditingAmenity(null);
               setIsAmenityModalOpen(true);
@@ -140,9 +164,14 @@ export function CatalogsPage({
       <ActivityModal
         isOpen={!!activityTypeIdForSport}
         activityTypeId={activityTypeIdForSport || ""}
-        onClose={() => setActivityTypeIdForSport(null)}
+        initialActivity={editingActivity}
+        onClose={() => {
+          setActivityTypeIdForSport(null);
+          setEditingActivity(null);
+        }}
         onSuccess={() => {
           setActivityTypeIdForSport(null);
+          setEditingActivity(null);
           refreshTaxonomy();
         }}
       />
@@ -150,9 +179,14 @@ export function CatalogsPage({
       <CategoryModal
         isOpen={!!activityForCategory}
         activity={activityForCategory}
-        onClose={() => setActivityForCategory(null)}
+        initialCategory={editingCategory}
+        onClose={() => {
+          setActivityForCategory(null);
+          setEditingCategory(null);
+        }}
         onSuccess={() => {
           setActivityForCategory(null);
+          setEditingCategory(null);
           refreshTaxonomy();
         }}
       />
@@ -160,6 +194,7 @@ export function CatalogsPage({
       <SurfaceModal
         isOpen={isSurfaceModalOpen}
         initialData={editingSurface}
+        taxonomy={taxonomy}
         onClose={() => {
           setIsSurfaceModalOpen(false);
           setEditingSurface(null);
@@ -181,11 +216,19 @@ export function CatalogsPage({
       <AmenityModal
         isOpen={isAmenityModalOpen}
         initialData={editingAmenity}
+        taxonomy={taxonomy}
         onClose={() => {
           setIsAmenityModalOpen(false);
           setEditingAmenity(null);
         }}
-        onSuccess={() => {
+        onSuccess={(savedAmenity) => {
+          if (savedAmenity) {
+            setAmenities((prev) =>
+              prev.some((a) => a.id === savedAmenity.id)
+                ? prev.map((a) => (a.id === savedAmenity.id ? savedAmenity : a))
+                : [...prev, savedAmenity],
+            );
+          }
           setIsAmenityModalOpen(false);
           setEditingAmenity(null);
           refreshAmenities();

@@ -48,8 +48,9 @@ export const ROUTES = {
   spaces: "/venues/spaces",
   schedules: "/venues/schedules",
 
-  // Module 5: users (RBAC) & master catalogs
+  // Module 5: users (RBAC), platform settings & master catalogs
   users: "/users",
+  platform: "/platform",
   catalogs: "/catalogs",
   support: "/support",
 } as const;
@@ -81,6 +82,7 @@ export const PROTECTED_ROUTE_PREFIXES: readonly string[] = [
   "/treasury",
   ROUTES.venues,
   ROUTES.users,
+  ROUTES.platform,
   ROUTES.catalogs,
   ROUTES.support,
   ROUTES.profile,
@@ -136,6 +138,7 @@ export const ROUTE_ALLOWED_ROLES: Record<string, readonly BackofficeRole[]> = {
   [ROUTES.schedules]: ["PLATFORM_ADMIN", "ALLY_ADMIN"],
   [ROUTES.venues]: ["PLATFORM_ADMIN", "ALLY_ADMIN"],
   [ROUTES.users]: ["PLATFORM_ADMIN", "ALLY_ADMIN"],
+  [ROUTES.platform]: ["PLATFORM_ADMIN"],
   [ROUTES.catalogs]: ["PLATFORM_ADMIN"],
   [ROUTES.support]: ["PLATFORM_ADMIN"],
   [ROUTES.profile]: [

@@ -49,7 +49,7 @@ export function DashboardActivityStream({
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-border bg-surface-muted hover:bg-surface text-xs font-bold text-foreground shadow-2xs transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
             >
               <RefreshCw
-                className={`size-3.5 text-primary ${isRefreshing ? "animate-spin" : ""}`}
+                className={`size-3.5 text-link ${isRefreshing ? "animate-spin" : ""}`}
               />
               <span>
                 {isRefreshing ? t("stream.refreshing") : t("stream.refresh")}
@@ -149,7 +149,7 @@ export function DashboardActivityStream({
               href={ROUTES.agenda}
               className="w-full inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border border-border bg-surface-muted text-foreground text-xs font-bold shadow-2xs hover:bg-surface hover:border-border/80 active:scale-98 transition-all"
             >
-              <Calendar className="size-4 text-accent-foreground" />
+              <Calendar className="size-4 text-link" />
               <span>{t("actions.goToAgenda")}</span>
               <ArrowRight className="size-3.5" />
             </Link>

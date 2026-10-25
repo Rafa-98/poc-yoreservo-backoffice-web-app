@@ -2,9 +2,10 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { ROUTES } from "@/shared/config";
 import { DEFAULT_BCV_EUR_RATE, DEFAULT_BCV_USD_RATE } from "@/shared/lib";
+import { useActiveVenue } from "@/features/venues/context/venue-context";
 import type {
   OrganizationData,
   PaymentCollectionMode,
@@ -20,7 +21,6 @@ import { OrgEditModal } from "@/features/venues/ui/org-edit-modal";
 import { CreateOrganizationModal } from "@/features/venues/ui/org-create-modal";
 import { OrganizationAdvancedSelector } from "@/features/venues/ui/organization-advanced-selector";
 import { PaymentMethodsConfigCard } from "@/features/venues/ui/payment-methods-config-card";
-import { PlatformSupportConfigCard } from "@/features/venues/ui/platform-support-config-card";
 import { Spinner } from "@/shared/ui";
 
 interface OrganizationPageProps {
@@ -38,9 +38,12 @@ export function OrganizationPage({
   bcvEurRate = DEFAULT_BCV_EUR_RATE,
   userRole,
 }: OrganizationPageProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const t = useTranslations("venues.top");
   const tOrg = useTranslations("venues.org");
   const tVenues = useTranslations("venues.venues");
+  const { setActiveOrganizationId } = useActiveVenue();
 
   const [org, setOrg] = useState<OrganizationData>(initialOrg);
   const [venues] = useState<VenueItem[]>(initialVenues);
@@ -52,10 +55,13 @@ export function OrganizationPage({
   const isPlatformAdmin = userRole === "PLATFORM_ADMIN";
   const canManageFacilities =
     userRole === "PLATFORM_ADMIN" || userRole === "ALLY_ADMIN";
-  const organizations = org.organizations ?? initialOrg.organizations ?? [];
+  const organizations = (org.organizations ?? initialOrg.organizations ?? []).filter(
+    (o) => !o.isPlatformOrg,
+  );
+  const allyVenues = venues.filter((v) => !v.isPlatformOrg);
   const displayedVenues = org.id
-    ? venues.filter((v) => !v.organizationId || v.organizationId === org.id)
-    : venues;
+    ? allyVenues.filter((v) => !v.organizationId || v.organizationId === org.id)
+    : allyVenues;
 
   function showToast(message: string, isError = false) {
     setToast({ message, isError });
@@ -64,6 +70,7 @@ export function OrganizationPage({
 
   async function handleSelectOrganization(orgId: string) {
     if (!orgId || orgId === org.id) return;
+    setActiveOrganizationId(orgId);
     setPendingOrgActionId(`select:${orgId}`);
     try {
       const res = await getOrganizationAction(orgId);
@@ -85,13 +92,38 @@ export function OrganizationPage({
   }
 
   function handleOrgSaved(updated: OrganizationData) {
-    setOrg((prev) => ({
-      ...updated,
-      organizations: updated.organizations ?? prev.organizations,
-      venuesCount:
-        updated.venuesCount || prev.venuesCount || displayedVenues.length,
-      spacesCount: updated.spacesCount || prev.spacesCount,
-    }));
+    setOrg((prev) => {
+      const nextOrgs =
+        updated.organizations ??
+        (prev.organizations || []).map((item) =>
+          item.id === updated.id
+            ? {
+                ...item,
+                tradeName: updated.tradeName || item.tradeName,
+                legalName: updated.legalName || item.legalName,
+                rif: updated.rif || item.rif,
+                fiscalAddress: updated.fiscalAddress || item.fiscalAddress,
+                paymentCollectionMode:
+                  updated.paymentCollectionMode || item.paymentCollectionMode,
+                commissionRate:
+                  updated.commissionRate !== undefined
+                    ? updated.commissionRate
+                    : item.commissionRate,
+                referenceCurrencyCode:
+                  updated.referenceCurrencyCode || item.referenceCurrencyCode,
+                contactEmail: updated.contactEmail || item.contactEmail,
+                contactPhone: updated.contactPhone || item.contactPhone,
+              }
+            : item,
+        );
+      return {
+        ...updated,
+        organizations: nextOrgs,
+        venuesCount:
+          updated.venuesCount || prev.venuesCount || displayedVenues.length,
+        spacesCount: updated.spacesCount || prev.spacesCount,
+      };
+    });
     showToast(t("toastOrgSaved"), false);
   }
 
@@ -123,7 +155,12 @@ export function OrganizationPage({
         organizations: nextOrgs,
       };
     });
-    showToast(`✓ Organización "${created.tradeName}" creada exitosamente`, false);
+    showToast(
+      isEn
+        ? `✓ Organization "${created.tradeName}" created successfully`
+        : `✓ Organización "${created.tradeName}" creada exitosamente`,
+      false,
+    );
   }
 
   async function handleUpdateOrgStatus(
@@ -170,7 +207,12 @@ export function OrganizationPage({
             organizations: nextOrgs,
           };
         });
-        showToast("✓ Estado operativo de la organización actualizado", false);
+        showToast(
+          isEn
+            ? "✓ Organization operational status updated"
+            : "✓ Estado operativo de la organización actualizado",
+          false,
+        );
       } else if (!res.ok) {
         showToast(res.error.code || tOrg("errorUpdate"), true);
       }
@@ -283,8 +325,27 @@ export function OrganizationPage({
               className="btn btn-primary inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold shadow-xs"
             >
               <span>+</span>
-              <span>Nueva Organización Aliada</span>
+              <span>
+                {isEn ? "New Ally Organization" : "Nueva Organización Aliada"}
+              </span>
             </button>
+          )}
+
+          {isPlatformAdmin && (
+            <Link
+              href={ROUTES.platform}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 py-2 text-xs font-bold text-foreground shadow-2xs hover:bg-muted transition-all"
+              title={
+                isEn
+                  ? "Manage YoReservo Custody payment methods and support channels"
+                  : "Gestionar métodos de pago en Custodia YoReservo y canales de soporte"
+              }
+            >
+              <span>🛡️</span>
+              <span>
+                {isEn ? "YoReservo Settings" : "Configuración YoReservo"}
+              </span>
+            </Link>
           )}
 
           {canManageFacilities && (
@@ -328,10 +389,14 @@ export function OrganizationPage({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="text-[11px] font-extrabold tracking-wider text-link uppercase">
-                  🛡️ Gobernanza Multi-Organización (YoReservo Admin)
+                  {isEn
+                    ? "🛡️ Multi-Organization Governance (YoReservo Admin)"
+                    : "🛡️ Gobernanza Multi-Organización (YoReservo Admin)"}
                 </div>
                 <h2 className="mt-0.5 text-base font-bold text-foreground">
-                  Directorio & Gobernanza de Organizaciones Aliadas ({totalOrgsCount})
+                  {isEn
+                    ? `Directory & Governance of Ally Organizations (${totalOrgsCount})`
+                    : `Directorio & Gobernanza de Organizaciones Aliadas (${totalOrgsCount})`}
                 </h2>
               </div>
               <button
@@ -339,7 +404,7 @@ export function OrganizationPage({
                 onClick={() => setIsCreateOrgModalOpen(true)}
                 className="btn btn-outline text-xs"
               >
-                + Registrar Aliado
+                {isEn ? "+ Register Ally" : "+ Registrar Aliado"}
               </button>
             </div>
 
@@ -347,49 +412,59 @@ export function OrganizationPage({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-xl border border-border bg-muted/40 p-3.5">
                 <div className="text-[11px] font-bold uppercase text-muted-foreground">
-                  Total Organizaciones
+                  {isEn ? "Total Organizations" : "Total Organizaciones"}
                 </div>
                 <div className="mt-1 font-display text-2xl font-extrabold text-foreground">
                   {totalOrgsCount}
                 </div>
                 <div className="text-[11px] text-muted-foreground">
-                  Empresas aliadas registradas
+                  {isEn
+                    ? "Registered ally companies"
+                    : "Empresas aliadas registradas"}
                 </div>
               </div>
 
               <div className="rounded-xl border border-border bg-muted/40 p-3.5">
                 <div className="text-[11px] font-bold uppercase text-muted-foreground">
-                  Organizaciones Activas
+                  {isEn ? "Active Organizations" : "Organizaciones Activas"}
                 </div>
                 <div className="mt-1 font-display text-2xl font-extrabold text-status-available-fg">
                   {activeOrgsCount}
                 </div>
                 <div className="text-[11px] text-muted-foreground">
-                  Recibiendo reservas en línea
+                  {isEn
+                    ? "Receiving online bookings"
+                    : "Recibiendo reservas en línea"}
                 </div>
               </div>
 
               <div className="rounded-xl border border-border bg-muted/40 p-3.5">
                 <div className="text-[11px] font-bold uppercase text-muted-foreground">
-                  Inactivas / Reservas Pausadas
+                  {isEn
+                    ? "Inactive / Paused Bookings"
+                    : "Inactivas / Reservas Pausadas"}
                 </div>
                 <div className="mt-1 font-display text-2xl font-extrabold text-amber-500">
                   {inactiveOrPausedCount}
                 </div>
                 <div className="text-[11px] text-muted-foreground">
-                  Suspendidas o en pausa
+                  {isEn ? "Suspended or paused" : "Suspendidas o en pausa"}
                 </div>
               </div>
 
               <div className="rounded-xl border border-border bg-muted/40 p-3.5">
                 <div className="text-[11px] font-bold uppercase text-muted-foreground">
-                  Custodia vs Cobro Directo
+                  {isEn
+                    ? "Custody vs Direct Collection"
+                    : "Custodia vs Cobro Directo"}
                 </div>
                 <div className="mt-1 font-display text-lg font-extrabold text-link">
-                  {custodyOrgsCount} Custodia • {directOrgsCount} Directo
+                  {isEn
+                    ? `${custodyOrgsCount} Custody • ${directOrgsCount} Direct`
+                    : `${custodyOrgsCount} Custodia • ${directOrgsCount} Directo`}
                 </div>
                 <div className="text-[11px] text-muted-foreground">
-                  Modalidad de recaudación
+                  {isEn ? "Collection mode" : "Modalidad de recaudación"}
                 </div>
               </div>
             </div>
@@ -399,12 +474,22 @@ export function OrganizationPage({
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
                   <tr className="border-b border-border bg-muted/60 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                    <th className="px-4 py-3">Organización & RIF</th>
-                    <th className="px-4 py-3">Sedes</th>
-                    <th className="px-4 py-3">Moneda & Comisión</th>
-                    <th className="px-4 py-3">Modalidad Cobro</th>
-                    <th className="px-4 py-3">Estatus Operativo</th>
-                    <th className="px-4 py-3 text-right">Acciones de Gobernanza</th>
+                    <th className="px-4 py-3">
+                      {isEn ? "Organization & Tax ID" : "Organización & RIF"}
+                    </th>
+                    <th className="px-4 py-3">{isEn ? "Venues" : "Sedes"}</th>
+                    <th className="px-4 py-3">
+                      {isEn ? "Currency & Commission" : "Moneda & Comisión"}
+                    </th>
+                    <th className="px-4 py-3">
+                      {isEn ? "Collection Mode" : "Modalidad Cobro"}
+                    </th>
+                    <th className="px-4 py-3">
+                      {isEn ? "Operational Status" : "Estatus Operativo"}
+                    </th>
+                    <th className="px-4 py-3 text-right">
+                      {isEn ? "Governance Actions" : "Acciones de Gobernanza"}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -452,7 +537,14 @@ export function OrganizationPage({
                           </div>
                         </td>
                         <td className="px-4 py-3 font-semibold text-foreground">
-                          🏟️ {itemVenuesCount} sedes
+                          🏟️ {itemVenuesCount}{" "}
+                          {itemVenuesCount === 1
+                            ? isEn
+                              ? "venue"
+                              : "sede"
+                            : isEn
+                              ? "venues"
+                              : "sedes"}
                         </td>
                         <td className="px-4 py-3">
                           <span className="font-bold text-foreground">{itemCurr}</span>
@@ -468,24 +560,28 @@ export function OrganizationPage({
                             }`}
                           >
                             {itemMode === "ALLY_DIRECT"
-                              ? "📲 Cobro Directo"
-                              : "🏦 Custodia YoReservo"}
+                              ? isEn
+                                ? "📲 Direct Collection"
+                                : "📲 Cobro Directo"
+                              : isEn
+                                ? "🏦 YoReservo Custody"
+                                : "🏦 Custodia YoReservo"}
                           </span>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap items-center gap-1.5">
                             {itemActive ? (
                               <span className="badge badge-available text-[10px]">
-                                ACTIVA
+                                {isEn ? "ACTIVE" : "ACTIVA"}
                               </span>
                             ) : (
                               <span className="badge badge-cancelled text-[10px]">
-                                INACTIVA
+                                {isEn ? "INACTIVE" : "INACTIVA"}
                               </span>
                             )}
                             {itemPaused && (
                               <span className="rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-500">
-                                RESERVAS PAUSADAS
+                                {isEn ? "BOOKINGS PAUSED" : "RESERVAS PAUSADAS"}
                               </span>
                             )}
                           </div>
@@ -505,7 +601,13 @@ export function OrganizationPage({
                               {pendingOrgActionId === `select:${item.id}` && (
                                 <Spinner className="size-3.5" />
                               )}
-                              {isSelected ? "✓ Seleccionada" : "Inspeccionar"}
+                              {isSelected
+                                ? isEn
+                                  ? "✓ Selected"
+                                  : "✓ Seleccionada"
+                                : isEn
+                                  ? "Inspect"
+                                  : "Inspeccionar"}
                             </button>
                             <button
                               type="button"
@@ -520,7 +622,13 @@ export function OrganizationPage({
                               {pendingOrgActionId === `pause:${item.id}` && (
                                 <Spinner className="size-3.5" />
                               )}
-                              {itemPaused ? "▶ Reanudar" : "⏸ Pausar"}
+                              {itemPaused
+                                ? isEn
+                                  ? "▶ Resume"
+                                  : "▶ Reanudar"
+                                : isEn
+                                  ? "⏸ Pause"
+                                  : "⏸ Pausar"}
                             </button>
                             <button
                               type="button"
@@ -539,7 +647,13 @@ export function OrganizationPage({
                               {pendingOrgActionId === `status:${item.id}` && (
                                 <Spinner className="size-3.5" />
                               )}
-                              {itemActive ? "Desactivar" : "Activar"}
+                              {itemActive
+                                ? isEn
+                                  ? "Deactivate"
+                                  : "Desactivar"
+                                : isEn
+                                  ? "Activate"
+                                  : "Activar"}
                             </button>
                           </div>
                         </td>
@@ -583,36 +697,6 @@ export function OrganizationPage({
         }
         onToast={showToast}
       />
-
-      {/* YoReservo Platform Custody Accepted Payment Methods (PLATFORM_ADMIN) */}
-      {isPlatformAdmin && (
-        <PaymentMethodsConfigCard
-          scope="PLATFORM"
-          initialMethods={org.platformPaymentMethodConfigs}
-          userRole={userRole}
-          onSaved={(updatedMethods) =>
-            setOrg((prev) => ({
-              ...prev,
-              platformPaymentMethodConfigs: updatedMethods,
-            }))
-          }
-          onToast={showToast}
-        />
-      )}
-
-      {/* YoReservo Official Support Channels (WhatsApp & Email) (PLATFORM_ADMIN) */}
-      {isPlatformAdmin && (
-        <PlatformSupportConfigCard
-          initialConfig={org.platformConfig}
-          onSaved={(updatedConfig) =>
-            setOrg((prev) => ({
-              ...prev,
-              platformConfig: updatedConfig,
-            }))
-          }
-          onToast={(msg, variant) => showToast(msg, variant === "warning")}
-        />
-      )}
 
       {/* Associated Venues Summary Card */}
       <section className="px-5 pt-6">

@@ -101,7 +101,7 @@ export function ResetPasswordModal({
                   type="text"
                   readOnly
                   value={tempPass}
-                  className="form-input flex-1 font-mono text-sm font-bold text-accent-foreground bg-accent/20 border-accent"
+                  className="form-input flex-1 font-mono text-sm font-bold text-link bg-accent/20 border-accent"
                 />
                 <Button
                   type="button"

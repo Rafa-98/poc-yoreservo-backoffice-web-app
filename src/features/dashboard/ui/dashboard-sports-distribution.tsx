@@ -34,7 +34,11 @@ export function DashboardSportsDistribution({
                 item.name ||
                 (item.labelKey ? t(item.labelKey as any) : item.key);
               const barClass = item.barColorClass || "bg-accent";
-              const textClass = item.textColorClass || "text-accent-foreground";
+              const textClass =
+                !item.textColorClass ||
+                item.textColorClass === "text-accent-foreground"
+                  ? "text-link"
+                  : item.textColorClass;
 
               return (
                 <div key={item.id || item.key}>
@@ -64,7 +68,7 @@ export function DashboardSportsDistribution({
       {/* Peak Hours Box */}
       <div className="bg-surface-muted border border-border rounded-xl p-3.5 mt-4">
         <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-          <Clock className="size-3.5 text-accent-foreground" />
+          <Clock className="size-3.5 text-link" />
           <span>{t("sports.peakHoursTitle")}</span>
         </div>
         <div className="font-display text-base sm:text-lg font-extrabold text-foreground mt-1">

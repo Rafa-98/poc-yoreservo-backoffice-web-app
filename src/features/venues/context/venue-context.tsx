@@ -5,15 +5,26 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
 import type { SessionUser } from "@/shared/auth";
 import { getVenuesListAction } from "@/features/venues/actions/venues-actions";
-import type { VenueItem } from "@/features/venues/model/types";
+import {
+  deriveOrganizationsFromVenues,
+  type DerivedOrganizationOption,
+  type VenueItem,
+} from "@/features/venues/model/types";
 
 export interface VenueContextValue {
   venues: VenueItem[];
+  scopedVenues: VenueItem[];
+  organizations: DerivedOrganizationOption[];
+  isPlatformRole: boolean;
+  activeOrganizationId: string;
+  activeOrganization: DerivedOrganizationOption | null;
+  setActiveOrganizationId: (organizationId: string) => void;
   activeVenueId: string;
   activeVenue: VenueItem | null;
   setActiveVenueId: (venueId: string) => void;
@@ -27,12 +38,7 @@ export interface VenueContextValue {
 const VenueContext = createContext<VenueContextValue | null>(null);
 
 const COOKIE_NAME = "yoreservo_active_venue";
-
-function getCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-  return match ? decodeURIComponent(match[2]) : null;
-}
+const ORG_COOKIE_NAME = "yoreservo_active_org";
 
 function setCookie(name: string, value: string, days = 365): void {
   if (typeof document === "undefined") return;
@@ -43,6 +49,7 @@ function setCookie(name: string, value: string, days = 365): void {
 export interface VenueProviderProps {
   user: SessionUser;
   initialVenues?: VenueItem[];
+  initialActiveOrganizationId?: string;
   initialActiveVenueId?: string;
   children: ReactNode;
 }
@@ -50,6 +57,7 @@ export interface VenueProviderProps {
 export function VenueProvider({
   user,
   initialVenues = [],
+  initialActiveOrganizationId,
   initialActiveVenueId,
   children,
 }: VenueProviderProps) {
@@ -58,8 +66,29 @@ export function VenueProvider({
   const [error, setError] = useState<string | null>(null);
   const isPending = false;
 
+  const isPlatformRole =
+    user.role === "PLATFORM_ADMIN" || user.role === "PLATFORM_ACCOUNTING";
   const isManagedLocked =
     user.role === "ALLY_VALIDATOR" && Boolean(user.managedVenueId);
+
+  const organizations = useMemo(
+    () => deriveOrganizationsFromVenues(venues),
+    [venues],
+  );
+
+  // Initialize active organization ID deterministically (defaults to first active org for platform roles)
+  const [activeOrganizationId, setActiveOrganizationIdState] = useState<string>(
+    () => {
+      if (!isPlatformRole) {
+        return venues[0]?.organizationId || "ALL";
+      }
+      if (initialActiveOrganizationId) {
+        return initialActiveOrganizationId;
+      }
+      const derived = deriveOrganizationsFromVenues(initialVenues);
+      return derived[0]?.id || "ALL";
+    },
+  );
 
   // Initialize active venue ID deterministically from SSR cookie/lock for hydration parity
   const [activeVenueId, setActiveVenueIdState] = useState<string>(
@@ -91,6 +120,35 @@ export function VenueProvider({
     }
   }, [initialVenues]);
 
+  const setActiveOrganizationId = useCallback(
+    (newOrgId: string) => {
+      if (isManagedLocked) return;
+      setActiveOrganizationIdState(newOrgId);
+      setCookie(ORG_COOKIE_NAME, newOrgId);
+
+      // When changing organization, reset activeVenueId to "ALL" (all venues of that org)
+      // unless the currently selected venue belongs to the new organization
+      setActiveVenueIdState((prevVenueId) => {
+        if (prevVenueId === "ALL") return "ALL";
+        const match = venues.find((v) => v.id === prevVenueId);
+        if (newOrgId !== "ALL" && match?.organizationId !== newOrgId) {
+          setCookie(COOKIE_NAME, "ALL");
+          return "ALL";
+        }
+        return prevVenueId;
+      });
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("yoreservo:organization-change", {
+            detail: { organizationId: newOrgId },
+          }),
+        );
+      }
+    },
+    [isManagedLocked, venues],
+  );
+
   const setActiveVenueId = useCallback(
     (newVenueId: string) => {
       if (isManagedLocked && user.managedVenueId) {
@@ -98,16 +156,42 @@ export function VenueProvider({
       }
       setActiveVenueIdState(newVenueId);
       setCookie(COOKIE_NAME, newVenueId);
+
+      // If a specific venue is chosen and its org differs from activeOrganizationId (when not ALL), sync org
+      if (isPlatformRole && newVenueId !== "ALL") {
+        const foundVenue = venues.find((v) => v.id === newVenueId);
+        if (
+          foundVenue?.organizationId &&
+          activeOrganizationId !== "ALL" &&
+          foundVenue.organizationId !== activeOrganizationId
+        ) {
+          setActiveOrganizationIdState(foundVenue.organizationId);
+          setCookie(ORG_COOKIE_NAME, foundVenue.organizationId);
+        }
+      }
+
       if (typeof window !== "undefined") {
         window.dispatchEvent(
           new CustomEvent("yoreservo:venue-change", {
             detail: { venueId: newVenueId },
-          })
+          }),
         );
       }
     },
-    [isManagedLocked, user.managedVenueId]
+    [isManagedLocked, user.managedVenueId, isPlatformRole, venues, activeOrganizationId],
   );
+
+  const scopedVenues = useMemo(() => {
+    if (!isPlatformRole || !activeOrganizationId || activeOrganizationId === "ALL") {
+      return venues;
+    }
+    return venues.filter((v) => v.organizationId === activeOrganizationId);
+  }, [isPlatformRole, activeOrganizationId, venues]);
+
+  const activeOrganization =
+    activeOrganizationId === "ALL"
+      ? null
+      : organizations.find((o) => o.id === activeOrganizationId) || null;
 
   const activeVenue =
     activeVenueId === "ALL"
@@ -118,6 +202,12 @@ export function VenueProvider({
     <VenueContext.Provider
       value={{
         venues,
+        scopedVenues,
+        organizations,
+        isPlatformRole,
+        activeOrganizationId,
+        activeOrganization,
+        setActiveOrganizationId,
         activeVenueId,
         activeVenue,
         setActiveVenueId,
@@ -133,10 +223,25 @@ export function VenueProvider({
   );
 }
 
+const FALLBACK_VENUE_CONTEXT: VenueContextValue = {
+  venues: [],
+  scopedVenues: [],
+  organizations: [],
+  isPlatformRole: false,
+  activeOrganizationId: "ALL",
+  activeOrganization: null,
+  setActiveOrganizationId: () => {},
+  activeVenueId: "ALL",
+  activeVenue: null,
+  setActiveVenueId: () => {},
+  isLoading: false,
+  isPending: false,
+  error: null,
+  isManagedLocked: false,
+  refetchVenues: async () => {},
+};
+
 export function useActiveVenue(): VenueContextValue {
   const context = useContext(VenueContext);
-  if (!context) {
-    throw new Error("useActiveVenue must be used within a VenueProvider");
-  }
-  return context;
+  return context ?? FALLBACK_VENUE_CONTEXT;
 }

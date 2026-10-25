@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import { useLocale } from "next-intl";
 import { ExternalLink, MapPin, X } from "lucide-react";
 import type L from "leaflet";
 import type { VenueItem } from "../model/types";
@@ -18,6 +19,8 @@ export function VenueMapViewerModal({
   locationLabel = "",
   onClose,
 }: VenueMapViewerModalProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
 
@@ -155,7 +158,7 @@ export function VenueMapViewerModal({
             type="button"
             onClick={onClose}
             className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-border bg-muted/50 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="Cerrar mapa"
+            aria-label={isEn ? "Close map" : "Cerrar mapa"}
           >
             <X className="size-4" />
           </button>
@@ -170,14 +173,14 @@ export function VenueMapViewerModal({
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/30 px-6 py-3.5">
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <span>
-              Latitud:{" "}
+              {isEn ? "Latitude:" : "Latitud:"}{" "}
               <strong className="font-mono text-foreground">
                 {safeLat.toFixed(6)}
               </strong>
             </span>
             <span className="text-border">|</span>
             <span>
-              Longitud:{" "}
+              {isEn ? "Longitude:" : "Longitud:"}{" "}
               <strong className="font-mono text-foreground">
                 {safeLng.toFixed(6)}
               </strong>
@@ -191,15 +194,15 @@ export function VenueMapViewerModal({
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-xl border border-border-medium bg-surface px-3.5 py-2 text-xs font-bold text-foreground transition-colors hover:border-accent hover:bg-accent/15"
             >
-              <span>Abrir en Google Maps</span>
+              <span>{isEn ? "Open in Google Maps" : "Abrir en Google Maps"}</span>
               <ExternalLink className="size-3.5" />
             </a>
             <button
               type="button"
               onClick={onClose}
-              className="cursor-pointer rounded-xl bg-accent px-4 py-2 text-xs font-bold text-forest-950 transition-all hover:brightness-95"
+              className="cursor-pointer rounded-xl bg-accent px-4 py-2 text-xs font-bold text-accent-foreground transition-all hover:brightness-95"
             >
-              Cerrar
+              {isEn ? "Close" : "Cerrar"}
             </button>
           </div>
         </div>

@@ -57,11 +57,11 @@ export function ReservationDetailModal({
   return (
     <>
       <div
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
 
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
         <div className="relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-modal animate-in zoom-in-95 duration-150">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border pb-4">
@@ -124,7 +124,7 @@ export function ReservationDetailModal({
                   href={`https://wa.me/${cleanPhone}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-1 rounded-lg bg-emerald-500/20 px-2.5 py-1.5 font-bold text-emerald-600 hover:bg-emerald-500/30 transition-colors"
+                  className="flex items-center gap-1 rounded-lg bg-emerald-500/20 px-2.5 py-1.5 font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/30 transition-colors"
                 >
                   <MessageSquare className="size-3.5" />
                   <span>{t("whatsappLabel")}</span>

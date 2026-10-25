@@ -26,7 +26,16 @@ import { todayInTimezone } from "@/shared/lib";
 interface ReservationsPageProps {
   initialReservations: ReservationItem[];
   initialKpis: ReservationKpis;
-  venues: Array<{ id: string; name: string; referenceCurrencyCode?: string; spacesCount?: number }>;
+  venues: Array<{
+    id: string;
+    organizationId?: string;
+    organizationName?: string;
+    organizationLegalName?: string | null;
+    organizationRif?: string | null;
+    name: string;
+    referenceCurrencyCode?: string;
+    spacesCount?: number;
+  }>;
   spaces: Array<{ id: string; name: string; venueId: string; pricePerHour: number }>;
   bcvRate: number;
   bcvEurRate?: number;
@@ -45,6 +54,12 @@ export function ReservationsPage({
   userRole,
 }: ReservationsPageProps) {
   const t = useTranslations("reservations");
+  const {
+    activeOrganizationId: globalOrgId,
+    setActiveOrganizationId: setGlobalOrgId,
+    activeVenueId: globalVenueId,
+    setActiveVenueId: setGlobalVenueId,
+  } = useActiveVenue();
   const isValidator = userRole === "ALLY_VALIDATOR";
   const effectiveEurRate = bcvEurRate ?? bcvRate;
 
@@ -58,12 +73,30 @@ export function ReservationsPage({
     dateFilter: "week",
     customFromDate: defaultWeekBounds.fromDate,
     customToDate: defaultWeekBounds.toDate,
-    venueId: "all",
+    organizationId: globalOrgId || "ALL",
+    venueId: globalVenueId && globalVenueId !== "ALL" ? globalVenueId : "all",
     sport: "all",
     paymentMethod: "all",
     status: "all",
     search: "",
   });
+
+  // Sync with global organization & venue context changes
+  useEffect(() => {
+    setFilter((prev) => {
+      const nextOrg = globalOrgId || "ALL";
+      const nextVenue =
+        globalVenueId && globalVenueId !== "ALL" ? globalVenueId : "all";
+      if (prev.organizationId === nextOrg && prev.venueId === nextVenue) {
+        return prev;
+      }
+      return {
+        ...prev,
+        organizationId: nextOrg,
+        venueId: nextVenue,
+      };
+    });
+  }, [globalOrgId, globalVenueId]);
 
   const activeRange = useMemo(
     () =>
@@ -118,6 +151,31 @@ export function ReservationsPage({
     return Array.from(set);
   }, [reservations]);
 
+  const organizationVenueIds = useMemo(() => {
+    if (
+      !filter.organizationId ||
+      filter.organizationId === "ALL" ||
+      filter.organizationId === "all"
+    ) {
+      return null;
+    }
+    return new Set(
+      venues
+        .filter((v) => v.organizationId === filter.organizationId)
+        .map((v) => v.id),
+    );
+  }, [venues, filter.organizationId]);
+
+  const scopedVenuesForModal = useMemo(() => {
+    if (!organizationVenueIds) return venues;
+    return venues.filter((v) => organizationVenueIds.has(v.id));
+  }, [venues, organizationVenueIds]);
+
+  const scopedSpacesForModal = useMemo(() => {
+    if (!organizationVenueIds) return spaces;
+    return spaces.filter((s) => organizationVenueIds.has(s.venueId));
+  }, [spaces, organizationVenueIds]);
+
   // Client-side quick filter
   const displayedReservations = useMemo(() => {
     return reservations.filter((res) => {
@@ -131,9 +189,11 @@ export function ReservationsPage({
         if (!matchesCode && !matchesName && !matchesPhone && !matchesDni) return false;
       }
 
-      // 2. Venue
+      // 2. Venue & Organization
       if (filter.venueId && filter.venueId !== "all") {
         if (res.venueId !== filter.venueId) return false;
+      } else if (organizationVenueIds) {
+        if (!organizationVenueIds.has(res.venueId)) return false;
       }
 
       // 3. Sport
@@ -167,7 +227,7 @@ export function ReservationsPage({
 
       return true;
     });
-  }, [reservations, filter, activeRange]);
+  }, [reservations, filter, activeRange, organizationVenueIds]);
 
   // Determine active currency code (USD, EUR, or MIXED) based on selected venue / organization
   const activeCurrencyCode = useMemo(() => {
@@ -178,8 +238,12 @@ export function ReservationsPage({
       }
     }
 
+    const relevantVenues = organizationVenueIds
+      ? venues.filter((v) => organizationVenueIds.has(v.id))
+      : venues;
+
     const venueCurrencies = new Set(
-      venues
+      relevantVenues
         .map((v) => v.referenceCurrencyCode)
         .filter((c): c is string => Boolean(c)),
     );
@@ -200,7 +264,13 @@ export function ReservationsPage({
     }
 
     return referenceCurrencyCode || "USD";
-  }, [filter.venueId, venues, displayedReservations, referenceCurrencyCode]);
+  }, [
+    filter.venueId,
+    venues,
+    organizationVenueIds,
+    displayedReservations,
+    referenceCurrencyCode,
+  ]);
 
   // Compute live KPIs directly from real filtered reservations
   const liveKpis = useMemo<ReservationKpis>(() => {
@@ -371,24 +441,37 @@ export function ReservationsPage({
           bcvEurRate={effectiveEurRate}
           currencyCode={activeCurrencyCode === "EUR" ? "EUR" : "USD"}
           userRole={userRole}
+          dateFilter={filter.dateFilter}
         />
 
         {/* ADVANCED FILTER TOOLBAR */}
         <ReservationsFilterBar
           filter={filter}
-          onChangeFilter={(upd) => setFilter((prev) => ({ ...prev, ...upd }))}
-          onResetFilter={() =>
+          onChangeFilter={(upd) => {
+            setFilter((prev) => ({ ...prev, ...upd }));
+            if (upd.organizationId !== undefined) {
+              setGlobalOrgId(upd.organizationId || "ALL");
+            }
+            if (upd.venueId !== undefined) {
+              setGlobalVenueId(
+                upd.venueId === "all" || !upd.venueId ? "ALL" : upd.venueId,
+              );
+            }
+          }}
+          onResetFilter={() => {
             setFilter({
               dateFilter: "week",
               customFromDate: defaultWeekBounds.fromDate,
               customToDate: defaultWeekBounds.toDate,
+              organizationId: globalOrgId || "ALL",
               venueId: "all",
               sport: "all",
               paymentMethod: "all",
               status: "all",
               search: "",
-            })
-          }
+            });
+            setGlobalVenueId("ALL");
+          }}
           venues={venues}
           totalSpacesCount={spaces.length}
           sports={sports}
@@ -425,8 +508,8 @@ export function ReservationsPage({
         <WalkInModal
           isOpen={isWalkInOpen}
           onClose={() => setIsWalkInOpen(false)}
-          venues={venues}
-          spaces={spaces}
+          venues={scopedVenuesForModal}
+          spaces={scopedSpacesForModal}
           onSuccess={(createdDate) => {
             setIsWalkInOpen(false);
             if (

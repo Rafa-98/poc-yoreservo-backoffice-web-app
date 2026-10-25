@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import { Check, Maximize2, Minimize2 } from "lucide-react";
 import type L from "leaflet";
 
@@ -19,6 +20,8 @@ export function VenueLocationMapPicker({
   onChange,
   contextAddress = "",
 }: VenueLocationMapPickerProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
@@ -201,7 +204,7 @@ export function VenueLocationMapPicker({
       )}`;
       const res = await fetch(url, {
         headers: {
-          "Accept-Language": "es",
+          "Accept-Language": isEn ? "en" : "es",
         },
       });
       if (!res.ok) throw new Error("Error consultando el mapa");
@@ -212,7 +215,9 @@ export function VenueLocationMapPicker({
       }>;
       if (!data || data.length === 0) {
         setGeoMessage(
-          "No se encontraron coincidencias. Puedes hacer clic directamente en el mapa."
+          isEn
+            ? "No matches found. You can click directly on the map."
+            : "No se encontraron coincidencias. Puedes hacer clic directamente en el mapa."
         );
       } else {
         setSearchResults(data);
@@ -229,7 +234,9 @@ export function VenueLocationMapPicker({
       }
     } catch {
       setGeoMessage(
-        "No se pudo conectar al buscador. Haz clic o arrastra el pin en el mapa."
+        isEn
+          ? "Could not connect to search. Click or drag the pin on the map."
+          : "No se pudo conectar al buscador. Haz clic o arrastra el pin en el mapa."
       );
     } finally {
       setIsSearching(false);
@@ -238,10 +245,16 @@ export function VenueLocationMapPicker({
 
   function handleUseMyLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setGeoMessage("Tu navegador no soporta geolocalización.");
+      setGeoMessage(
+        isEn
+          ? "Your browser does not support geolocation."
+          : "Tu navegador no soporta geolocalización."
+      );
       return;
     }
-    setGeoMessage("Obteniendo ubicación GPS...");
+    setGeoMessage(
+      isEn ? "Getting GPS location..." : "Obteniendo ubicación GPS..."
+    );
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const newLat = Number(pos.coords.latitude.toFixed(6));
@@ -254,7 +267,11 @@ export function VenueLocationMapPicker({
         setGeoMessage(null);
       },
       () => {
-        setGeoMessage("No se pudo obtener tu ubicación GPS actual.");
+        setGeoMessage(
+          isEn
+            ? "Could not get your current GPS location."
+            : "No se pudo obtener tu ubicación GPS actual."
+        );
       },
       { enableHighAccuracy: true, timeout: 8000 }
     );
@@ -272,17 +289,32 @@ export function VenueLocationMapPicker({
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-foreground sm:text-sm">
-            <span>📍 Ubicación Exacta en el Mapa (Coordenadas GPS)</span>
+            <span>
+              📍{" "}
+              {isEn
+                ? "Exact Location on Map (GPS Coordinates)"
+                : "Ubicación Exacta en el Mapa (Coordenadas GPS)"}
+            </span>
             {isFullscreen && (
               <span className="rounded-full bg-accent/20 px-2.5 py-0.5 text-[11px] font-bold text-foreground">
-                Modo Pantalla Completa
+                {isEn ? "Fullscreen Mode" : "Modo Pantalla Completa"}
               </span>
             )}
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Haz clic en el mapa o arrastra el marcador{" "}
-            <strong className="text-foreground">📍</strong> hasta el punto exacto
-            de la sede.
+            {isEn ? (
+              <>
+                Click on the map or drag the marker{" "}
+                <strong className="text-foreground">📍</strong> to the exact
+                venue location.
+              </>
+            ) : (
+              <>
+                Haz clic en el mapa o arrastra el marcador{" "}
+                <strong className="text-foreground">📍</strong> hasta el punto
+                exacto de la sede.
+              </>
+            )}
           </p>
         </div>
 
@@ -295,9 +327,13 @@ export function VenueLocationMapPicker({
                 runGeocodeSearch(contextAddress);
               }}
               className="cursor-pointer rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[11px] font-semibold text-foreground transition-colors hover:border-accent hover:bg-accent/10"
-              title="Ubicar en el mapa usando la zona seleccionada"
+              title={
+                isEn
+                  ? "Locate on map using the selected area"
+                  : "Ubicar en el mapa usando la zona seleccionada"
+              }
             >
-              🔎 Ubicar zona
+              {isEn ? "🔎 Locate area" : "🔎 Ubicar zona"}
             </button>
           )}
           <button
@@ -305,7 +341,7 @@ export function VenueLocationMapPicker({
             onClick={handleUseMyLocation}
             className="cursor-pointer rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[11px] font-semibold text-foreground transition-colors hover:border-accent hover:bg-accent/10"
           >
-            🎯 Usar mi GPS
+            {isEn ? "🎯 Use my GPS" : "🎯 Usar mi GPS"}
           </button>
 
           {!isFullscreen ? (
@@ -313,21 +349,29 @@ export function VenueLocationMapPicker({
               type="button"
               onClick={() => setIsFullscreen(true)}
               id="btn-expand-venue-map"
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-accent/60 bg-accent/15 px-3 py-1.5 text-[11.5px] font-bold text-foreground shadow-2xs transition-all hover:bg-accent hover:text-forest-950"
-              title="Abrir mapa en pantalla completa para ubicar con mayor comodidad"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-accent/60 bg-accent/15 px-3 py-1.5 text-[11.5px] font-bold text-foreground shadow-2xs transition-all hover:bg-accent hover:text-accent-foreground"
+              title={
+                isEn
+                  ? "Open map in fullscreen to locate more comfortably"
+                  : "Abrir mapa en pantalla completa para ubicar con mayor comodidad"
+              }
             >
               <Maximize2 className="size-3.5" />
-              <span>Pantalla completa</span>
+              <span>{isEn ? "Fullscreen" : "Pantalla completa"}</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={() => setIsFullscreen(false)}
               id="btn-collapse-venue-map"
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-forest-950 shadow-sm transition-all hover:brightness-95"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-accent-foreground shadow-sm transition-all hover:brightness-95"
             >
               <Check className="size-4 stroke-[2.5]" />
-              <span>Listo · Confirmar punto en mapa</span>
+              <span>
+                {isEn
+                  ? "Done · Confirm map point"
+                  : "Listo · Confirmar punto en mapa"}
+              </span>
             </button>
           )}
         </div>
@@ -345,16 +389,26 @@ export function VenueLocationMapPicker({
               runGeocodeSearch(searchQuery);
             }
           }}
-          placeholder="Buscar avenida, urbanización o punto de referencia en Venezuela..."
+          placeholder={
+            isEn
+              ? "Search avenue, neighborhood, or landmark in Venezuela..."
+              : "Buscar avenida, urbanización o punto de referencia en Venezuela..."
+          }
           className="h-9 flex-1 rounded-xl border border-border bg-surface px-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
         />
         <button
           type="button"
           disabled={isSearching || !searchQuery.trim()}
           onClick={() => runGeocodeSearch(searchQuery)}
-          className="h-9 shrink-0 cursor-pointer rounded-xl bg-forest-900 px-3.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="h-9 shrink-0 cursor-pointer rounded-xl bg-accent px-3.5 text-xs font-bold text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          {isSearching ? "Buscando..." : "Buscar"}
+          {isSearching
+            ? isEn
+              ? "Searching..."
+              : "Buscando..."
+            : isEn
+              ? "Search"
+              : "Buscar"}
         </button>
       </div>
 
@@ -367,7 +421,7 @@ export function VenueLocationMapPicker({
       {searchResults.length > 1 && (
         <div className="mb-2.5 flex flex-col gap-1 rounded-xl border border-border bg-surface p-2">
           <div className="text-[10.5px] font-bold text-muted-foreground uppercase">
-            Resultados sugeridos:
+            {isEn ? "Suggested results:" : "Resultados sugeridos:"}
           </div>
           {searchResults.map((item, idx) => (
             <button
@@ -406,19 +460,23 @@ export function VenueLocationMapPicker({
           className="absolute right-3 top-3 z-[500] inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-border-medium bg-surface/95 px-3 py-1.5 text-xs font-bold text-foreground shadow-md backdrop-blur-xs transition-all hover:border-accent hover:bg-surface"
           title={
             isFullscreen
-              ? "Salir de pantalla completa"
-              : "Abrir mapa en pantalla completa"
+              ? isEn
+                ? "Exit fullscreen"
+                : "Salir de pantalla completa"
+              : isEn
+                ? "Open map in fullscreen"
+                : "Abrir mapa en pantalla completa"
           }
         >
           {isFullscreen ? (
             <>
               <Minimize2 className="size-3.5" />
-              <span>Reducir mapa</span>
+              <span>{isEn ? "Shrink map" : "Reducir mapa"}</span>
             </>
           ) : (
             <>
               <Maximize2 className="size-3.5" />
-              <span>Ampliar mapa</span>
+              <span>{isEn ? "Expand map" : "Ampliar mapa"}</span>
             </>
           )}
         </button>
@@ -428,14 +486,14 @@ export function VenueLocationMapPicker({
       <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface px-3 py-2">
         <div className="flex flex-wrap items-center gap-3 text-xs">
           <span className="font-semibold text-muted-foreground">
-            Latitud:{" "}
+            {isEn ? "Latitude:" : "Latitud:"}{" "}
             <strong className="font-mono text-foreground">
               {safeLat.toFixed(6)}
             </strong>
           </span>
           <span className="text-border">|</span>
           <span className="font-semibold text-muted-foreground">
-            Longitud:{" "}
+            {isEn ? "Longitude:" : "Longitud:"}{" "}
             <strong className="font-mono text-foreground">
               {safeLng.toFixed(6)}
             </strong>
@@ -448,15 +506,17 @@ export function VenueLocationMapPicker({
             rel="noopener noreferrer"
             className="text-[11.5px] font-bold text-link hover:underline"
           >
-            Ver en Google Maps ↗
+            {isEn ? "View in Google Maps ↗" : "Ver en Google Maps ↗"}
           </a>
           {isFullscreen && (
             <button
               type="button"
               onClick={() => setIsFullscreen(false)}
-              className="cursor-pointer rounded-lg bg-accent px-3 py-1 text-xs font-bold text-forest-950 hover:brightness-95"
+              className="cursor-pointer rounded-lg bg-accent px-3 py-1 text-xs font-bold text-accent-foreground hover:brightness-95"
             >
-              Confirmar y volver al formulario
+              {isEn
+                ? "Confirm and return to form"
+                : "Confirmar y volver al formulario"}
             </button>
           )}
         </div>

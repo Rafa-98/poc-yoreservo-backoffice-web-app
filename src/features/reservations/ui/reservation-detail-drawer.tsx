@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { BackofficeRole } from "@/shared/config";
 import { useTimeFormat } from "@/shared/lib/time-format";
 import { Button } from "@/shared/ui/button";
@@ -26,6 +26,7 @@ export function ReservationDetailDrawer({
   userRole,
 }: ReservationDetailDrawerProps) {
   const t = useTranslations("reservations.drawer");
+  const isEn = useLocale().toLowerCase().startsWith("en");
   const { formatTime } = useTimeFormat();
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkInError, setCheckInError] = useState<string | null>(null);
@@ -342,7 +343,9 @@ export function ReservationDetailDrawer({
                   }`}
                 >
                   {isCancelled && reservation.paymentMethod === "pending"
-                    ? "Sin pago registrado (Reserva Cancelada)"
+                    ? isEn
+                      ? "No payment recorded (Cancelled Booking)"
+                      : "Sin pago registrado (Reserva Cancelada)"
                     : reservation.paymentMethodLabel || reservation.paymentMeta}
                 </span>
               </div>
@@ -363,7 +366,9 @@ export function ReservationDetailDrawer({
 
             {isCancelled && reservation.cancellationReason && (
               <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2.5 text-xs">
-                <span className="font-bold text-rose-500">Motivo de cancelación: </span>
+                <span className="font-bold text-rose-500">
+                  {isEn ? "Cancellation reason: " : "Motivo de cancelación: "}
+                </span>
                 <span className="text-foreground">{reservation.cancellationReason}</span>
               </div>
             )}

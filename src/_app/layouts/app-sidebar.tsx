@@ -27,6 +27,7 @@ import {
   PanelLeftClose,
   Pin,
   Settings2,
+  ShieldCheck,
   TrendingUp,
   User,
   Users2,
@@ -212,6 +213,12 @@ const NAV_SECTIONS: readonly NavSectionDef[] = [
   {
     titleKey: "navSystem",
     items: [
+      {
+        labelKey: "navPlatform",
+        href: ROUTES.platform,
+        icon: <ShieldCheck className="size-4" />,
+        roles: ["PLATFORM_ADMIN"],
+      },
       {
         labelKey: "navSupport",
         href: ROUTES.support,

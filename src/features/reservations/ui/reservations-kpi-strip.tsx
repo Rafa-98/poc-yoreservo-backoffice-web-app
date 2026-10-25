@@ -3,7 +3,7 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 import type { BackofficeRole } from "@/shared/config";
-import type { ReservationKpis } from "../model/types";
+import type { ReservationFilter, ReservationKpis } from "../model/types";
 
 interface ReservationsKpiStripProps {
   kpis: ReservationKpis;
@@ -11,6 +11,7 @@ interface ReservationsKpiStripProps {
   bcvEurRate?: number;
   currencyCode?: string;
   userRole?: BackofficeRole;
+  dateFilter?: ReservationFilter["dateFilter"];
 }
 
 export function ReservationsKpiStrip({
@@ -19,11 +20,23 @@ export function ReservationsKpiStrip({
   bcvEurRate,
   currencyCode = "USD",
   userRole,
+  dateFilter = "week",
 }: ReservationsKpiStripProps) {
   const t = useTranslations("reservations.kpis");
   const isValidator = userRole === "ALLY_VALIDATOR";
   const isEur = currencyCode === "EUR";
   const effectiveRate = isEur ? (bcvEurRate ?? bcvRate) : bcvRate;
+
+  const totalBookingsTitle =
+    dateFilter === "today"
+      ? t("totalBookingsToday")
+      : dateFilter === "tomorrow"
+      ? t("totalBookingsTomorrow")
+      : dateFilter === "month"
+      ? t("totalBookingsMonth")
+      : dateFilter === "custom"
+      ? t("totalBookingsCustom")
+      : t("totalBookingsWeek");
 
   const formattedRef = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -48,7 +61,7 @@ export function ReservationsKpiStrip({
       {/* 1. Total Bookings */}
       <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
         <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          {t("totalBookings")}
+          {totalBookingsTitle}
         </div>
         <div
           className="mt-2 font-display text-3xl font-extrabold text-foreground"

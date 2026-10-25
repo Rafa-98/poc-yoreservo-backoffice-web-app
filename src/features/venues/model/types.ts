@@ -28,6 +28,7 @@ export interface OrganizationSummaryItem {
   rif?: string;
   fiscalAddress?: string;
   status?: string;
+  isPlatformOrg?: boolean;
   isBookingPaused?: boolean;
   paymentCollectionMode?: PaymentCollectionMode;
   commissionRate?: number;
@@ -49,6 +50,7 @@ export interface OrganizationData {
   legalName: string;
   rif: string;
   taxId?: string;
+  isPlatformOrg?: boolean;
   contactEmail: string;
   contactPhone: string;
   pagoMovilPhone?: string;
@@ -83,6 +85,8 @@ export interface OrganizationData {
 export interface PlatformConfigData {
   supportWhatsapp: string;
   supportEmail: string;
+  supportPhones?: string[];
+  supportEmails?: string[];
 }
 
 export interface CreateOrganizationInput {
@@ -136,6 +140,7 @@ export interface UpdateOrganizationInput {
   payoutPagoMovilIdDocument?: string;
   payoutPagoMovilHolder?: string;
   paymentCollectionMode?: PaymentCollectionMode;
+  commissionRate?: number;
   manualCommissionRate?: number;
   minimumMonthlyFee?: number;
   isBookingPaused?: boolean;
@@ -160,6 +165,11 @@ export type VenueStatusType =
 export interface VenueItem {
   id: string;
   organizationId: string;
+  organizationName?: string;
+  organizationLegalName?: string | null;
+  organizationRif?: string | null;
+  isPlatformOrg?: boolean;
+  paymentCollectionMode?: PaymentCollectionMode;
   referenceCurrencyCode?: string;
   name: string;
   rif: string;
@@ -183,6 +193,54 @@ export interface VenueItem {
   sports: string[];
   staffCount: number;
   amenities?: string[];
+}
+
+export interface DerivedOrganizationOption {
+  id: string;
+  tradeName: string;
+  legalName?: string | null;
+  rif?: string | null;
+  isPlatformOrg?: boolean;
+  referenceCurrencyCode?: string;
+  paymentCollectionMode?: PaymentCollectionMode;
+  venuesCount: number;
+  spacesCount: number;
+  venues: VenueItem[];
+}
+
+export function deriveOrganizationsFromVenues(
+  venues: VenueItem[],
+): DerivedOrganizationOption[] {
+  const map = new Map<string, DerivedOrganizationOption>();
+  for (const v of venues) {
+    if (!v.organizationId) continue;
+    let existing = map.get(v.organizationId);
+    if (!existing) {
+      existing = {
+        id: v.organizationId,
+        tradeName: v.organizationName || "Organización Aliada",
+        legalName: v.organizationLegalName ?? null,
+        rif: v.organizationRif ?? null,
+        isPlatformOrg: Boolean(v.isPlatformOrg),
+        referenceCurrencyCode: v.referenceCurrencyCode || "USD",
+        paymentCollectionMode: v.paymentCollectionMode || "PLATFORM_CUSTODY",
+        venuesCount: 0,
+        spacesCount: 0,
+        venues: [],
+      };
+      map.set(v.organizationId, existing);
+    } else if (v.isPlatformOrg) {
+      existing.isPlatformOrg = true;
+    }
+    existing.venuesCount += 1;
+    existing.spacesCount += v.spacesCount || 0;
+    existing.venues.push(v);
+  }
+  return Array.from(map.values()).sort((a, b) => {
+    if (a.isPlatformOrg && !b.isPlatformOrg) return -1;
+    if (!a.isPlatformOrg && b.isPlatformOrg) return 1;
+    return a.tradeName.localeCompare(b.tradeName, "es");
+  });
 }
 
 export interface CreateVenueInput {

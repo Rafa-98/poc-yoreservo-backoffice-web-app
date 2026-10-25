@@ -98,7 +98,7 @@ export function DashboardRevenueChart({
         </div>
         <div>
           <span>{t("chart.operatingMargin")} </span>
-          <strong className="text-accent-foreground font-semibold">
+          <strong className="text-link font-semibold">
             {t("chart.fixedMargin")}
           </strong>
         </div>

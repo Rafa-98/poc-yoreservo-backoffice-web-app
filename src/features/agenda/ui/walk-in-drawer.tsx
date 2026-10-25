@@ -195,12 +195,12 @@ export function WalkInDrawer({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
 
       {/* Flyout Drawer */}
-      <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-surface p-6 shadow-modal animate-in slide-in-from-right duration-200">
+      <div className="fixed inset-y-0 right-0 z-[70] flex w-full max-w-md flex-col border-l border-border bg-surface p-6 shadow-modal animate-in slide-in-from-right duration-200">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border pb-4">
           <div>

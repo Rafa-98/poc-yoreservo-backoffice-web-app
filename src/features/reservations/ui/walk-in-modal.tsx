@@ -13,7 +13,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useTimeFormat } from "@/shared/lib/time-format";
 import { todayInTimezone } from "@/shared/lib";
 import { Button } from "@/shared/ui/button";
@@ -63,6 +63,7 @@ export function WalkInModal({
   onSuccess,
 }: WalkInModalProps) {
   const t = useTranslations("reservations.modalWalkIn");
+  const isEn = useLocale().toLowerCase().startsWith("en");
   const { formatTime } = useTimeFormat();
 
   const [name, setName] = useState("");
@@ -474,7 +475,7 @@ export function WalkInModal({
                     {t("title")}
                   </h3>
                   <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-500">
-                    0% Comisión App
+                    {isEn ? "0% App Fee" : "0% Comisión App"}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -486,7 +487,7 @@ export function WalkInModal({
               type="button"
               onClick={onClose}
               className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-              aria-label="Cerrar"
+              aria-label={isEn ? "Close" : "Cerrar"}
             >
               <X className="size-4" />
             </button>
@@ -505,7 +506,9 @@ export function WalkInModal({
               <div className="rounded-xl border border-border bg-muted/25 p-4 space-y-4">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   <User className="size-3.5 text-link" />
-                  <span>Datos del Jugador / Titular</span>
+                  <span>
+                    {isEn ? "Player / Holder Details" : "Datos del Jugador / Titular"}
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
@@ -605,7 +608,11 @@ export function WalkInModal({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     <MapPin className="size-3.5 text-link" />
-                    <span>Cancha & Horario Disponible</span>
+                    <span>
+                      {isEn
+                        ? "Court & Available Schedule"
+                        : "Cancha & Horario Disponible"}
+                    </span>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
@@ -619,7 +626,9 @@ export function WalkInModal({
                       >
                         {availableSlots.length > 0
                           ? `✓ ${t("slotsAvailableBadge", { count: availableSlots.length })}`
-                          : "⚠️ Sin cupos disponibles"}
+                          : isEn
+                            ? "⚠️ No slots available"
+                            : "⚠️ Sin cupos disponibles"}
                       </span>
                     )}
 
@@ -781,7 +790,9 @@ export function WalkInModal({
               <div className="rounded-xl border border-border bg-muted/25 p-4 space-y-4">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   <CreditCard className="size-3.5 text-link" />
-                  <span>Liquidación en Taquilla</span>
+                  <span>
+                    {isEn ? "Box Office Settlement" : "Liquidación en Taquilla"}
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -796,7 +807,10 @@ export function WalkInModal({
                       id="walkin-payment"
                     >
                       <option value="CASH">
-                        💵 Efectivo {venueCurrencyLabel} en Caja
+                        💵{" "}
+                        {isEn
+                          ? `Cash ${venueCurrencyLabel} at Box Office`
+                          : `Efectivo ${venueCurrencyLabel} en Caja`}
                       </option>
                       <option value="PAGO_MOVIL">{t("pagoMovil")}</option>
                       <option value="POS">{t("pos")}</option>
@@ -805,7 +819,9 @@ export function WalkInModal({
 
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                      Monto a Cobrar ({venueCurrencySymbol} {venueCurrencyLabel})
+                      {isEn
+                        ? `Amount to Collect (${venueCurrencySymbol} ${venueCurrencyLabel})`
+                        : `Monto a Cobrar (${venueCurrencySymbol} ${venueCurrencyLabel})`}
                     </label>
                     <div className="relative">
                       <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold text-muted-foreground">
@@ -829,25 +845,31 @@ export function WalkInModal({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                        Banco Origen (Opcional)
+                        {isEn ? "Origin Bank (Optional)" : "Banco Origen (Opcional)"}
                       </label>
                       <input
                         type="text"
                         value={originBank}
                         onChange={(e) => setOriginBank(e.target.value)}
-                        placeholder="Ej: Banesco, BDV, Mercantil..."
+                        placeholder={
+                          isEn
+                            ? "e.g. Banesco, BDV, Mercantil..."
+                            : "Ej: Banesco, BDV, Mercantil..."
+                        }
                         className="w-full rounded-xl border border-border-medium bg-surface px-3.5 py-2 text-xs text-foreground placeholder:text-faint-foreground focus:border-ring focus:outline-none"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                        Nº de Referencia (Opcional)
+                        {isEn
+                          ? "Reference No. (Optional)"
+                          : "Nº de Referencia (Opcional)"}
                       </label>
                       <input
                         type="text"
                         value={referenceNumber}
                         onChange={(e) => setReferenceNumber(e.target.value)}
-                        placeholder="Ej: 847291"
+                        placeholder={isEn ? "e.g. 847291" : "Ej: 847291"}
                         className="w-full rounded-xl border border-border-medium bg-surface px-3.5 py-2 text-xs font-mono text-foreground placeholder:text-faint-foreground focus:border-ring focus:outline-none"
                       />
                     </div>
@@ -860,7 +882,11 @@ export function WalkInModal({
             <div className="border-t border-border bg-muted/40 px-6 py-4 flex items-center justify-between gap-3 shrink-0">
               <div className="text-xs text-muted-foreground hidden sm:flex items-center gap-1.5">
                 <ShieldCheck className="size-4 text-emerald-500" />
-                <span>Actualiza inmediatamente la disponibilidad de la cancha</span>
+                <span>
+                  {isEn
+                    ? "Immediately updates court availability"
+                    : "Actualiza inmediatamente la disponibilidad de la cancha"}
+                </span>
               </div>
 
               <div className="flex items-center gap-3 ml-auto">
@@ -1022,7 +1048,9 @@ export function WalkInModal({
 
                         <div className="mt-2 flex items-center justify-between gap-1 w-full text-[10px] font-bold uppercase tracking-wider">
                           {isSelected ? (
-                            <span className="text-link">Seleccionado</span>
+                            <span className="text-link">
+                              {isEn ? "Selected" : "Seleccionado"}
+                            </span>
                           ) : isAvailable ? (
                             <span className="text-emerald-500">
                               ● {t("slotAvailable")}
@@ -1064,7 +1092,8 @@ export function WalkInModal({
                       })}
                     </div>
                     <div className="text-[11px] font-semibold text-link">
-                      Subtotal estimado: {venueCurrencySymbol}
+                      {isEn ? "Estimated subtotal:" : "Subtotal estimado:"}{" "}
+                      {venueCurrencySymbol}
                       {tempEstimatedPrice.toFixed(2)} {venueCurrencyLabel}
                     </div>
                   </div>

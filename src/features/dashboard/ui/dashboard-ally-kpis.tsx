@@ -67,7 +67,7 @@ export function DashboardAllyKpis({
           <span className="text-xs font-bold uppercase tracking-wider">
             {t("kpis.allyRev")}
           </span>
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-accent/20 text-accent-foreground border border-accent/40">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-accent/20 text-link border border-accent/40">
             {t("kpis.allyRevBadgeDynamic", { pct: netSharePct })}
           </span>
         </div>

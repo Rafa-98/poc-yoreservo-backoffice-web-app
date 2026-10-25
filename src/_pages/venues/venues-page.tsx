@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { BackofficeRole } from "@/shared/config";
 import type {
   LocationNode,
@@ -22,6 +22,8 @@ export function VenuesPage({
   locationsTree,
   userRole = "ALLY_ADMIN",
 }: VenuesPageProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const t = useTranslations("venues.top");
   const [venues, setVenues] = useState<VenueItem[]>(initialVenues);
 
@@ -95,6 +97,7 @@ export function VenuesPage({
             <button
               type="button"
               onClick={() => setToast(null)}
+              aria-label={isEn ? "Close notification" : "Cerrar notificación"}
               className="cursor-pointer border-none bg-transparent font-bold text-current"
             >
               ✕

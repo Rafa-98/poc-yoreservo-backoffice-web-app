@@ -13,11 +13,13 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { ROUTES } from "@/shared/config";
 import { useActiveVenue } from "../context/venue-context";
 
 export function VenueHeaderSelector() {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const t = useTranslations("shell");
   const pathname = usePathname();
   const {
@@ -101,12 +103,16 @@ export function VenueHeaderSelector() {
     if (!loc) return venue.city || "";
     const city = loc.parent
       ? typeof loc.parent.name === "object"
-        ? loc.parent.name?.es || loc.parent.name?.en
+        ? isEn
+          ? loc.parent.name?.en || loc.parent.name?.es
+          : loc.parent.name?.es || loc.parent.name?.en
         : loc.parent.name
       : venue.city || "";
     const state = loc.parent?.parent
       ? typeof loc.parent.parent.name === "object"
-        ? loc.parent.parent.name?.es || loc.parent.parent.name?.en
+        ? isEn
+          ? loc.parent.parent.name?.en || loc.parent.parent.name?.es
+          : loc.parent.parent.name?.es || loc.parent.parent.name?.en
         : loc.parent.parent.name
       : "";
     if (state && city) return `${state} · ${city}`;
@@ -158,7 +164,7 @@ export function VenueHeaderSelector() {
 
         <div className="flex items-center gap-1.5 text-left">
           <span className="hidden md:inline text-[11px] font-medium text-muted-foreground">
-            Sede:
+            {isEn ? "Venue:" : "Sede:"}
           </span>
           <span className="max-w-[140px] sm:max-w-[200px] lg:max-w-[240px] truncate font-bold text-foreground">
             {isLoading
@@ -201,7 +207,7 @@ export function VenueHeaderSelector() {
           <div className="p-2 pb-2">
             <div className="flex items-center justify-between pb-2 border-b border-border/70">
               <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                <Sparkles className="size-3.5 text-accent" />
+                <Sparkles className="size-3.5 text-link" />
                 <span>{t("venueSelectorTitle")}</span>
               </div>
               <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-bold text-foreground">
@@ -225,6 +231,7 @@ export function VenueHeaderSelector() {
                   <button
                     type="button"
                     onClick={() => setSearchQuery("")}
+                    aria-label={isEn ? "Clear search" : "Limpiar búsqueda"}
                     className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
                   >
                     <X className="size-3" />
@@ -254,7 +261,7 @@ export function VenueHeaderSelector() {
               >
                 <div className="flex items-center gap-2.5">
                   <div className="flex size-7 items-center justify-center rounded-lg bg-surface border border-border">
-                    <Globe className="size-3.5 text-accent" />
+                    <Globe className="size-3.5 text-link" />
                   </div>
                   <div>
                     <div className="font-bold text-foreground">

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Loader2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { SpaceItem, VenueItem } from "../model/types";
 
 interface ScheduleScopeBarProps {
@@ -36,6 +36,8 @@ export function ScheduleScopeBar({
   isSaving,
   isLoading = false,
 }: ScheduleScopeBarProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const t = useTranslations("venues.schedules");
   const currentVenue =
     selectedVenueId === "ALL"
@@ -56,7 +58,11 @@ export function ScheduleScopeBar({
               value={selectedVenueId}
               onChange={(e) => onSelectVenueId(e.target.value)}
             >
-              <option value="ALL">Consolidado Todas las Sedes</option>
+              <option value="ALL">
+                {isEn
+                  ? "Consolidated All Venues"
+                  : "Consolidado Todas las Sedes"}
+              </option>
               {venues.map((v) => (
                 <option key={v.id} value={v.id}>
                   {v.name}
@@ -82,7 +88,9 @@ export function ScheduleScopeBar({
                   {t("scopeVenueAll", {
                     venueName:
                       selectedVenueId === "ALL"
-                        ? "Todas las Sedes"
+                        ? isEn
+                          ? "All Venues"
+                          : "Todas las Sedes"
                         : currentVenue?.name || t("defaultVenue"),
                   })}
                 </span>

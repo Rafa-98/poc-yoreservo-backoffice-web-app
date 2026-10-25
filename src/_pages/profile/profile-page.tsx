@@ -232,7 +232,7 @@ export function ProfilePage({ initialData }: ProfilePageProps) {
           className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-forest-950 text-white dark:bg-forest-900 border border-accent/40 shadow-xl animate-in fade-in slide-in-from-bottom-5 duration-200"
         >
           {toast.type === "success" ? (
-            <CheckCircle2 className="size-5 text-accent-foreground shrink-0" />
+            <CheckCircle2 className="size-5 text-accent shrink-0" />
           ) : toast.type === "error" ? (
             <AlertCircle className="size-5 text-red-400 shrink-0" />
           ) : (

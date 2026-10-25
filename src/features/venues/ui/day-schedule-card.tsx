@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useTimeFormat } from "@/shared/lib/time-format";
 import type { DaySchedule } from "../model/types";
 import { ScheduleTimelineRibbon } from "./schedule-timeline-ribbon";
@@ -24,6 +24,8 @@ export function DayScheduleCard({
   dayName,
   onChange,
 }: DayScheduleCardProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const t = useTranslations("venues.schedules");
   const { formatTime } = useTimeFormat();
 
@@ -104,6 +106,7 @@ export function DayScheduleCard({
               type="checkbox"
               checked={day.isOpen}
               onChange={toggleOpen}
+              aria-label={isEn ? `Toggle ${dayName}` : `Alternar ${dayName}`}
               className="sr-only"
             />
             <span

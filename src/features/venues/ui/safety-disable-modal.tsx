@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import type { SpaceItem } from "../model/types";
 
@@ -20,6 +20,8 @@ export function SafetyDisableModal({
   activeBookingsCount,
   onConfirm,
 }: SafetyDisableModalProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const t = useTranslations("venues.safety");
   const [selectedAction, setSelectedAction] = useState<
     "reassign" | "defer" | "cancel"
@@ -57,6 +59,7 @@ export function SafetyDisableModal({
           </div>
           <button
             type="button"
+            aria-label={isEn ? "Close modal" : "Cerrar modal"}
             className="btn-icon cursor-pointer border-none bg-transparent text-lg text-muted-foreground hover:text-foreground"
             onClick={onClose}
           >

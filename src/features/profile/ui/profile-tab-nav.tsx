@@ -56,7 +56,7 @@ export function ProfileTabNav({
       >
         <Laptop className="size-4" />
         <span>{t("tabs.sessions")}</span>
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-accent/20 text-accent-foreground border border-accent/40">
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-accent/20 text-link border border-accent/40">
           {sessionsCount}
         </span>
       </button>

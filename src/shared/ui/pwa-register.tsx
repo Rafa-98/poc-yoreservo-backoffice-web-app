@@ -68,7 +68,7 @@ export function PwaInstallButton() {
     <button
       type="button"
       onClick={() => void triggerPwaInstall()}
-      className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-accent/40 bg-accent/15 px-3 text-xs font-bold text-accent-foreground shadow-xs hover:bg-accent/25 active:scale-95 transition-all"
+      className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-accent/40 bg-accent/15 px-3 text-xs font-bold text-link shadow-xs hover:bg-accent/25 active:scale-95 transition-all"
       title={t("pwaBannerTitle")}
     >
       <Download className="size-3.5 shrink-0" />

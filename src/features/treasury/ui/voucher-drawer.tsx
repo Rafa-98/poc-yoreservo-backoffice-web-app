@@ -48,13 +48,16 @@ export function VoucherDrawer({
 
   if (!isOpen || !payment) return null;
 
+  const isEn = locale.toLowerCase().startsWith("en");
   const isDirectMode = payment.collectionMode === "ALLY_DIRECT";
   const isRejected = payment.status === "REJECTED" || payment.status === "FAILED";
   const canReconcile = canUserReconcilePayment(payment, userRole);
 
   const bankName =
     payment.paymentMethod === "CASH"
-      ? "EFECTIVO EN SEDE (TAQUILLA)"
+      ? isEn
+        ? "ON-SITE CASH (BOX OFFICE)"
+        : "EFECTIVO EN SEDE (TAQUILLA)"
       : payment.originBank === "0134"
         ? "BANESCO BANCO UNIVERSAL"
         : payment.originBank === "0105"
@@ -159,7 +162,10 @@ export function VoucherDrawer({
             <div className="mb-4 rounded-xl border border-status-cancelled-border bg-status-cancelled-bg px-4 py-3 text-xs leading-relaxed text-status-cancelled-fg">
               <div className="font-bold">❌ {t("rejectedAlertTitle")}</div>
               <div className="mt-1 font-medium">
-                {payment.rejectionReason || "Referencia no localizada en el extracto bancario."}
+                {payment.rejectionReason ||
+                  (isEn
+                    ? "Reference not found in bank statement."
+                    : "Referencia no localizada en el extracto bancario.")}
               </div>
             </div>
           )}

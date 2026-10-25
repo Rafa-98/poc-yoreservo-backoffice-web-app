@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useTimeFormat } from "@/shared/lib/time-format";
 import type { ShiftRange } from "../model/types";
 
@@ -24,16 +24,18 @@ export function ScheduleTimelineRibbon({
   shift2,
   showTicks = true,
 }: ScheduleTimelineRibbonProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const t = useTranslations("venues.schedules");
   const { formatTime } = useTimeFormat();
 
   if (!isOpen) {
     return (
       <div className="flex flex-col gap-1.5">
-        <div className="flex h-7 items-center justify-center rounded-lg border border-dashed border-border-medium bg-muted text-[11px] font-semibold text-faint-foreground">
+        <div className="flex h-7 items-center justify-center rounded-lg border border-dashed border-border-medium bg-muted text-[11px] font-semibold text-muted-foreground">
           {t("closedNoShifts")}
         </div>
-        {showTicks && <TimelineTicks />}
+        {showTicks && <TimelineTicks isEn={isEn} />}
       </div>
     );
   }
@@ -100,7 +102,7 @@ export function ScheduleTimelineRibbon({
           {recessPct > 8 && (
             <span
               title={t("legendRecess")}
-              className="truncate rounded bg-surface/90 px-1.5 py-0.5 text-[10px] font-semibold text-faint-foreground"
+              className="truncate rounded bg-surface/90 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground"
             >
               {t("recessShort")}
             </span>
@@ -116,15 +118,18 @@ export function ScheduleTimelineRibbon({
         </div>
       </div>
 
-      {showTicks && <TimelineTicks />}
+      {showTicks && <TimelineTicks isEn={isEn} />}
     </div>
   );
 }
 
-function TimelineTicks() {
+function TimelineTicks({ isEn }: { isEn: boolean }) {
   const { timeFormat } = useTimeFormat();
   return (
-    <div className="flex justify-between px-0.5 font-mono text-[10px] text-faint-foreground">
+    <div
+      aria-label={isEn ? "24-hour timeline" : "Línea de tiempo de 24 horas"}
+      className="flex justify-between px-0.5 font-mono text-[10px] text-muted-foreground"
+    >
       {timeFormat === "12h" ? (
         <>
           <span>12 AM</span>

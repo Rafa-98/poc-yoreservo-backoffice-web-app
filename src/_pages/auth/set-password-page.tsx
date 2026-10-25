@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { AuthShellLayout } from "@/features/auth/ui/auth-shell-layout";
 import { SetPasswordForm } from "@/features/auth/ui/set-password-form";
 import type { InvitationDetails } from "@/features/auth/actions/set-password-action";
@@ -13,6 +13,8 @@ interface SetPasswordPageProps {
 
 export function SetPasswordPage({ initialInvitation = null }: SetPasswordPageProps) {
   const t = useTranslations("auth");
+  const locale = useLocale();
+  const isEn = locale === "en";
   const [invitation, setInvitation] = useState<InvitationDetails | null>(
     initialInvitation
   );
@@ -22,7 +24,9 @@ export function SetPasswordPage({ initialInvitation = null }: SetPasswordPagePro
     invitation?.venueName ||
     invitation?.organizationName ||
     (invitation?.role?.startsWith("PLATFORM_")
-      ? "YoReservo (Plataforma Central)"
+      ? isEn
+        ? "YoReservo (Central Platform)"
+        : "YoReservo (Plataforma Central)"
       : "—");
 
   return (

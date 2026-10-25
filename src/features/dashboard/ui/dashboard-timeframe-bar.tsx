@@ -93,7 +93,7 @@ export function DashboardTimeframeBar({
             onClick={() => onSelectTimeframe("HOY")}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               timeframe === "HOY"
-                ? "bg-forest-900 text-white dark:bg-accent/20 dark:text-accent-foreground dark:border dark:border-accent/30 font-bold shadow-xs"
+                ? "bg-accent text-accent-foreground font-bold shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -105,7 +105,7 @@ export function DashboardTimeframeBar({
             onClick={() => onSelectTimeframe("SEMANA")}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               timeframe === "SEMANA"
-                ? "bg-forest-900 text-white dark:bg-accent/20 dark:text-accent-foreground dark:border dark:border-accent/30 font-bold shadow-xs"
+                ? "bg-accent text-accent-foreground font-bold shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -117,7 +117,7 @@ export function DashboardTimeframeBar({
             onClick={() => onSelectTimeframe("MES")}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               timeframe === "MES"
-                ? "bg-forest-900 text-white dark:bg-accent/20 dark:text-accent-foreground dark:border dark:border-accent/30 font-bold shadow-xs"
+                ? "bg-accent text-accent-foreground font-bold shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -129,7 +129,7 @@ export function DashboardTimeframeBar({
             onClick={() => onSelectTimeframe("ANO")}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               timeframe === "ANO"
-                ? "bg-forest-900 text-white dark:bg-accent/20 dark:text-accent-foreground dark:border dark:border-accent/30 font-bold shadow-xs"
+                ? "bg-accent text-accent-foreground font-bold shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >

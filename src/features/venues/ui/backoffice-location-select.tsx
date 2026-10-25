@@ -252,7 +252,7 @@ export function BackofficeLocationSelect({
             onClick={() => handleSelect("")}
             className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold transition ${
               value === ""
-                ? "bg-accent/15 text-accent-foreground border border-accent/30"
+                ? "bg-accent/15 text-link border border-accent/30"
                 : "text-foreground hover:bg-muted"
             }`}
           >
@@ -296,7 +296,7 @@ export function BackofficeLocationSelect({
                       <span
                         className={`truncate text-xs font-bold ${
                           isStateSelected
-                            ? "text-accent-foreground"
+                            ? "text-link"
                             : "text-foreground"
                         }`}
                       >
@@ -345,7 +345,7 @@ export function BackofficeLocationSelect({
                                 isCitySelected
                                   ? "bg-accent text-accent-foreground shadow-xs"
                                   : cityMatchesQuery
-                                    ? "border border-accent/50 bg-accent/15 font-bold text-accent-foreground"
+                                    ? "border border-accent/50 bg-accent/15 font-bold text-link"
                                     : "bg-muted/80 text-foreground hover:bg-muted"
                               }`}
                             >

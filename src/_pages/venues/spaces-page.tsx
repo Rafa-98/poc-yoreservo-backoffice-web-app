@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
+import { useActiveVenue } from "@/features/venues/context/venue-context";
 import type {
   SpaceItem,
   SportCategoryItem,
@@ -42,15 +43,36 @@ export function SpacesPage({
   bcvRate = DEFAULT_BCV_USD_RATE,
   referenceCurrencyCode = "USD",
 }: SpacesPageProps) {
+  const locale = useLocale();
+  const isEn = locale.toLowerCase().startsWith("en");
   const t = useTranslations("venues.top");
   const router = useRouter();
+  const {
+    activeOrganizationId: globalOrgId,
+    setActiveOrganizationId: setGlobalOrgId,
+    activeVenueId: globalVenueId,
+    setActiveVenueId: setGlobalVenueId,
+    activeOrganization,
+    scopedVenues,
+  } = useActiveVenue();
 
   const [venues] = useState<VenueItem[]>(initialVenues);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>(
+    globalOrgId || "ALL",
+  );
   const [selectedVenueId, setSelectedVenueId] = useState<string>(
-    initialVenueId || initialVenues[0]?.id || "ALL"
+    initialVenueId || globalVenueId || "ALL",
   );
   const [spaces, setSpaces] = useState<SpaceItem[]>(initialSpaces);
   const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
+
+  useEffect(() => {
+    if (globalOrgId) {
+      setSelectedOrganizationId((prev) =>
+        prev === globalOrgId ? prev : globalOrgId,
+      );
+    }
+  }, [globalOrgId]);
 
   // Modals state
   const [isCourtModalOpen, setIsCourtModalOpen] = useState(false);
@@ -64,16 +86,39 @@ export function SpacesPage({
   const currentVenue =
     selectedVenueId === "ALL"
       ? null
-      : venues.find((v) => v.id === selectedVenueId) || venues[0];
+      : venues.find((v) => v.id === selectedVenueId) ||
+        scopedVenues[0] ||
+        venues[0];
 
   function showToast(message: string, isError = false) {
     setToast({ message, isError });
     setTimeout(() => setToast(null), 4000);
   }
 
+  async function handleSelectOrganization(orgId: string) {
+    setSelectedOrganizationId(orgId);
+    setGlobalOrgId(orgId);
+    setSelectedVenueId("ALL");
+    setGlobalVenueId("ALL");
+    const queryParam = orgId && orgId !== "ALL" ? `ORG:${orgId}` : "ALL";
+    const res = await getSpacesAction(queryParam);
+    if (res.ok && res.data) {
+      setSpaces(res.data);
+    } else if (!res.ok) {
+      showToast(t("errorLoadSpaces", { code: res.error.code }), true);
+    }
+  }
+
   async function handleSelectVenue(venueId: string) {
     setSelectedVenueId(venueId);
-    const res = await getSpacesAction(venueId);
+    setGlobalVenueId(venueId);
+    const queryParam =
+      venueId === "ALL" &&
+      selectedOrganizationId &&
+      selectedOrganizationId !== "ALL"
+        ? `ORG:${selectedOrganizationId}`
+        : venueId;
+    const res = await getSpacesAction(queryParam);
     if (res.ok && res.data) {
       setSpaces(res.data);
     } else if (!res.ok) {
@@ -186,7 +231,11 @@ export function SpacesPage({
         <div>
           <div className="text-[11px] font-bold tracking-wider text-link uppercase">
             {t("spacesSubtitle", {
-              venueName: currentVenue?.name || t("defaultVenueName"),
+              venueName:
+                currentVenue?.name ||
+                (activeOrganization
+                  ? `${isEn ? "Consolidated" : "Consolidado"} · ${activeOrganization.tradeName}`
+                  : t("defaultVenueName")),
             })}
           </div>
           <h1 className="mt-1 text-[22px] font-extrabold text-foreground">
@@ -209,6 +258,7 @@ export function SpacesPage({
             <button
               type="button"
               onClick={() => setToast(null)}
+              aria-label={isEn ? "Close notification" : "Cerrar notificación"}
               className="cursor-pointer border-none bg-transparent font-bold text-current"
             >
               ✕
@@ -220,6 +270,8 @@ export function SpacesPage({
       {/* Court Cards Grid */}
       <CourtCardsGrid
         venues={venues}
+        selectedOrganizationId={selectedOrganizationId}
+        onSelectOrganizationId={handleSelectOrganization}
         selectedVenueId={selectedVenueId}
         onSelectVenueId={handleSelectVenue}
         spaces={spaces}
@@ -237,7 +289,9 @@ export function SpacesPage({
         onClose={() => setIsCourtModalOpen(false)}
         venueId={
           editingCourt?.venueId ||
-          (selectedVenueId !== "ALL" ? selectedVenueId : venues[0]?.id || "")
+          (selectedVenueId !== "ALL"
+            ? selectedVenueId
+            : scopedVenues[0]?.id || venues[0]?.id || "")
         }
         space={editingCourt}
         categories={categories}

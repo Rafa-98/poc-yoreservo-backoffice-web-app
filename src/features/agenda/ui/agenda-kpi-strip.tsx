@@ -116,7 +116,7 @@ export function AgendaKpiStrip({
           <span className="text-xs font-semibold uppercase tracking-wider">
             {t("kpiReservations")}
           </span>
-          <div className="flex size-7 items-center justify-center rounded-lg bg-blue-500/15 text-blue-600">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400">
             <CalendarDays className="size-4" />
           </div>
         </div>
@@ -124,7 +124,7 @@ export function AgendaKpiStrip({
           <span className="font-display text-2xl font-bold text-foreground">
             {t("kpiMatchesCount", { count: totalBookings })}
           </span>
-          <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-bold text-blue-600">
+          <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400">
             {t("kpiPaidCount", { count: paidBookings })}
           </span>
         </div>
@@ -156,7 +156,7 @@ export function AgendaKpiStrip({
           <span className="text-xs font-semibold uppercase tracking-wider">
             {t("kpiNextMatch")}
           </span>
-          <div className="flex size-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
             <Clock className="size-4" />
           </div>
         </div>
