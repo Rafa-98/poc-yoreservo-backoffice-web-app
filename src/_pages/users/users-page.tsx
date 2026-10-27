@@ -26,12 +26,14 @@ import {
 import type {
   ActiveSessionItem,
   UserItem,
+  UserOrganizationOption,
   UsersKpi,
 } from "@/features/users/model/types";
 
 interface UsersPageProps {
   initialKpi: UsersKpi;
   initialUsers: UserItem[];
+  initialOrganizations?: UserOrganizationOption[];
   initialSessions: ActiveSessionItem[];
   venues: Array<{
     id: string;
@@ -45,6 +47,7 @@ interface UsersPageProps {
 
 export function UsersPage({
   initialUsers,
+  initialOrganizations = [],
   initialSessions,
   venues,
   currentUserRole,
@@ -56,6 +59,7 @@ export function UsersPage({
   const {
     activeVenueId,
     activeOrganizationId,
+    organizations: contextOrganizations,
     setActiveOrganizationId: setGlobalOrgId,
     setActiveVenueId: setGlobalVenueId,
   } = useActiveVenue();
@@ -65,9 +69,19 @@ export function UsersPage({
     currentUserRole === "ALLY_ACCOUNTING" ||
     currentUserRole === "ALLY_VALIDATOR";
 
+  const [extraOrganizations, setExtraOrganizations] = useState<
+    UserOrganizationOption[]
+  >(initialOrganizations);
+
   const organizations = useMemo(
-    () => deriveOrganizationsFromVenues(venues as unknown as VenueItem[]),
-    [venues],
+    () =>
+      deriveOrganizationsFromVenues(
+        venues as unknown as VenueItem[],
+        extraOrganizations.length > 0
+          ? extraOrganizations
+          : contextOrganizations,
+      ),
+    [venues, extraOrganizations, contextOrganizations],
   );
   const showOrganizationFilter = !isAllyRole && organizations.length > 0;
 
@@ -109,6 +123,9 @@ export function UsersPage({
     const res = await getUsersAction();
     if (res.ok && res.data) {
       setUsers(res.data.users);
+      if (Array.isArray(res.data.organizations)) {
+        setExtraOrganizations(res.data.organizations);
+      }
       if (selectedUserForDetail) {
         const updatedDetail = res.data.users.find((u) => u.id === selectedUserForDetail.id);
         setSelectedUserForDetail(updatedDetail || null);
@@ -295,6 +312,7 @@ export function UsersPage({
   }, [isAllyRole, t]);
 
   const orgOptions = useMemo(() => {
+    const allyOrgs = organizations.filter((org) => !org.isPlatformOrg);
     return [
       {
         value: "ALL",
@@ -306,7 +324,7 @@ export function UsersPage({
         label: isEn ? "YoReservo Team (Global)" : "Equipo YoReservo (Global)",
         icon: "👑",
       },
-      ...organizations.map((org) => ({
+      ...allyOrgs.map((org) => ({
         value: org.id,
         label: `${org.tradeName} (${org.venuesCount} ${
           isEn
@@ -605,6 +623,13 @@ export function UsersPage({
         isOpen={isInviteOpen}
         onClose={() => setIsInviteOpen(false)}
         venues={scopedVenues}
+        allVenues={venues}
+        organizations={organizations}
+        defaultOrganizationId={
+          orgFilter !== "ALL" && orgFilter !== "PLATFORM"
+            ? orgFilter
+            : undefined
+        }
         currentUserRole={currentUserRole}
         onSuccess={async () => {
           await refreshUsers();
@@ -616,6 +641,8 @@ export function UsersPage({
         onClose={() => setEditingUser(null)}
         user={editingUser}
         venues={scopedVenues}
+        allVenues={venues}
+        organizations={organizations}
         currentUserRole={currentUserRole}
         onSuccess={async () => {
           await refreshUsers();

@@ -35,10 +35,11 @@ export function VenueCardGrid({
     isPlatformRole,
     activeOrganizationId,
     setActiveOrganizationId,
+    organizations: contextOrganizations,
   } = useActiveVenue();
   const organizations = useMemo(
-    () => deriveOrganizationsFromVenues(venues),
-    [venues],
+    () => deriveOrganizationsFromVenues(venues, contextOrganizations),
+    [venues, contextOrganizations],
   );
   const showOrganizationFilter = isPlatformRole || organizations.length > 1;
   const [selectedLocationId, setSelectedLocationId] = useState("");

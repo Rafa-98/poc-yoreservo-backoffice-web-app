@@ -31,6 +31,8 @@ export default async function Page() {
       };
 
   const users = usersRes.ok && usersRes.data ? usersRes.data.users : [];
+  const organizations =
+    usersRes.ok && usersRes.data ? usersRes.data.organizations || [] : [];
   const sessions = sessionsRes.ok && sessionsRes.data ? sessionsRes.data : [];
   const venues = venuesRes.ok && venuesRes.data
     ? venuesRes.data.map((v) => ({
@@ -46,6 +48,7 @@ export default async function Page() {
     <UsersPage
       initialKpi={kpi}
       initialUsers={users}
+      initialOrganizations={organizations}
       initialSessions={sessions}
       venues={venues}
       currentUserRole={session.user.role}

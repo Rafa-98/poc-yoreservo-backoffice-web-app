@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/shared/ui/button";
 import { SearchableSelect } from "./searchable-select";
 import { updateUserPrivilegesAction } from "../actions/users-actions";
@@ -11,7 +11,15 @@ interface EditUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserItem | null;
-  venues: Array<{ id: string; name: string }>;
+  venues: Array<{ id: string; name: string; organizationId?: string }>;
+  allVenues?: Array<{ id: string; name: string; organizationId?: string }>;
+  organizations?: Array<{
+    id: string;
+    tradeName: string;
+    rif?: string | null;
+    isPlatformOrg?: boolean;
+    venuesCount?: number;
+  }>;
   onSuccess: (updated: any) => void;
   currentUserRole?: string;
 }
@@ -21,14 +29,18 @@ export function EditUserModal({
   onClose,
   user,
   venues,
+  allVenues,
+  organizations = [],
   onSuccess,
   currentUserRole,
 }: EditUserModalProps) {
   const t = useTranslations("users.modalEdit");
   const tFilters = useTranslations("users.filters");
   const tInvite = useTranslations("users.modalInvite");
+  const isEn = useLocale().toLowerCase().startsWith("en");
 
   const [role, setRole] = useState<UserRole>("ALLY_VALIDATOR");
+  const [selectedOrgId, setSelectedOrgId] = useState<string>("");
   const [venueScope, setVenueScope] = useState<string>("org-all");
   const [status, setStatus] = useState<GeneralStatus>("ACTIVE");
   const [loading, setLoading] = useState(false);
@@ -39,18 +51,57 @@ export function EditUserModal({
     currentUserRole === "ALLY_ACCOUNTING" ||
     currentUserRole === "ALLY_VALIDATOR";
 
+  const allyOrganizations = useMemo(() => {
+    const nonPlat = organizations.filter((o) => !o.isPlatformOrg);
+    return nonPlat.length > 0 ? nonPlat : organizations;
+  }, [organizations]);
+
+  const effectiveAllVenues =
+    allVenues && allVenues.length > 0 ? allVenues : venues;
+
+  const venuesForSelectedOrg = useMemo(() => {
+    if (isAllyCaller || !selectedOrgId) {
+      return venues;
+    }
+    return effectiveAllVenues.filter((v) => v.organizationId === selectedOrgId);
+  }, [isAllyCaller, selectedOrgId, venues, effectiveAllVenues]);
+
   useEffect(() => {
     if (user) {
       setRole(user.role);
+      const initialOrg = user.organizationId || allyOrganizations[0]?.id || "";
+      setSelectedOrgId(initialOrg);
+      const orgVenues =
+        !isAllyCaller && initialOrg
+          ? effectiveAllVenues.filter((v) => v.organizationId === initialOrg)
+          : venues;
       if (user.role === "ALLY_VALIDATOR") {
-        setVenueScope(user.venueId || venues[0]?.id || "");
+        setVenueScope(user.venueId || orgVenues[0]?.id || "");
       } else {
         setVenueScope("org-all");
       }
       setStatus((user.status === "INVITATION_PENDING" ? "ACTIVE" : user.status) as GeneralStatus);
       setErrorMsg(null);
     }
-  }, [user, venues]);
+  }, [user, venues, allyOrganizations, isAllyCaller, effectiveAllVenues]);
+
+  function handleOrganizationChange(nextOrgId: string) {
+    setSelectedOrgId(nextOrgId);
+    setErrorMsg(null);
+    const orgVenues = effectiveAllVenues.filter(
+      (v) => v.organizationId === nextOrgId,
+    );
+    if (role === "ALLY_VALIDATOR") {
+      if (orgVenues.length === 0) {
+        setRole("ALLY_ADMIN");
+        setVenueScope("org-all");
+      } else {
+        setVenueScope(orgVenues[0]?.id || "");
+      }
+    } else {
+      setVenueScope("org-all");
+    }
+  }
 
   function handleRoleChange(nextRole: string) {
     const casted = nextRole as UserRole;
@@ -58,7 +109,14 @@ export function EditUserModal({
     setErrorMsg(null);
     if (casted === "ALLY_VALIDATOR") {
       setVenueScope((prev) =>
-        prev && prev !== "org-all" ? prev : user?.venueId || venues[0]?.id || "",
+        prev &&
+        prev !== "org-all" &&
+        venuesForSelectedOrg.some((v) => v.id === prev)
+          ? prev
+          : user?.venueId &&
+            venuesForSelectedOrg.some((v) => v.id === user.venueId)
+          ? user.venueId
+          : venuesForSelectedOrg[0]?.id || "",
       );
     } else {
       setVenueScope("org-all");
@@ -84,9 +142,32 @@ export function EditUserModal({
   const isPlatformRole =
     role === "PLATFORM_ADMIN" || role === "PLATFORM_ACCOUNTING";
 
+  const organizationSelectOptions = useMemo(() => {
+    if (isPlatformRole) {
+      return [
+        {
+          value: "PLATFORM",
+          label: isEn ? "YoReservo Team (Global)" : "Equipo YoReservo (Global)",
+          icon: "👑",
+        },
+      ];
+    }
+    return allyOrganizations.map((org) => {
+      const count = org.venuesCount ?? 0;
+      const sedesLabel = isEn
+        ? `${count} ${count === 1 ? "venue" : "venues"}`
+        : `${count} ${count === 1 ? "sede" : "sedes"}`;
+      return {
+        value: org.id,
+        label: `${org.tradeName} (${sedesLabel})`,
+        icon: "🏢",
+      };
+    });
+  }, [isPlatformRole, allyOrganizations, isEn]);
+
   const scopeOptions = useMemo(() => {
     if (isValidatorRole) {
-      return venues.map((v) => ({
+      return venuesForSelectedOrg.map((v) => ({
         value: v.id,
         label: v.name,
         icon: "📍",
@@ -108,7 +189,7 @@ export function EditUserModal({
         icon: "🏢",
       },
     ];
-  }, [isValidatorRole, isPlatformRole, venues, t]);
+  }, [isValidatorRole, isPlatformRole, venuesForSelectedOrg, t]);
 
   const statusOptions = useMemo(() => {
     return [
@@ -134,6 +215,11 @@ export function EditUserModal({
 
     const input: UpdateUserPrivilegesInput = {
       role,
+      organizationId: isPlatformRole
+        ? null
+        : !isAllyCaller && selectedOrgId
+        ? selectedOrgId
+        : undefined,
       managedVenueId: role === "ALLY_VALIDATOR" ? venueScope : null,
       status,
     };
@@ -196,6 +282,34 @@ export function EditUserModal({
               className="form-input opacity-80 bg-muted cursor-not-allowed text-xs"
             />
           </div>
+
+          {!isAllyCaller && allyOrganizations.length > 0 && (
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                {isEn
+                  ? "ASSIGNED ORGANIZATION *"
+                  : "ORGANIZACIÓN ASIGNADA *"}
+              </label>
+              <SearchableSelect
+                id="edit-user-organization"
+                value={isPlatformRole ? "PLATFORM" : selectedOrgId}
+                onChange={handleOrganizationChange}
+                options={organizationSelectOptions}
+                placeholder={
+                  isEn
+                    ? "Select an organization..."
+                    : "Selecciona una organización..."
+                }
+                searchPlaceholder={
+                  isEn
+                    ? "Search organization..."
+                    : "Buscar organización..."
+                }
+                emptyText={tFilters("noOptionsFound")}
+                disabled={isPlatformRole}
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">

@@ -10,7 +10,16 @@ import type { DocumentType, InviteUserInput, UserRole } from "../model/types";
 interface InviteUserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  venues: Array<{ id: string; name: string }>;
+  venues: Array<{ id: string; name: string; organizationId?: string }>;
+  allVenues?: Array<{ id: string; name: string; organizationId?: string }>;
+  organizations?: Array<{
+    id: string;
+    tradeName: string;
+    rif?: string | null;
+    isPlatformOrg?: boolean;
+    venuesCount?: number;
+  }>;
+  defaultOrganizationId?: string;
   onSuccess: (result: any) => void;
   currentUserRole?: string;
 }
@@ -58,6 +67,9 @@ export function InviteUserModal({
   isOpen,
   onClose,
   venues,
+  allVenues,
+  organizations = [],
+  defaultOrganizationId,
   onSuccess,
   currentUserRole,
 }: InviteUserModalProps) {
@@ -109,20 +121,78 @@ export function InviteUserModal({
     currentUserRole === "ALLY_ACCOUNTING" ||
     currentUserRole === "ALLY_VALIDATOR";
 
+  const allyOrganizations = useMemo(() => {
+    const nonPlat = organizations.filter((o) => !o.isPlatformOrg);
+    return nonPlat.length > 0 ? nonPlat : organizations;
+  }, [organizations]);
+
+  const [selectedOrgId, setSelectedOrgId] = useState<string>(
+    () => defaultOrganizationId || allyOrganizations[0]?.id || "",
+  );
+
+  const effectiveAllVenues = allVenues && allVenues.length > 0 ? allVenues : venues;
+
+  const venuesForSelectedOrg = useMemo(() => {
+    if (isAllyCaller || !selectedOrgId) {
+      return venues;
+    }
+    return effectiveAllVenues.filter((v) => v.organizationId === selectedOrgId);
+  }, [isAllyCaller, selectedOrgId, venues, effectiveAllVenues]);
+
   useEffect(() => {
     if (isOpen) {
       setTempPass(buildRandomTempPass());
       setCopied(false);
       setErrorMsg(null);
+
+      const initialOrgId =
+        defaultOrganizationId ||
+        selectedOrgId ||
+        allyOrganizations[0]?.id ||
+        "";
+      if (!isAllyCaller && initialOrgId) {
+        setSelectedOrgId(initialOrgId);
+      }
+
+      const orgVenues =
+        !isAllyCaller && initialOrgId
+          ? effectiveAllVenues.filter((v) => v.organizationId === initialOrgId)
+          : venues;
+
       if (role === "ALLY_VALIDATOR") {
-        setVenueScope((prev) =>
-          prev && prev !== "org-all" ? prev : venues[0]?.id || "",
-        );
+        if (orgVenues.length === 0 && !isAllyCaller) {
+          setRole("ALLY_ADMIN");
+          setVenueScope("org-all");
+        } else {
+          setVenueScope((prev) =>
+            prev && prev !== "org-all" && orgVenues.some((v) => v.id === prev)
+              ? prev
+              : orgVenues[0]?.id || "",
+          );
+        }
       } else {
         setVenueScope("org-all");
       }
     }
-  }, [isOpen, venues, role]);
+  }, [isOpen, defaultOrganizationId, allyOrganizations]);
+
+  function handleOrganizationChange(nextOrgId: string) {
+    setSelectedOrgId(nextOrgId);
+    setErrorMsg(null);
+    const orgVenues = effectiveAllVenues.filter(
+      (v) => v.organizationId === nextOrgId,
+    );
+    if (role === "ALLY_VALIDATOR") {
+      if (orgVenues.length === 0) {
+        setRole("ALLY_ADMIN");
+        setVenueScope("org-all");
+      } else {
+        setVenueScope(orgVenues[0]?.id || "");
+      }
+    } else {
+      setVenueScope("org-all");
+    }
+  }
 
   function handleRoleChange(nextRole: string) {
     const casted = nextRole as UserRole;
@@ -130,12 +200,37 @@ export function InviteUserModal({
     setErrorMsg(null);
     if (casted === "ALLY_VALIDATOR") {
       // Validator MUST be assigned to a specific venue
-      setVenueScope(venues[0]?.id || "");
+      setVenueScope(venuesForSelectedOrg[0]?.id || "");
     } else {
       // ALLY_ADMIN, ALLY_ACCOUNTING, PLATFORM_* operate across all venues / globally
       setVenueScope("org-all");
     }
   }
+
+  const organizationSelectOptions = useMemo(() => {
+    const isPlat =
+      role === "PLATFORM_ADMIN" || role === "PLATFORM_ACCOUNTING";
+    if (isPlat) {
+      return [
+        {
+          value: "PLATFORM",
+          label: isEn ? "YoReservo Team (Global)" : "Equipo YoReservo (Global)",
+          icon: "👑",
+        },
+      ];
+    }
+    return allyOrganizations.map((org) => {
+      const count = org.venuesCount ?? 0;
+      const sedesLabel = isEn
+        ? `${count} ${count === 1 ? "venue" : "venues"}`
+        : `${count} ${count === 1 ? "sede" : "sedes"}`;
+      return {
+        value: org.id,
+        label: `${org.tradeName} (${sedesLabel})`,
+        icon: "🏢",
+      };
+    });
+  }, [role, allyOrganizations, isEn]);
 
   const roleOptions = useMemo(() => {
     const opts = [
@@ -158,7 +253,7 @@ export function InviteUserModal({
 
   const scopeOptions = useMemo(() => {
     if (isValidatorRole) {
-      return venues.map((v) => ({
+      return venuesForSelectedOrg.map((v) => ({
         value: v.id,
         label: v.name,
         icon: "📍",
@@ -180,7 +275,7 @@ export function InviteUserModal({
         icon: "🏢",
       },
     ];
-  }, [isValidatorRole, isPlatformRole, venues, t]);
+  }, [isValidatorRole, isPlatformRole, venuesForSelectedOrg, t]);
 
   if (!isOpen) return null;
 
@@ -198,6 +293,15 @@ export function InviteUserModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrorMsg(null);
+
+    if (!isAllyCaller && !isPlatformRole && !selectedOrgId) {
+      setErrorMsg(
+        isEn
+          ? "Please select the organization for this user."
+          : "Debes seleccionar la organización a la que pertenecerá el usuario.",
+      );
+      return;
+    }
 
     if (role === "ALLY_VALIDATOR" && (!venueScope || venueScope === "org-all")) {
       setErrorMsg(t("errorVenueRequired"));
@@ -219,6 +323,11 @@ export function InviteUserModal({
       documentType: docType,
       documentNumber: docNum,
       role,
+      organizationId: isPlatformRole
+        ? null
+        : !isAllyCaller
+        ? selectedOrgId
+        : undefined,
       managedVenueId: role === "ALLY_VALIDATOR" ? venueScope : null,
       deliveryMethod,
       tempPassword: deliveryMethod === "temp_pass" ? tempPass : undefined,
@@ -418,6 +527,35 @@ export function InviteUserModal({
               </div>
             </div>
           </div>
+
+          {/* Organization Selector (Platform Admin) */}
+          {!isAllyCaller && allyOrganizations.length > 0 && (
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                {isEn
+                  ? "ASSIGNED ORGANIZATION *"
+                  : "ORGANIZACIÓN ASIGNADA *"}
+              </label>
+              <SearchableSelect
+                id="inv-organization"
+                value={isPlatformRole ? "PLATFORM" : selectedOrgId}
+                onChange={handleOrganizationChange}
+                options={organizationSelectOptions}
+                placeholder={
+                  isEn
+                    ? "Select an organization..."
+                    : "Selecciona una organización..."
+                }
+                searchPlaceholder={
+                  isEn
+                    ? "Search organization..."
+                    : "Buscar organización..."
+                }
+                emptyText={tFilters("noOptionsFound")}
+                disabled={isPlatformRole}
+              />
+            </div>
+          )}
 
           {/* Role & Authorization Scope (Dependent on Role) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

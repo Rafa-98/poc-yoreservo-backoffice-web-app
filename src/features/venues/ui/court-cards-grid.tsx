@@ -45,6 +45,12 @@ export function CourtCardsGrid({
   const currencySuffix =
     referenceCurrencyCode === "EUR" ? t("rateUnitEur") : t("rateUnit");
 
+  const availableVenues =
+    selectedOrganizationId && selectedOrganizationId !== "ALL"
+      ? venues.filter((v) => v.organizationId === selectedOrganizationId)
+      : venues;
+  const hasVenues = availableVenues.length > 0;
+
   function getSportBadge(space: SpaceItem): string {
     const raw =
       typeof space.activityCategory?.name === "object"
@@ -83,14 +89,50 @@ export function CourtCardsGrid({
 
         <button
           type="button"
-          className="btn btn-primary text-[13px]"
+          className="btn btn-primary text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={onOpenCreateCourt}
+          disabled={!hasVenues}
+          title={
+            !hasVenues
+              ? isEn
+                ? "Register at least one venue first to add courts"
+                : "Registra al menos una sede primero para poder agregar canchas"
+              : undefined
+          }
           id="btn-add-court"
         >
           <span>+</span>
           <span>{t("btnAdd")}</span>
         </button>
       </div>
+
+      {!hasVenues && (
+        <div className="mx-5 my-4 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-medium bg-surface px-6 py-12 text-center shadow-card">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/15 text-2xl">
+            🏟️
+          </div>
+          <h3 className="text-base font-bold text-foreground">
+            {isEn
+              ? "No venues registered yet"
+              : "Aún no tienes sedes o recintos registrados"}
+          </h3>
+          <p className="mt-1 max-w-md text-xs text-muted-foreground">
+            {isEn
+              ? "Before creating courts or bookable spaces, you must register at least one Venue (sports complex) to associate them with."
+              : "Para poder crear canchas o espacios reservables, primero debes registrar al menos un Recinto / Sede al cual asociarlas."}
+          </p>
+          <Link
+            href={ROUTES.venues}
+            className="btn btn-primary mt-4 text-xs"
+            id="btn-empty-go-to-venues"
+          >
+            <span>+</span>
+            <span>
+              {isEn ? "Go to Venues to create one" : "Ir a Recintos / Sedes"}
+            </span>
+          </Link>
+        </div>
+      )}
 
       {/* Grid of Courts */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-5 px-5 pb-8">

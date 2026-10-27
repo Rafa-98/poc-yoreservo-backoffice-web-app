@@ -210,8 +210,36 @@ export interface DerivedOrganizationOption {
 
 export function deriveOrganizationsFromVenues(
   venues: VenueItem[],
+  extraOrganizations?: Array<{
+    id: string;
+    tradeName: string;
+    legalName?: string | null;
+    rif?: string | null;
+    isPlatformOrg?: boolean;
+    referenceCurrencyCode?: string;
+    paymentCollectionMode?: PaymentCollectionMode;
+    venuesCount?: number;
+    spacesCount?: number;
+  }>,
 ): DerivedOrganizationOption[] {
   const map = new Map<string, DerivedOrganizationOption>();
+  if (Array.isArray(extraOrganizations)) {
+    for (const org of extraOrganizations) {
+      if (!org?.id) continue;
+      map.set(org.id, {
+        id: org.id,
+        tradeName: org.tradeName || org.legalName || "Organización Aliada",
+        legalName: org.legalName ?? null,
+        rif: org.rif ?? null,
+        isPlatformOrg: Boolean(org.isPlatformOrg),
+        referenceCurrencyCode: org.referenceCurrencyCode || "USD",
+        paymentCollectionMode: org.paymentCollectionMode || "PLATFORM_CUSTODY",
+        venuesCount: 0,
+        spacesCount: 0,
+        venues: [],
+      });
+    }
+  }
   for (const v of venues) {
     if (!v.organizationId) continue;
     let existing = map.get(v.organizationId);
@@ -244,6 +272,7 @@ export function deriveOrganizationsFromVenues(
 }
 
 export interface CreateVenueInput {
+  organizationId?: string;
   name: string;
   rif?: string;
   locationId: string;

@@ -239,6 +239,7 @@ function mapOrganizationData(raw: any): OrganizationData {
             rif: o?.rif ? String(o.rif) : undefined,
             fiscalAddress: o?.fiscalAddress ? String(o.fiscalAddress) : undefined,
             status: o?.status ? String(o.status) : "ACTIVE",
+            isPlatformOrg: Boolean(o?.isPlatformOrg),
             isBookingPaused: Boolean(o?.isBookingPaused),
             paymentCollectionMode:
               o?.paymentCollectionMode === "ALLY_DIRECT"
@@ -314,6 +315,7 @@ export async function createOrganizationAction(
     revalidatePath(ROUTES.venues);
     revalidatePath(ROUTES.spaces);
     revalidatePath(ROUTES.schedules);
+    revalidatePath(ROUTES.users);
 
     return ok(mapOrganizationData(res.body));
   } catch (error) {
@@ -347,6 +349,7 @@ export async function updateOrganizationStatusAction(
     revalidatePath(ROUTES.venues);
     revalidatePath(ROUTES.spaces);
     revalidatePath(ROUTES.schedules);
+    revalidatePath(ROUTES.users);
 
     return ok(mapOrganizationData(res.body));
   } catch (error) {
@@ -380,6 +383,7 @@ export async function updateOrganizationAction(
     revalidatePath(ROUTES.venues);
     revalidatePath(ROUTES.spaces);
     revalidatePath(ROUTES.schedules);
+    revalidatePath(ROUTES.users);
 
     return ok(mapOrganizationData(res.body));
   } catch (error) {

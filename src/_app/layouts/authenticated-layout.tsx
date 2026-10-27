@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { SessionUser } from "@/shared/auth";
 import { TimeFormatProvider } from "@/shared/lib";
 import { VenueProvider } from "@/features/venues/context/venue-context";
-import type { VenueItem } from "@/features/venues/model/types";
+import type { OrganizationSummaryItem, VenueItem } from "@/features/venues/model/types";
 import { AppHeader } from "./app-header";
 import { AppSidebar } from "./app-sidebar";
 
@@ -13,6 +13,7 @@ const SIDEBAR_PINNED_STORAGE_KEY = "yoreservo:sidebar-pinned-v2";
 export interface AuthenticatedLayoutProps {
   user: SessionUser;
   initialVenues?: VenueItem[];
+  initialOrganizations?: OrganizationSummaryItem[];
   initialActiveOrganizationId?: string;
   initialActiveVenueId?: string;
   children: ReactNode;
@@ -21,6 +22,7 @@ export interface AuthenticatedLayoutProps {
 export function AuthenticatedLayout({
   user,
   initialVenues = [],
+  initialOrganizations = [],
   initialActiveOrganizationId,
   initialActiveVenueId,
   children,
@@ -58,6 +60,7 @@ export function AuthenticatedLayout({
       <VenueProvider
         user={user}
         initialVenues={initialVenues}
+        initialOrganizations={initialOrganizations}
         initialActiveOrganizationId={initialActiveOrganizationId}
         initialActiveVenueId={initialActiveVenueId}
       >

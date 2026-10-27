@@ -9,13 +9,18 @@ import { PwaRegister } from "@/shared/ui/pwa-register";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("meta");
+  const defaultTitle = `${SITE.name} ${SITE.surface} | ${t("tagline")}`;
+  const description = t("description");
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || "https://admin.yoreservo.nivis.cloud";
 
   return {
+    metadataBase: new URL(siteUrl),
     title: {
-      default: `${SITE.name} ${SITE.surface} | ${t("tagline")}`,
+      default: defaultTitle,
       template: `%s | ${SITE.name} ${SITE.surface}`,
     },
-    description: t("description"),
+    description,
     applicationName: `${SITE.name} ${SITE.surface}`,
     manifest: "/manifest.webmanifest",
     appleWebApp: {
@@ -28,9 +33,23 @@ export async function generateMetadata(): Promise<Metadata> {
         { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
         { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
       ],
+      shortcut: ["/icons/icon-192x192.png"],
       apple: [
         { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
       ],
+    },
+    openGraph: {
+      type: "website",
+      locale: "es_VE",
+      url: siteUrl,
+      siteName: `${SITE.name} ${SITE.surface}`,
+      title: defaultTitle,
+      description,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: defaultTitle,
+      description,
     },
     // Internal operations panel: never indexed.
     robots: { index: false, follow: false },

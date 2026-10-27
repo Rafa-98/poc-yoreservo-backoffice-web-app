@@ -13,6 +13,7 @@ import type {
   SpaceItem,
   SportCategoryItem,
   UpdateSpaceInput,
+  VenueItem,
 } from "../model/types";
 import type {
   AmenityItem,
@@ -26,6 +27,7 @@ import {
 interface CourtModalProps {
   isOpen: boolean;
   onClose: () => void;
+  venues?: VenueItem[];
   venueId: string;
   space: SpaceItem | null;
   categories: SportCategoryItem[];
@@ -257,6 +259,7 @@ function getRecommendedCapacityForCategory(
 export function CourtModal({
   isOpen,
   onClose,
+  venues = [],
   venueId,
   space,
   categories,
@@ -273,6 +276,11 @@ export function CourtModal({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const [selectedVenueId, setSelectedVenueId] = useState<string>(
+    () =>
+      space?.venueId ||
+      (venueId && venueId !== "ALL" ? venueId : venues[0]?.id || ""),
+  );
   const [spaceNumber, setSpaceNumber] = useState("");
   const [activityCategoryId, setActivityCategoryId] = useState("");
   const [pricePerHour, setPricePerHour] = useState<number>(25);
@@ -304,6 +312,27 @@ export function CourtModal({
     }
     return catName || t("defaultSport");
   }
+
+  const venueOptions = useMemo<SearchableOption[]>(() => {
+    const opts = venues.map((v) => ({
+      value: v.id,
+      label: v.name,
+      subtitle: v.address || v.city || undefined,
+      icon: "📍",
+    }));
+    if (
+      space?.venueId &&
+      !opts.some((o) => o.value === space.venueId)
+    ) {
+      opts.unshift({
+        value: space.venueId,
+        label: space.venueName || space.venue?.name || "Sede asignada",
+        subtitle: undefined,
+        icon: "📍",
+      });
+    }
+    return opts;
+  }, [venues, space]);
 
   const categoryOptions = useMemo<SearchableOption[]>(
     () =>
@@ -384,6 +413,7 @@ export function CourtModal({
   useEffect(() => {
     setErrorMsg(null);
     if (space) {
+      setSelectedVenueId(space.venueId || venueId || venues[0]?.id || "");
       setSpaceNumber(space.spaceNumber || "");
       const initialCatId = space.activityCategoryId || categories[0]?.id || "";
       setActivityCategoryId(initialCatId);
@@ -426,6 +456,11 @@ export function CourtModal({
         .slice(0, 4)
         .map((a) => a.name);
 
+      setSelectedVenueId(
+        venueId && venueId !== "ALL" && venues.some((v) => v.id === venueId)
+          ? venueId
+          : venues[0]?.id || "",
+      );
       setSpaceNumber("");
       setActivityCategoryId(defaultCat?.id || "");
       setPricePerHour(25);
@@ -436,7 +471,7 @@ export function CourtModal({
       setSelectedAmenities(defaultSelectedAmenities);
       setImageUrl("");
     }
-  }, [space, categories, surfaces, amenitiesCatalog, isOpen]);
+  }, [space, venueId, venues, categories, surfaces, amenitiesCatalog, isOpen]);
 
   function handleCategoryChange(newCategoryId: string) {
     setActivityCategoryId(newCategoryId);
@@ -524,6 +559,21 @@ export function CourtModal({
     setLoading(true);
     setErrorMsg(null);
 
+    const targetVenueId =
+      space?.venueId ||
+      (selectedVenueId && selectedVenueId !== "ALL" ? selectedVenueId : "") ||
+      (venueId && venueId !== "ALL" ? venueId : "");
+
+    if (!targetVenueId) {
+      setErrorMsg(
+        isEn
+          ? "You must select a venue to associate this court with."
+          : "Debes seleccionar el Recinto / Sede al que pertenecerá esta cancha.",
+      );
+      setLoading(false);
+      return;
+    }
+
     const catId = activityCategoryId || categories[0]?.id;
     if (!catId) {
       setErrorMsg(t("errorCategoryRequired"));
@@ -564,7 +614,7 @@ export function CourtModal({
         imageUrl: imageUrl.trim() || undefined,
       };
 
-      const res = await createSpaceAction(venueId, createDto);
+      const res = await createSpaceAction(targetVenueId, createDto);
       setLoading(false);
       if (res.ok && res.data) {
         onSuccess(res.data, true);
@@ -702,7 +752,34 @@ export function CourtModal({
             </button>
           </div>
 
-          {/* 2. COURT NAME */}
+          {/* 2. VENUE SELECTOR */}
+          <div className="form-group">
+            <label
+              className="form-label mb-1 block text-xs font-semibold text-foreground"
+              htmlFor="court-venue-select"
+            >
+              {isEn
+                ? "📍 Venue / Sports Complex *"
+                : "📍 Recinto / Sede Deportiva *"}
+            </label>
+            <SearchableSelect
+              id="court-venue-select"
+              options={venueOptions}
+              value={selectedVenueId}
+              onChange={setSelectedVenueId}
+              placeholder={
+                isEn
+                  ? "Select a venue..."
+                  : "Selecciona el recinto / sede..."
+              }
+              searchPlaceholder={
+                isEn ? "Search venue..." : "Buscar sede..."
+              }
+              disabled={Boolean(space) || venueOptions.length === 0}
+            />
+          </div>
+
+          {/* 2b. COURT NAME */}
           <div className="form-group">
             <label
               className="form-label mb-1 block text-xs font-semibold text-foreground"

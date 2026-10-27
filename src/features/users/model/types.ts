@@ -50,6 +50,15 @@ export interface ActiveSessionItem {
   expiresAt: string;
 }
 
+export interface UserOrganizationOption {
+  id: string;
+  tradeName: string;
+  legalName?: string | null;
+  rif?: string | null;
+  isPlatformOrg?: boolean;
+  venuesCount: number;
+}
+
 export interface InviteUserInput {
   name: string;
   lastName: string;
@@ -58,6 +67,7 @@ export interface InviteUserInput {
   documentType: DocumentType;
   documentNumber: string;
   role: UserRole;
+  organizationId?: string | null;
   managedVenueId?: string | null;
   deliveryMethod: 'magic_link' | 'temp_pass';
   tempPassword?: string;
@@ -65,6 +75,7 @@ export interface InviteUserInput {
 
 export interface UpdateUserPrivilegesInput {
   role?: UserRole;
+  organizationId?: string | null;
   managedVenueId?: string | null;
   status?: GeneralStatus;
 }

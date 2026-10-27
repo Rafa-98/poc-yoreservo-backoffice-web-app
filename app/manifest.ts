@@ -15,6 +15,7 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#1F290F",
     lang: "es-VE",
     dir: "ltr",
+    prefer_related_applications: false,
     categories: ["business", "finance", "productivity", "sports"],
     icons: [
       {

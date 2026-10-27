@@ -10,6 +10,7 @@ import type {
   InviteUserInput,
   UpdateUserPrivilegesInput,
   UserItem,
+  UserOrganizationOption,
   UserRole,
   UsersKpi,
 } from "../model/types";
@@ -19,7 +20,13 @@ export async function getUsersAction(filter?: {
   role?: string;
   venueId?: string;
   status?: string;
-}): Promise<ActionResult<{ kpi: UsersKpi; users: UserItem[] }>> {
+}): Promise<
+  ActionResult<{
+    kpi: UsersKpi;
+    users: UserItem[];
+    organizations?: UserOrganizationOption[];
+  }>
+> {
   const { accessToken } = await requireSessionWithToken(["PLATFORM_ADMIN", "ALLY_ADMIN"]);
   try {
     const query = new URLSearchParams();
@@ -38,13 +45,23 @@ export async function getUsersAction(filter?: {
       return fail("USERS_FETCH_FAILED");
     }
 
-    const body = res.body as { kpi: UsersKpi; users: UserItem[] };
+    const body = res.body as {
+      kpi: UsersKpi;
+      users: UserItem[];
+      organizations?: UserOrganizationOption[];
+    };
     const normalizedUsers = (body?.users ?? []).map((u) => ({
       ...u,
       role: (normalizeBackofficeRole(u.role) ?? u.role) as UserRole,
     }));
 
-    return ok({ kpi: body.kpi, users: normalizedUsers });
+    return ok({
+      kpi: body.kpi,
+      users: normalizedUsers,
+      organizations: Array.isArray(body?.organizations)
+        ? body.organizations
+        : undefined,
+    });
   } catch (err: any) {
     return fail(err instanceof Error ? err.message : "USERS_FETCH_FAILED");
   }

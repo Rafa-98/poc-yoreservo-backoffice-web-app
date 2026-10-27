@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { DEFAULT_BCV_USD_RATE } from "@/shared/lib";
@@ -83,12 +83,19 @@ export function SpacesPage({
   const [safetyCourt, setSafetyCourt] = useState<SpaceItem | null>(null);
   const [activeBookingsCount, setActiveBookingsCount] = useState<number>(0);
 
+  const availableVenues = useMemo(() => {
+    if (!selectedOrganizationId || selectedOrganizationId === "ALL") {
+      return venues;
+    }
+    return venues.filter((v) => v.organizationId === selectedOrganizationId);
+  }, [venues, selectedOrganizationId]);
+
   const currentVenue =
     selectedVenueId === "ALL"
       ? null
-      : venues.find((v) => v.id === selectedVenueId) ||
+      : availableVenues.find((v) => v.id === selectedVenueId) ||
         scopedVenues[0] ||
-        venues[0];
+        availableVenues[0];
 
   function showToast(message: string, isError = false) {
     setToast({ message, isError });
@@ -128,6 +135,15 @@ export function SpacesPage({
 
 
   function handleOpenCreateCourt() {
+    if (availableVenues.length === 0) {
+      showToast(
+        isEn
+          ? "You must register at least one Venue before adding courts."
+          : "Primero debes registrar al menos un Recinto / Sede antes de agregar canchas.",
+        true,
+      );
+      return;
+    }
     setEditingCourt(null);
     setIsCourtModalOpen(true);
   }
@@ -287,11 +303,12 @@ export function SpacesPage({
       <CourtModal
         isOpen={isCourtModalOpen}
         onClose={() => setIsCourtModalOpen(false)}
+        venues={availableVenues}
         venueId={
           editingCourt?.venueId ||
           (selectedVenueId !== "ALL"
             ? selectedVenueId
-            : scopedVenues[0]?.id || venues[0]?.id || "")
+            : availableVenues[0]?.id || "")
         }
         space={editingCourt}
         categories={categories}

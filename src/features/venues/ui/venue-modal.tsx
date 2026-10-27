@@ -18,6 +18,7 @@ import type {
   VenueItem,
   VenueStatusType,
 } from "../model/types";
+import { useActiveVenue } from "../context/venue-context";
 import { createVenueAction, updateVenueAction } from "../actions/venues-actions";
 import { VenueLocationMapPicker } from "./venue-location-map-picker";
 
@@ -170,6 +171,36 @@ export function VenueModal({
 
   const isPlatformStaff =
     userRole === "PLATFORM_ADMIN" || userRole === "PLATFORM_ACCOUNTING";
+
+  const { organizations, activeOrganizationId } = useActiveVenue();
+  const allyOrganizations = useMemo(
+    () => organizations.filter((o) => !o.isPlatformOrg),
+    [organizations],
+  );
+  const [selectedOrgId, setSelectedOrgId] = useState<string>("");
+
+  const organizationOptions = useMemo<SearchableOption[]>(
+    () =>
+      (allyOrganizations.length > 0 ? allyOrganizations : organizations).map(
+        (org) => ({
+          value: org.id,
+          label: org.tradeName,
+          subtitle: org.rif
+            ? `${org.rif} · ${org.venuesCount} ${
+                isEn
+                  ? org.venuesCount === 1
+                    ? "venue"
+                    : "venues"
+                  : org.venuesCount === 1
+                    ? "sede"
+                    : "sedes"
+              }`
+            : undefined,
+          icon: "🏢",
+        }),
+      ),
+    [allyOrganizations, organizations, isEn],
+  );
 
   function getLocationNodeName(node: LocationNode): string {
     if (typeof node.name === "string") return node.name;
@@ -335,6 +366,13 @@ export function VenueModal({
       setLocationLng(DEFAULT_CARACAS_COORDS.lng);
       setPhoneEntries([{ operator: "0212", number: "" }]);
       setEmailEntries([""]);
+      if (isPlatformStaff) {
+        const defaultOrg =
+          activeOrganizationId && activeOrganizationId !== "ALL"
+            ? activeOrganizationId
+            : allyOrganizations[0]?.id || organizations[0]?.id || "";
+        setSelectedOrgId(defaultOrg);
+      }
     }
 
     const resolved = resolveInitialLocationIds(venue, locationsTree);
@@ -556,6 +594,8 @@ export function VenueModal({
       }
     } else {
       const createDto: CreateVenueInput = {
+        organizationId:
+          isPlatformStaff && selectedOrgId ? selectedOrgId : undefined,
         name: name.trim(),
         rif: formattedRif || undefined,
         address: address.trim(),
@@ -708,7 +748,35 @@ export function VenueModal({
             </button>
           </div>
 
-          {/* 2. VENUE NAME */}
+          {/* 2. OWNER ORGANIZATION (Platform Staff Creating New Venue) */}
+          {!venue && isPlatformStaff && organizationOptions.length > 0 && (
+            <div className="form-group">
+              <label
+                className="form-label mb-1 block text-xs font-semibold text-foreground"
+                htmlFor="venue-organization-select"
+              >
+                {isEn
+                  ? "🏢 Owner Organization *"
+                  : "🏢 Organización Propietaria *"}
+              </label>
+              <SearchableSelect
+                id="venue-organization-select"
+                value={selectedOrgId}
+                onChange={setSelectedOrgId}
+                options={organizationOptions}
+                placeholder={
+                  isEn
+                    ? "Select an organization..."
+                    : "Selecciona una organización..."
+                }
+                searchPlaceholder={
+                  isEn ? "Search organization..." : "Buscar organización..."
+                }
+              />
+            </div>
+          )}
+
+          {/* 2b. VENUE NAME */}
           <div className="form-group">
             <label
               className="form-label mb-1 block text-xs font-semibold text-foreground"

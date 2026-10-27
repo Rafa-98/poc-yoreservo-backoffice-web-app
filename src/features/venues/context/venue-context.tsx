@@ -10,10 +10,14 @@ import {
   type ReactNode,
 } from "react";
 import type { SessionUser } from "@/shared/auth";
-import { getVenuesListAction } from "@/features/venues/actions/venues-actions";
+import {
+  getOrganizationAction,
+  getVenuesListAction,
+} from "@/features/venues/actions/venues-actions";
 import {
   deriveOrganizationsFromVenues,
   type DerivedOrganizationOption,
+  type OrganizationSummaryItem,
   type VenueItem,
 } from "@/features/venues/model/types";
 
@@ -49,6 +53,7 @@ function setCookie(name: string, value: string, days = 365): void {
 export interface VenueProviderProps {
   user: SessionUser;
   initialVenues?: VenueItem[];
+  initialOrganizations?: OrganizationSummaryItem[];
   initialActiveOrganizationId?: string;
   initialActiveVenueId?: string;
   children: ReactNode;
@@ -57,11 +62,14 @@ export interface VenueProviderProps {
 export function VenueProvider({
   user,
   initialVenues = [],
+  initialOrganizations = [],
   initialActiveOrganizationId,
   initialActiveVenueId,
   children,
 }: VenueProviderProps) {
   const [venues, setVenues] = useState<VenueItem[]>(initialVenues);
+  const [extraOrganizations, setExtraOrganizations] =
+    useState<OrganizationSummaryItem[]>(initialOrganizations);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isPending = false;
@@ -72,8 +80,8 @@ export function VenueProvider({
     user.role === "ALLY_VALIDATOR" && Boolean(user.managedVenueId);
 
   const organizations = useMemo(
-    () => deriveOrganizationsFromVenues(venues),
-    [venues],
+    () => deriveOrganizationsFromVenues(venues, extraOrganizations),
+    [venues, extraOrganizations],
   );
 
   // Initialize active organization ID deterministically (defaults to first active org for platform roles)
@@ -85,7 +93,10 @@ export function VenueProvider({
       if (initialActiveOrganizationId) {
         return initialActiveOrganizationId;
       }
-      const derived = deriveOrganizationsFromVenues(initialVenues);
+      const derived = deriveOrganizationsFromVenues(
+        initialVenues,
+        initialOrganizations,
+      );
       return derived[0]?.id || "ALL";
     },
   );
@@ -101,24 +112,36 @@ export function VenueProvider({
     setIsLoading(true);
     setError(null);
     try {
-      const res = await getVenuesListAction();
+      const [res, orgsRes] = await Promise.all([
+        getVenuesListAction(),
+        isPlatformRole ? getOrganizationAction() : Promise.resolve(null),
+      ]);
       if (res.ok) {
         setVenues(Array.isArray(res.data) ? res.data : []);
       } else {
         setError(res.error?.code || "Failed to load venues");
+      }
+      if (orgsRes && orgsRes.ok && Array.isArray(orgsRes.data?.organizations)) {
+        setExtraOrganizations(orgsRes.data.organizations);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error fetching venues");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isPlatformRole]);
 
   useEffect(() => {
     if (initialVenues.length > 0) {
       setVenues(initialVenues);
     }
   }, [initialVenues]);
+
+  useEffect(() => {
+    if (initialOrganizations.length > 0) {
+      setExtraOrganizations(initialOrganizations);
+    }
+  }, [initialOrganizations]);
 
   const setActiveOrganizationId = useCallback(
     (newOrgId: string) => {

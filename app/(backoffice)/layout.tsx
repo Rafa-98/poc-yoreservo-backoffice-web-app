@@ -3,9 +3,13 @@ import { cookies } from "next/headers";
 import { requireSession } from "@/shared/auth/index.server";
 import { ROUTE_ALLOWED_ROLES, ROUTES } from "@/shared/config";
 import { getPaymentsInboxAction } from "@/features/treasury/actions/treasury-actions";
-import { getVenuesListAction } from "@/features/venues/actions/venues-actions";
+import {
+  getOrganizationAction,
+  getVenuesListAction,
+} from "@/features/venues/actions/venues-actions";
 import {
   deriveOrganizationsFromVenues,
+  type OrganizationSummaryItem,
   type VenueItem,
 } from "@/features/venues/model/types";
 import { AuthenticatedLayout } from "@/_app/layouts";
@@ -33,6 +37,7 @@ export default async function BackofficeRootLayout({
       : savedVenueCookie || "ALL";
 
   let initialVenues: VenueItem[] = [];
+  let initialOrganizations: OrganizationSummaryItem[] = [];
   if (
     session.user.role === "PLATFORM_ADMIN" ||
     session.user.role === "PLATFORM_ACCOUNTING" ||
@@ -41,16 +46,26 @@ export default async function BackofficeRootLayout({
     session.user.role === "ALLY_VALIDATOR"
   ) {
     try {
-      const venuesRes = await getVenuesListAction();
+      const [venuesRes, orgsRes] = await Promise.all([
+        getVenuesListAction(),
+        isPlatformRole ? getOrganizationAction() : Promise.resolve(null),
+      ]);
       if (venuesRes.ok && Array.isArray(venuesRes.data)) {
         initialVenues = venuesRes.data;
       }
+      if (orgsRes && orgsRes.ok && Array.isArray(orgsRes.data?.organizations)) {
+        initialOrganizations = orgsRes.data.organizations;
+      }
     } catch {
       initialVenues = [];
+      initialOrganizations = [];
     }
   }
 
-  const derivedOrganizations = deriveOrganizationsFromVenues(initialVenues);
+  const derivedOrganizations = deriveOrganizationsFromVenues(
+    initialVenues,
+    initialOrganizations,
+  );
   let initialActiveOrganizationId = "ALL";
   if (isPlatformRole) {
     if (
@@ -107,6 +122,7 @@ export default async function BackofficeRootLayout({
       <AuthenticatedLayout
         user={session.user}
         initialVenues={initialVenues}
+        initialOrganizations={initialOrganizations}
         initialActiveOrganizationId={initialActiveOrganizationId}
         initialActiveVenueId={initialActiveVenueId}
       >

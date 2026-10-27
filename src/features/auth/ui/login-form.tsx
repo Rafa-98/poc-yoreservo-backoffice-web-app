@@ -11,86 +11,17 @@ import { Button } from "@/shared/ui/button";
 import { Alert } from "@/shared/ui/alert";
 import { loginAction } from "../actions/login-action";
 
-interface DemoRolePreset {
-  id: string;
-  labelKey?: string;
-  customLabel?: string;
-  sublabel?: string;
-  email: string;
-  pass: string;
-}
-
-const PERSONAL_PRESETS: readonly DemoRolePreset[] = [
-  {
-    id: "personal_yoreservo",
-    customLabel: "👑 YoReservo Staff",
-    sublabel: "mendez_98_@hotmail.com",
-    email: "mendez_98_@hotmail.com",
-    pass: "Battlefield3",
-  },
-  {
-    id: "personal_ally",
-    customLabel: "⚽ Aliado San Agustín",
-    sublabel: "mendezsnow98@gmail.com",
-    email: "mendezsnow98@gmail.com",
-    pass: "Battlefield3",
-  },
-  {
-    id: "test_platform_admin",
-    customLabel: "👑 Platform Admin",
-    sublabel: "platform_admin_test@nivis.cloud",
-    email: "platform_admin_test@nivis.cloud",
-    pass: "Battlefield3",
-  },
-  {
-    id: "test_platform_accounting",
-    customLabel: "💳 Platform Accounting",
-    sublabel: "platform_accounting_test@nivis.cloud",
-    email: "platform_accounting_test@nivis.cloud",
-    pass: "Battlefield3",
-  },
-  {
-    id: "test_ally_admin",
-    customLabel: "⚽ Ally Admin",
-    sublabel: "ally_admin_test@nivis.cloud",
-    email: "ally_admin_test@nivis.cloud",
-    pass: "Battlefield3",
-  },
-  {
-    id: "test_ally_accounting",
-    customLabel: "📊 Ally Accounting",
-    sublabel: "ally_accounting_test@nivis.cloud",
-    email: "ally_accounting_test@nivis.cloud",
-    pass: "Battlefield3",
-  },
-  {
-    id: "test_ally_validator",
-    customLabel: "🎫 Ally Validator",
-    sublabel: "ally_validator_test@nivis.cloud",
-    email: "ally_validator_test@nivis.cloud",
-    pass: "Battlefield3",
-  },
-];
-
 export function LoginForm() {
   const t = useTranslations("auth");
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [email, setEmail] = useState("mendez_98_@hotmail.com");
-  const [password, setPassword] = useState("Battlefield3");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState("personal_yoreservo");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const handleRoleSelect = (preset: DemoRolePreset) => {
-    setSelectedRole(preset.id);
-    setEmail(preset.email);
-    setPassword(preset.pass);
-    setErrorMessage(null);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -233,38 +164,6 @@ export function LoginForm() {
           <span>{isLoading ? t("btnLoggingIn") : t("btnLogin")}</span>
           {!isLoading && <ArrowRight className="size-4" />}
         </Button>
-
-        {/* Quick-Login Testing Accounts */}
-        <div className="mt-6 border-t border-dashed border-border pt-4">
-          <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground">
-            {t("quickAccessTitle")}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {PERSONAL_PRESETS.map((preset) => {
-              const isActive = selectedRole === preset.id;
-              return (
-                <button
-                  key={preset.id}
-                  type="button"
-                  id={`preset-${preset.id}`}
-                  onClick={() => handleRoleSelect(preset)}
-                  className={`rounded-xl border px-3 py-2 text-left transition-all cursor-pointer ${
-                    isActive
-                      ? "border-accent bg-accent/15 text-foreground shadow-sm ring-1 ring-accent/40"
-                      : "border-border bg-background text-muted-foreground hover:border-border-medium hover:text-foreground"
-                  }`}
-                >
-                  <div className="text-xs font-bold text-foreground">
-                    {preset.customLabel}
-                  </div>
-                  <div className="text-[10px] font-mono text-muted-foreground truncate">
-                    {preset.sublabel}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
       </form>
     </div>
   );
